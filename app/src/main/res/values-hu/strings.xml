@@ -605,9 +605,14 @@
     <string name="settings_voip_apps_label">Válassza ki, mely alkalmazásokat rögzítse</string>
     <string name="settings_voip_apps_loading">Alkalmazások keresése…</string>
     <string name="settings_voip_apps_all">Minden alkalmazás rögzítve</string>
-    <string name="settings_voip_apps_some">%1$d alkalmazás nem lesz rögzítve</string>
+    <plurals name="settings_voip_apps_some">
+        <item quantity="one">%1$d alkalmazás nem lesz rögzítve</item>
+        <item quantity="other">%1$d alkalmazás nem lesz rögzítve</item>
+    </plurals>
     <string name="settings_voip_apps_hint">Kapcsoljon ki egy alkalmazást, és a hívásai soha nem lesznek rögzítve. Minden be van kapcsolva, amíg nem módosítja. A hangrögzítésre képtelen alkalmazások nem szerepelnek, mert nem tudnak ilyen hívást kezdeményezni.</string>
     <string name="general_flag_count">Jelölés (%1$d)</string>
     <string name="voip_recording_paused">Szüneteltetve. Most semmi nem kerül mentésre.</string>
     <string name="voip_recording_held">Telefonhívás miatt tartva. A felvétel folytatódik, amikor visszatér.</string>
+    <string name="general_back">Vissza</string>
+    <string name="export_heading_transcript">Átirat</string>
 </resources>

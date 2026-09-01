@@ -605,9 +605,13 @@
     <string name="settings_voip_apps_label">Chọn ứng dụng cần ghi</string>
     <string name="settings_voip_apps_loading">Đang tìm ứng dụng…</string>
     <string name="settings_voip_apps_all">Mọi ứng dụng đều được ghi</string>
-    <string name="settings_voip_apps_some">%1$d ứng dụng sẽ không được ghi</string>
+    <plurals name="settings_voip_apps_some">
+        <item quantity="other">%1$d ứng dụng sẽ không được ghi</item>
+    </plurals>
     <string name="settings_voip_apps_hint">Tắt một ứng dụng và cuộc gọi của nó sẽ không bao giờ được ghi. Mọi thứ đều bật cho đến khi bạn thay đổi. Ứng dụng không ghi được âm thanh sẽ không hiện ra, vì chúng không thực hiện loại cuộc gọi này.</string>
     <string name="general_flag_count">Đánh dấu (%1$d)</string>
     <string name="voip_recording_paused">Đã tạm dừng. Hiện không có gì được lưu.</string>
     <string name="voip_recording_held">Đang giữ vì có cuộc gọi điện thoại. Bản ghi sẽ tiếp tục khi bạn quay lại.</string>
+    <string name="general_back">Quay lại</string>
+    <string name="export_heading_transcript">Bản ghi lời</string>
 </resources>

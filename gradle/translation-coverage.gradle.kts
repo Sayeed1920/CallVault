@@ -68,9 +68,20 @@ fun resourcesIn(dir: File, translatableOnly: Boolean): Map<String, String> {
         .toMap()
 }
 
-/** The format specifiers a string uses, sorted so order of appearance does not matter. */
+/**
+ * The format specifiers a string uses, as a sorted SET.
+ *
+ * Distinct rather than a plain list because a `<plurals>` legitimately holds a different number of
+ * items per language — English needs two forms, Polish and Russian need four — and this function
+ * sees the concatenated text of all of them. Comparing lists would flag every correctly translated
+ * plural as a mismatch and make proper pluralisation impossible to ship.
+ *
+ * The check that matters is unaffected: a locale that drops `%2$s`, or renumbers it, still differs
+ * from the base and still fails. Only repetition stops being significant, and repeating a specifier
+ * has never been what throws IllegalFormatException.
+ */
 fun placeholdersOf(text: String): List<String> =
-    placeholderPattern.findAll(text).map { it.value }.sorted().toList()
+    placeholderPattern.findAll(text).map { it.value }.distinct().sorted().toList()
 
 val checkTranslations = tasks.register("checkTranslations") {
     group = "verification"

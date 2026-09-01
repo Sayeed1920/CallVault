@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -1939,7 +1940,12 @@ private fun VoipAppPicker(prefs: AppPreferences) {
         description = when {
             loaded == null -> stringResource(R.string.settings_voip_apps_loading)
             excluded.isEmpty() -> stringResource(R.string.settings_voip_apps_all)
-            else -> stringResource(R.string.settings_voip_apps_some, excluded.size)
+            // pluralStringResource, not stringResource: the English text used to read "app(s)",
+            // which four translators copied verbatim and Polish and Russian could not express at all
+            // — they need three and four forms respectively for the same sentence.
+            else -> pluralStringResource(
+                R.plurals.settings_voip_apps_some, excluded.size, excluded.size
+            )
         },
         checked = expanded,
         enabled = loaded != null,

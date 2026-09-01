@@ -33,6 +33,25 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class TranscriptExportTest {
+    /**
+     * The English headings, spelled out here rather than defaulted in production code.
+     *
+     * [TranscriptExport.render] deliberately takes [ExportLabels] with no default: a default would
+     * be English, and a caller that forgot to pass it would silently reintroduce the bug where a
+     * French reader exported "Key points" from a screen showing "Points clés".
+     */
+    private val english = ExportLabels(
+        summary = "Summary",
+        notes = "Notes",
+        transcript = "Transcript",
+        keyPoints = "Key points",
+        decisions = "Decisions",
+        actionItems = "Action items",
+        keyFacts = "Key facts",
+        language = "Language",
+        model = "Model",
+    )
+
 
     private val names = SpeakerNames(
         map = ChannelMap.A_IS_FAR,
@@ -91,14 +110,14 @@ class TranscriptExportTest {
 
     @Test
     fun `SRT timestamps carry an hours field and a comma`() {
-        val srt = TranscriptExport.render(TranscriptFormat.SRT, doc)
+        val srt = TranscriptExport.render(TranscriptFormat.SRT, doc, english)
 
         assertTrue(srt, "00:00:00,000 --> 00:00:02,500" in srt)
     }
 
     @Test
     fun `VTT timestamps use a full stop and the file declares itself`() {
-        val vtt = TranscriptExport.render(TranscriptFormat.VTT, doc)
+        val vtt = TranscriptExport.render(TranscriptFormat.VTT, doc, english)
 
         assertTrue(vtt.startsWith("WEBVTT"))
         assertTrue(vtt, "00:00:00.000 --> 00:00:02.500" in vtt)
@@ -108,7 +127,7 @@ class TranscriptExportTest {
     fun `an hour-long call keeps its hours`() {
         val long = doc.copy(segments = listOf(segment(3_661_500, 3_663_000, "late in the call")))
 
-        val srt = TranscriptExport.render(TranscriptFormat.SRT, long)
+        val srt = TranscriptExport.render(TranscriptFormat.SRT, long, english)
 
         assertTrue(srt, "01:01:01,500 --> 01:01:03,000" in srt)
     }
@@ -120,14 +139,14 @@ class TranscriptExportTest {
         // would silently truncate the export rather than blemish it.
         val degenerate = doc.copy(segments = listOf(segment(1_000, 1_000, "instant")))
 
-        val srt = TranscriptExport.render(TranscriptFormat.SRT, degenerate)
+        val srt = TranscriptExport.render(TranscriptFormat.SRT, degenerate, english)
 
         assertTrue(srt, "00:00:01,000 --> 00:00:01,100" in srt)
     }
 
     @Test
     fun `cues are numbered from one and in order`() {
-        val srt = TranscriptExport.render(TranscriptFormat.SRT, doc)
+        val srt = TranscriptExport.render(TranscriptFormat.SRT, doc, english)
         val numbers = srt.lines().filter { it.toIntOrNull() != null }
 
         assertEquals(listOf("1", "2"), numbers)
@@ -137,7 +156,7 @@ class TranscriptExportTest {
     fun `VTT escapes the characters it would otherwise read as markup`() {
         val risky = doc.copy(segments = listOf(segment(0, 1_000, "5 < 6 & 7 > 6")))
 
-        val vtt = TranscriptExport.render(TranscriptFormat.VTT, risky)
+        val vtt = TranscriptExport.render(TranscriptFormat.VTT, risky, english)
 
         assertTrue(vtt, "5 &lt; 6 &amp; 7 &gt; 6" in vtt)
     }
@@ -146,7 +165,7 @@ class TranscriptExportTest {
     fun `SRT does not escape, because there it would be shown literally`() {
         val risky = doc.copy(segments = listOf(segment(0, 1_000, "5 < 6")))
 
-        assertTrue("5 < 6" in TranscriptExport.render(TranscriptFormat.SRT, risky))
+        assertTrue("5 < 6" in TranscriptExport.render(TranscriptFormat.SRT, risky, english))
     }
 
     @Test
@@ -155,7 +174,7 @@ class TranscriptExportTest {
         // subtitle and leave the remainder as a malformed cue of its own.
         val awkward = doc.copy(segments = listOf(segment(0, 1_000, "first\n\nsecond")))
 
-        val srt = TranscriptExport.render(TranscriptFormat.SRT, awkward)
+        val srt = TranscriptExport.render(TranscriptFormat.SRT, awkward, english)
 
         assertFalse(srt, "first\n\nsecond" in srt)
         assertTrue(srt, "first\nsecond" in srt)
@@ -167,14 +186,14 @@ class TranscriptExportTest {
             segments = listOf(segment(0, 1_000, "said"), segment(1_000, 2_000, "   "))
         )
 
-        val srt = TranscriptExport.render(TranscriptFormat.SRT, withBlank)
+        val srt = TranscriptExport.render(TranscriptFormat.SRT, withBlank, english)
 
         assertEquals(listOf("1"), srt.lines().filter { it.toIntOrNull() != null })
     }
 
     @Test
     fun `speaker labels survive into the subtitle text`() {
-        val srt = TranscriptExport.render(TranscriptFormat.SRT, doc)
+        val srt = TranscriptExport.render(TranscriptFormat.SRT, doc, english)
 
         assertTrue(srt, "Dana: Hello there" in srt)
         assertTrue(srt, "You: Hi, how are you" in srt)
@@ -184,7 +203,7 @@ class TranscriptExportTest {
 
     @Test
     fun `plain text matches what the transcript shows on screen`() {
-        val txt = TranscriptExport.render(TranscriptFormat.TXT, doc)
+        val txt = TranscriptExport.render(TranscriptFormat.TXT, doc, english)
 
         assertEquals("[0:00] Dana: Hello there\n[0:02] You: Hi, how are you", txt)
     }
@@ -202,7 +221,7 @@ class TranscriptExportTest {
             )
         )
 
-        val md = TranscriptExport.render(TranscriptFormat.MARKDOWN, summarised)
+        val md = TranscriptExport.render(TranscriptFormat.MARKDOWN, summarised, english)
 
         assertTrue(md, md.indexOf("## Summary") < md.indexOf("## Transcript"))
         assertTrue(md, "Chasing an invoice" in md)
@@ -213,7 +232,7 @@ class TranscriptExportTest {
 
     @Test
     fun `markdown omits every section it has nothing for`() {
-        val md = TranscriptExport.render(TranscriptFormat.MARKDOWN, doc)
+        val md = TranscriptExport.render(TranscriptFormat.MARKDOWN, doc, english)
 
         assertFalse(md, "## Summary" in md)
         assertFalse(md, "## Notes" in md)
@@ -224,11 +243,52 @@ class TranscriptExportTest {
     fun `the note reaches markdown when there is one`() {
         val md = TranscriptExport.render(
             TranscriptFormat.MARKDOWN,
-            doc.copy(note = "chase this on Monday")
-        )
+            doc.copy(note = "chase this on Monday"), english)
 
         assertTrue(md, "## Notes" in md)
         assertTrue(md, "chase this on Monday" in md)
+    }
+
+    @Test
+    fun `markdown headings follow the reader's language, not the code`() {
+        // Arrange — what a French reader has on screen: "Points clés", "Décisions", "À faire".
+        val french = ExportLabels(
+            summary = "Résumé",
+            notes = "Note",
+            transcript = "Transcription",
+            keyPoints = "Points clés",
+            decisions = "Décisions",
+            actionItems = "À faire",
+            keyFacts = "À retenir",
+            language = "Langue",
+            model = "Modèle",
+        )
+
+        val summarised = doc.copy(
+            summary = CallSummary(
+                intent = "Chasing an invoice",
+                summary = "She agreed to send it Tuesday.",
+                keyPoints = listOf("Three weeks late"),
+                decisions = listOf("Pay by transfer"),
+                actionItems = emptyList(),
+                keyFacts = emptyList()
+            )
+        )
+
+        // Act
+        val md = TranscriptExport.render(TranscriptFormat.MARKDOWN, summarised, french)
+
+        // Assert — the headings are the reader's, and no English one survives.
+        //
+        // Compared whole-line, not by `in`: "## Transcript" is a substring of "## Transcription",
+        // so a contains-check would fail against a correctly translated file.
+        val headings = md.lines().filter { it.startsWith("#") }
+        assertTrue(headings.toString(), "## Résumé" in headings)
+        assertTrue(headings.toString(), "## Transcription" in headings)
+        assertTrue(headings.toString(), "### Points clés" in headings)
+        assertTrue(headings.toString(), "### Décisions" in headings)
+        val english = listOf("## Summary", "## Transcript", "## Notes", "### Key points", "### Decisions")
+        assertTrue(headings.toString(), headings.none { it in english })
     }
 
     // ---- json ----
@@ -239,15 +299,15 @@ class TranscriptExportTest {
         // player would render them as a spoken line.
         val tagged = doc.copy(tags = listOf("the flat", "insurance"))
 
-        assertTrue("`the flat`" in TranscriptExport.render(TranscriptFormat.MARKDOWN, tagged))
-        assertTrue("insurance" in TranscriptExport.render(TranscriptFormat.JSON, tagged))
-        assertFalse("the flat" in TranscriptExport.render(TranscriptFormat.SRT, tagged))
-        assertFalse("the flat" in TranscriptExport.render(TranscriptFormat.VTT, tagged))
+        assertTrue("`the flat`" in TranscriptExport.render(TranscriptFormat.MARKDOWN, tagged, english))
+        assertTrue("insurance" in TranscriptExport.render(TranscriptFormat.JSON, tagged, english))
+        assertFalse("the flat" in TranscriptExport.render(TranscriptFormat.SRT, tagged, english))
+        assertFalse("the flat" in TranscriptExport.render(TranscriptFormat.VTT, tagged, english))
     }
 
     @Test
     fun `no tags leaves no empty line under the title`() {
-        val md = TranscriptExport.render(TranscriptFormat.MARKDOWN, doc)
+        val md = TranscriptExport.render(TranscriptFormat.MARKDOWN, doc, english)
 
         assertFalse(md, "``" in md)
     }
@@ -257,7 +317,7 @@ class TranscriptExportTest {
         // The key is what the app reasons about and survives the user re-deciding who is who; the
         // name is what a person reading the file expects. One without the other is either unstable
         // or unreadable.
-        val root = JSONObject(TranscriptExport.render(TranscriptFormat.JSON, doc))
+        val root = JSONObject(TranscriptExport.render(TranscriptFormat.JSON, doc, english))
         val first = root.getJSONArray("segments").getJSONObject(0)
 
         assertEquals(SpeakerChannel.A.key, first.getString("speaker"))
@@ -272,7 +332,7 @@ class TranscriptExportTest {
             segments = listOf(segment(0, 1_000, "he said \"no\",\nthen left"))
         )
 
-        val root = JSONObject(TranscriptExport.render(TranscriptFormat.JSON, awkward))
+        val root = JSONObject(TranscriptExport.render(TranscriptFormat.JSON, awkward, english))
 
         assertEquals(
             "he said \"no\",\nthen left",
@@ -284,7 +344,7 @@ class TranscriptExportTest {
     fun `json records an unattributed segment as null rather than omitting it`() {
         val anonymous = doc.copy(segments = listOf(segment(0, 1_000, "someone")), speakerNames = null)
 
-        val root = JSONObject(TranscriptExport.render(TranscriptFormat.JSON, anonymous))
+        val root = JSONObject(TranscriptExport.render(TranscriptFormat.JSON, anonymous, english))
         val first = root.getJSONArray("segments").getJSONObject(0)
 
         assertTrue(first.isNull("speaker"))
@@ -298,9 +358,9 @@ class TranscriptExportTest {
         val empty = doc.copy(segments = emptyList())
 
         TranscriptFormat.entries.forEach { format ->
-            val rendered = TranscriptExport.render(format, empty)
+            val rendered = TranscriptExport.render(format, empty, english)
             assertFalse(format.name, rendered.contains("-->"))
         }
-        assertTrue(TranscriptExport.render(TranscriptFormat.VTT, empty).startsWith("WEBVTT"))
+        assertTrue(TranscriptExport.render(TranscriptFormat.VTT, empty, english).startsWith("WEBVTT"))
     }
 }

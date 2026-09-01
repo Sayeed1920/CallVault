@@ -605,9 +605,16 @@
     <string name="settings_voip_apps_label">Wybierz aplikacje do nagrywania</string>
     <string name="settings_voip_apps_loading">Szukanie aplikacji…</string>
     <string name="settings_voip_apps_all">Nagrywane są wszystkie aplikacje</string>
-    <string name="settings_voip_apps_some">%1$d aplikacji nie będzie nagrywanych</string>
+    <plurals name="settings_voip_apps_some">
+        <item quantity="one">%1$d aplikacja nie będzie nagrywana</item>
+        <item quantity="few">%1$d aplikacje nie będą nagrywane</item>
+        <item quantity="many">%1$d aplikacji nie będzie nagrywanych</item>
+        <item quantity="other">%1$d aplikacji nie będzie nagrywanych</item>
+    </plurals>
     <string name="settings_voip_apps_hint">Wyłącz aplikację, a jej połączenia nigdy nie będą nagrywane. Wszystko jest włączone, dopóki tego nie zmienisz. Aplikacje bez możliwości nagrywania dźwięku nie są wymienione, bo nie mogą prowadzić takich połączeń.</string>
     <string name="general_flag_count">Oznacz (%1$d)</string>
     <string name="voip_recording_paused">Wstrzymano. W tej chwili nic nie jest zapisywane.</string>
     <string name="voip_recording_held">Wstrzymano na czas połączenia telefonicznego. Nagrywanie będzie kontynuowane po powrocie.</string>
+    <string name="general_back">Wstecz</string>
+    <string name="export_heading_transcript">Transkrypcja</string>
 </resources>
