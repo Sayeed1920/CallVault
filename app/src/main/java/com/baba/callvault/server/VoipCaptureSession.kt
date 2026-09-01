@@ -98,6 +98,11 @@ internal class VoipCaptureSession(
         val far = VoipAudioPolicy.createSink()
             ?: throw IllegalStateException("VoIP far-party sink unavailable (policy not armed?)")
         farRecord = far
+        // Audited like the near capture. This was missed when the ledger was added, so half of what a
+        // VoIP call opens was invisible to it: stop() released `farAuditId` without anything ever
+        // having opened it, and assertNoneLive could report "no capture left open" while the far
+        // record was still held.
+        farAuditId = CaptureAudit.opened("VoIP far capture (policy submix)")
 
         val near = newNearRecord() ?: throw IllegalStateException("VoIP mic capture failed to initialise")
         nearRecord = near
@@ -460,10 +465,21 @@ internal class VoipCaptureSession(
         CaptureAudit.assertNoneLive("after stopping VoIP capture")
     }
 
-    /** Releases what start() managed to build, leaving [outFd] open for the caller. */
+    /**
+     * Releases what start() managed to build, leaving [outFd] open for the caller.
+     *
+     * Stops before releasing, and closes the ledger entries, for the same reason [stop] does. Without
+     * the ledger part a start that threw after opening a capture left that id open forever, so the
+     * process reported a microphone it was no longer holding — a false alarm in the one report meant
+     * to answer whether the microphone is stuck.
+     */
     private fun cleanupPartial() {
+        runCatching { farRecord?.stop() }
         runCatching { farRecord?.release() }
+        if (farAuditId != 0) { CaptureAudit.released(farAuditId); farAuditId = 0 }
+        runCatching { nearRecord?.stop() }
         runCatching { nearRecord?.release() }
+        if (nearAuditId != 0) { CaptureAudit.released(nearAuditId); nearAuditId = 0 }
         runCatching { encoder?.release() }
         runCatching { muxer?.release() }
         farRecord = null; nearRecord = null; encoder = null; muxer = null
