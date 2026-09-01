@@ -100,11 +100,19 @@ object SystemLogCollector {
         }
         val capped = SystemLogFilter.capToNewest(kept, MAX_LINES, MAX_BYTES)
 
+        // Android's own record of who is holding a microphone. Collected separately from logcat
+        // because it answers a question logcat cannot: a capture leaked by a process that has since
+        // died, or by a leftover scrcpy server, leaves no log line anywhere — but it is still listed
+        // here, and it is still lighting the green dot on the user's screen.
+        val micActivity = RecordActivityReport.render(runShell(context, "dumpsys audio"))
+
         val dir = File(context.cacheDir, "logs").apply { mkdirs() }
         val out = File(dir, REPORT_NAME)
         runCatching {
             out.writeText(buildString {
                 appendLine(header(rawLines = raw.count { it == '\n' }, kept = kept.size, attached = capped.size))
+                appendLine(micActivity)
+                appendLine("-----------------------------------------------------------------------------------------")
                 capped.forEach { appendLine(AppLogger.redactForReport(it)) }
             })
         }.onFailure {
