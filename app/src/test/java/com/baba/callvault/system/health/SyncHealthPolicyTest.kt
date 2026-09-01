@@ -21,12 +21,12 @@ class SyncHealthPolicyTest {
 
     @Test
     fun `counts a recording that has waited longer than the schedule allows`() {
-        assertEquals(1, SyncHealthPolicy.countStalled(listOf(daysAgo(5)), SyncScheduleMode.DAILY, now))
+        assertEquals(1, SyncHealthPolicy.countStalled(listOf(daysAgo(5)), 0L, SyncScheduleMode.DAILY, now))
     }
 
     @Test
     fun `does not count a recording still within its window`() {
-        assertEquals(0, SyncHealthPolicy.countStalled(listOf(daysAgo(1)), SyncScheduleMode.DAILY, now))
+        assertEquals(0, SyncHealthPolicy.countStalled(listOf(daysAgo(1)), 0L, SyncScheduleMode.DAILY, now))
     }
 
     @Test
@@ -34,19 +34,19 @@ class SyncHealthPolicyTest {
         // The false positive this threshold exists to prevent: on WEEKLY, six days device-only is
         // correct behaviour, and warning about it would fire every week for ever. A warning that
         // cries wolf is worse than none — it trains the user to swipe away the one that matters.
-        assertEquals(0, SyncHealthPolicy.countStalled(listOf(daysAgo(6)), SyncScheduleMode.WEEKLY, now))
+        assertEquals(0, SyncHealthPolicy.countStalled(listOf(daysAgo(6)), 0L, SyncScheduleMode.WEEKLY, now))
     }
 
     @Test
     fun `a weekly schedule still warns once it is truly overdue`() {
-        assertEquals(1, SyncHealthPolicy.countStalled(listOf(daysAgo(12)), SyncScheduleMode.WEEKLY, now))
+        assertEquals(1, SyncHealthPolicy.countStalled(listOf(daysAgo(12)), 0L, SyncScheduleMode.WEEKLY, now))
     }
 
     @Test
     fun `never counts an undated recording`() {
         // A missing stamp is not evidence of age. Counting it would send the user hunting for a
         // problem that is not there.
-        assertEquals(0, SyncHealthPolicy.countStalled(listOf(0L), SyncScheduleMode.IMMEDIATE, now))
+        assertEquals(0, SyncHealthPolicy.countStalled(listOf(0L), 0L, SyncScheduleMode.IMMEDIATE, now))
     }
 
     @Test
@@ -54,7 +54,7 @@ class SyncHealthPolicyTest {
         assertEquals(
             2,
             SyncHealthPolicy.countStalled(
-                listOf(daysAgo(30), daysAgo(10), daysAgo(1), 0L), SyncScheduleMode.DAILY, now
+                listOf(daysAgo(30), daysAgo(10), daysAgo(1), 0L), 0L, SyncScheduleMode.DAILY, now
             )
         )
     }
@@ -66,4 +66,52 @@ class SyncHealthPolicyTest {
         assertTrue(SyncHealthPolicy.staleAfterDays(SyncScheduleMode.DAILY) > 1)
         assertTrue(SyncHealthPolicy.staleAfterDays(SyncScheduleMode.WEEKLY) > 7)
     }
+
+    // ---- the false positive reported on 2.2.0 ----
+
+    @Test
+    fun `a recording newer than the gap having reached Drive is not a stall`() {
+        // Arrange — one old recording never made it, but everything since has.
+        val orphan = listOf(daysAgo(30))
+        val newestSynced = daysAgo(1)
+
+        // Act
+        val stalled = SyncHealthPolicy.countStalled(orphan, newestSynced, SyncScheduleMode.DAILY, now)
+
+        // Assert — copying demonstrably still runs, so claiming it "stopped" would be false.
+        assertEquals(0, stalled)
+    }
+
+    @Test
+    fun `a stall is still caught when nothing newer has reached Drive`() {
+        // Arrange — the last thing to reach Drive is older than the recordings waiting.
+        val waiting = listOf(daysAgo(4), daysAgo(6))
+        val newestSynced = daysAgo(20)
+
+        // Act + Assert — this is the case the warning exists for.
+        assertEquals(2, SyncHealthPolicy.countStalled(waiting, newestSynced, SyncScheduleMode.DAILY, now))
+    }
+
+    @Test
+    fun `only the recordings made since the last successful copy count`() {
+        // Arrange — a mixed library: old gaps, then a successful copy, then new failures.
+        val unsynced = listOf(daysAgo(40), daysAgo(30), daysAgo(9), daysAgo(8))
+        val newestSynced = daysAgo(20)
+
+        // Act
+        val stalled = SyncHealthPolicy.countStalled(unsynced, newestSynced, SyncScheduleMode.DAILY, now)
+
+        // Assert — the two before the successful copy are history, not evidence.
+        assertEquals(2, stalled)
+    }
+
+    @Test
+    fun `a library that has never reached Drive still warns`() {
+        // Arrange — newestSynced is 0 when no recording has ever been copied.
+        assertEquals(
+            1,
+            SyncHealthPolicy.countStalled(listOf(daysAgo(5)), 0L, SyncScheduleMode.DAILY, now)
+        )
+    }
+
 }

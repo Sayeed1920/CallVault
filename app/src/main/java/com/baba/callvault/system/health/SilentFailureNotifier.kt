@@ -104,12 +104,18 @@ object SilentFailureNotifier {
                 return@runCatching
             }
 
-            val unsynced = RecordingCatalog.all(context)
+            val catalogued = RecordingCatalog.all(context)
+            val unsynced = catalogued
                 .filter { it.localUri != null && it.driveUri == null }
                 .map { it.lastModified }
+            // The most recent recording known to be in Drive. This is what turns "some old file has
+            // no Drive copy" into "copying has stopped" — or, far more often, rules it out.
+            val newestSynced = catalogued
+                .filter { it.driveUri != null }
+                .maxOfOrNull { it.lastModified } ?: 0L
 
             val stalled = SyncHealthPolicy.countStalled(
-                unsynced, prefs.getSyncScheduleMode(), System.currentTimeMillis()
+                unsynced, newestSynced, prefs.getSyncScheduleMode(), System.currentTimeMillis()
             )
             if (stalled <= 0) {
                 clear(context, ID_SYNC_STALLED)
