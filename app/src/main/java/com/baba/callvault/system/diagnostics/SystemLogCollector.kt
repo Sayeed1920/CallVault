@@ -106,12 +106,18 @@ object SystemLogCollector {
         // here, and it is still lighting the green dot on the user's screen.
         val micActivity = RecordActivityReport.render(runShell(context, "dumpsys audio"))
 
+        // How many privileged recorders are alive. Paired with the section above on purpose: an open
+        // capture plus more than one recorder process names an orphan that outlived its replacement,
+        // which is the one arrangement neither the app's log nor the live daemon's ledger can show.
+        val recorders = RecorderProcessReport.render(runShell(context, "ps -A -o USER,PID,ARGS"))
+
         val dir = File(context.cacheDir, "logs").apply { mkdirs() }
         val out = File(dir, REPORT_NAME)
         runCatching {
             out.writeText(buildString {
                 appendLine(header(rawLines = raw.count { it == '\n' }, kept = kept.size, attached = capped.size))
                 appendLine(micActivity)
+                appendLine(recorders)
                 appendLine("-----------------------------------------------------------------------------------------")
                 capped.forEach { appendLine(AppLogger.redactForReport(it)) }
             })
