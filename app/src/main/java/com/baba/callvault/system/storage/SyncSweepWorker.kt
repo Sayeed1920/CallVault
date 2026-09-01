@@ -54,10 +54,18 @@ class SyncSweepWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
         }
         val driveDir = DocumentFile.fromTreeUri(applicationContext, driveFolderUri) ?: return Result.retry()
 
-        // What Drive already holds (name -> byte length, case-insensitive), so a recording that is
-        // already up there is never uploaded a second time.
+        // What Drive already holds (name -> its URI and byte length, case-insensitive), so a
+        // recording that is already up there is never uploaded a second time.
+        //
+        // The URI is kept, not just the length: proving a file is already in Drive is exactly the
+        // evidence the catalog needs, and throwing it away is what let a correctly backed-up
+        // recording go on looking unsynced forever. See where `alreadyThere` is used.
         val existingInDrive = driveDir.listFiles()
-            .mapNotNull { doc -> doc.name?.lowercase()?.to(runCatching { doc.length() }.getOrDefault(-1L)) }
+            .mapNotNull { doc ->
+                doc.name?.lowercase()?.to(
+                    DriveCopy(doc.uri, runCatching { doc.length() }.getOrDefault(-1L))
+                )
+            }
             .toMap(HashMap())
 
         val deleteLocal = target == StorageTarget.DRIVE
@@ -77,8 +85,25 @@ class SyncSweepWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
             }
             val alreadyThere = existingInDrive[name.lowercase()]
             if (alreadyThere != null &&
-                CloudCopyPolicy.verdict(alreadyThere, sourceSize) == ExistingCopyVerdict.COMPLETE
+                CloudCopyPolicy.verdict(alreadyThere.sizeBytes, sourceSize) == ExistingCopyVerdict.COMPLETE
             ) {
+                // Stamp it rather than only skipping the upload. We have just read the Drive folder
+                // and established that this recording IS backed up; if the catalog row says
+                // otherwise, this is the only place that can ever put it right — every later sweep
+                // takes this same branch and would skip again.
+                //
+                // Without it the health check saw a device copy with no Drive copy, waited out the
+                // staleness window and told the user "recordings are not reaching Drive" about
+                // recordings sitting safely in Drive. Reported by two users on 2.2.0.
+                //
+                // deleteLocalAfter = false, and the device file is deliberately left alone. Removing
+                // it would fix the catalog AND delete a recording in the same change, on a path that
+                // has never deleted anything — too much to do while chasing a wrong notification.
+                // Stamping alone is enough: the health check asks for a row with a device copy and
+                // NO Drive copy, and this row now has one.
+                RecordingCatalog.markDrive(
+                    applicationContext, name, alreadyThere.uri, sourceSize, deleteLocalAfter = false
+                )
                 continue
             }
 
@@ -93,7 +118,7 @@ class SyncSweepWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
                 }
             } ?: continue
 
-            existingInDrive[name.lowercase()] = sourceSize
+            existingInDrive[name.lowercase()] = DriveCopy(driveUri, sourceSize)
             if (deleteLocal) SafHelper.deleteDocument(file, "the device copy of '$name'")
             // Stamp the Drive copy onto the catalog (clearing the local copy for DRIVE-only mode) so
             // the Home list reflects the swept file without re-scanning the Drive folder.
@@ -105,6 +130,9 @@ class SyncSweepWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(
         // picks the stragglers up anyway, so there is nothing to gain from an unbounded retry chain.
         return if (failures > 0 && !CloudCopyPolicy.isLastAttempt(runAttemptCount)) Result.retry() else Result.success()
     }
+
+    /** A file already present in the Drive folder: where it is, and how much of it arrived. */
+    private data class DriveCopy(val uri: android.net.Uri, val sizeBytes: Long)
 
     companion object {
         private const val TAG = "CV:SyncSweep"

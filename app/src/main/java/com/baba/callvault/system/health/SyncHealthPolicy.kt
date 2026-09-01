@@ -43,16 +43,34 @@ object SyncHealthPolicy {
     }
 
     /**
-     * How many of [unsyncedLastModified] have been waiting longer than [mode] allows.
+     * How many of [unsyncedLastModified] are evidence that copying has actually stopped.
      *
-     * @param unsyncedLastModified last-modified stamps of recordings that have a device copy and no
-     *                             Drive copy. A recording already in Drive is not passed in.
+     * Age alone is not evidence. The notification tells the user "copying to Drive stopped a while
+     * ago", and a single old recording that never made it does not support that sentence — it is a
+     * historical gap, not a stall, and everything since may have copied perfectly. Both users who
+     * reported this on 2.2.0 had working backups and calls arriving in Drive.
+     *
+     * So a recording only counts if **nothing newer has reached Drive**. A Drive copy of something
+     * more recent is proof that copying ran after this one was made, which settles the question the
+     * warning is asking. When nothing has ever reached Drive, [newestSyncedLastModified] is 0 and
+     * every stale recording counts — which is the case the check exists to catch.
+     *
+     * @param unsyncedLastModified       stamps of recordings with a device copy and no Drive copy.
+     * @param newestSyncedLastModified   stamp of the most recent recording that HAS a Drive copy,
+     *                                   or 0 when none has.
      */
-    fun countStalled(unsyncedLastModified: List<Long>, mode: SyncScheduleMode, now: Long): Int {
+    fun countStalled(
+        unsyncedLastModified: List<Long>,
+        newestSyncedLastModified: Long,
+        mode: SyncScheduleMode,
+        now: Long,
+    ): Int {
         val cutoff = now - staleAfterDays(mode) * DAY_MS
         // An undated recording (0) is never counted, for the same reason the retention sweep never
         // deletes one: a stamp we do not have is not evidence of age, and manufacturing a warning
         // out of a metadata gap would send the user hunting for a problem that is not there.
-        return unsyncedLastModified.count { it > 0L && it < cutoff }
+        return unsyncedLastModified.count {
+            it > 0L && it < cutoff && it > newestSyncedLastModified
+        }
     }
 }
