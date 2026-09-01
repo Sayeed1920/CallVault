@@ -51,6 +51,10 @@ interface RecordingDao {
     @Query("UPDATE recordings SET driveUri = NULL, driveSizeBytes = NULL WHERE displayName = :displayName")
     suspend fun clearDrive(displayName: String)
 
+    /** Remembers the length read off the file, so it is never read twice. */
+    @Query("UPDATE recordings SET durationSeconds = :durationSeconds WHERE displayName = :displayName")
+    suspend fun setDuration(displayName: String, durationSeconds: Long)
+
     @Query("DELETE FROM recordings WHERE displayName = :displayName")
     suspend fun deleteByName(displayName: String)
 

@@ -152,17 +152,42 @@ object RecordingsRepository {
             // neither is one older than the log keeps.
             val durations = CallDurationLookup.durationsFor(context, items.mapNotNull { it.startedAtMillis })
 
+            var probes = 0
+            val startedAtNs = System.nanoTime()
+
             items.map { item ->
                 val fromCallLog = item.startedAtMillis?.let { durations[it] }
-                // Fall back to the recording's own container duration. Reading it is milliseconds of
-                // work — the track format only, no decoding — and it is not a guess: it is the length
-                // of the audio actually captured, which is the more direct answer for a list of
+                // Fall back to the recording's own container duration. It is not a guess: it is the
+                // length of the audio actually captured, which is the more direct answer for a list of
                 // recordings. Without it every WhatsApp row showed a blank where its length should be,
                 // and the transcription length limit had nothing to judge an app call by.
                 //
+                // Read ONCE and remembered in the catalog. The original version called this on every
+                // list load for every recording the call log could not answer for — every app call
+                // (they are never in the call log at all), everything older than the log keeps, and
+                // ALL of them when READ_CALL_LOG is not granted, since the lookup then returns an
+                // empty map. Each one is a SAF file-descriptor open plus a MediaExtractor, so the cost
+                // was O(library) on every ON_RESUME and grew for as long as someone kept using the
+                // app. It was reported from the field as the list taking longer and longer to appear,
+                // and as a just-finished call seeming not to have recorded — the list is emitted in
+                // one piece, so nothing showed until the slowest file had been opened.
+                //
+                // Precedence is unchanged: the call log still wins where it has an answer, so no row
+                // shows a different number than it did before.
+                //
                 // Only for a device copy: the Drive one would be a network read per row.
-                val seconds = fromCallLog ?: item.localUri?.let { uri ->
-                    AudioDecoder.durationMs(context, uri).takeIf { it > 0 }?.let { (it + 500) / 1000 }
+                val seconds = when {
+                    fromCallLog != null -> fromCallLog
+                    item.durationSeconds != null -> item.durationSeconds
+                    else -> item.localUri?.let { uri ->
+                        probes++
+                        val read = AudioDecoder.durationMs(context, uri)
+                            .takeIf { it > 0 }?.let { (it + 500) / 1000 }
+                        // A failed read stays uncached, so a transient failure cannot become a
+                        // permanent wrong answer.
+                        if (read != null) RecordingCatalog.setDuration(context, item.displayName, read)
+                        read
+                    }
                 }
                 val withDuration = seconds?.let { item.copy(durationSeconds = it) } ?: item
                 val number = withDuration.number
@@ -175,6 +200,11 @@ object RecordingsRepository {
                     }
                     if (name.isEmpty()) withDuration else withDuration.copy(contactName = name)
                 }
+            }.also {
+                // One line, always, so a "the list is slow" report can be answered with a number
+                // instead of a guess. After the first pass `probes` is 0 and this is the cheap path.
+                val ms = (System.nanoTime() - startedAtNs) / 1_000_000
+                AppLogger.i(TAG, "Listed ${it.size} recordings in ${ms}ms ($probes duration probe(s))")
             }
         }.getOrElse { e ->
             AppLogger.w(TAG, "Failed to list recordings: ${e.message}")
@@ -209,6 +239,7 @@ object RecordingsRepository {
             contactName = parsed.contactName,
             voipApp = parsed.voipApp,
             source = source,
+            durationSeconds = entry.durationSeconds,
             localUri = localUri,
             driveUri = driveUri,
             localSizeBytes = entry.localSizeBytes,

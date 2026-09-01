@@ -448,6 +448,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     /** The background draw pass; cancelled and restarted on every reload so it cannot pile up. */
     private var waveformJob: Job? = null
 
+    /**
+     * The list reload. Guarded for the same reason [precomputeWaveforms] is: [refresh] runs on every
+     * ON_RESUME, so opening the app, leaving it and coming back used to stack several full passes over
+     * the whole library, each competing with the others for the same disk and the same media codecs.
+     * A pass already running is left to finish — it is reading the same rows this call would.
+     */
+    private var listJob: Job? = null
+    private var listReloadPending = false
+
     fun refresh() {
         val updatedTo = preferences.getUpdateSuccessBannerVersion()
         val status = computeStatus()
@@ -474,7 +483,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 if (healed) _uiState.update { it.copy(status = computeStatus()) }
             }
         }
-        viewModelScope.launch {
+        // Coalesce rather than skip. refresh() is also how a delete gets the row off the screen, so
+        // dropping a request outright would leave a deleted recording visible until the next resume.
+        // One more pass is queued instead, and it runs once the in-flight one finishes.
+        if (listJob?.isActive == true) {
+            listReloadPending = true
+            return
+        }
+        startListPass(status)
+    }
+
+    private fun startListPass(status: HomeStatus) {
+        listJob = viewModelScope.launch {
             val health = withContext(Dispatchers.IO) { sweepSetupHealth(status.isReady) }
             _uiState.update { it.copy(setupHealth = health) }
             val recordings = withContext(Dispatchers.IO) { RecordingsRepository.listRecordings(appContext) }
@@ -492,6 +512,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
             precomputeWaveforms(recordings)
+            // Exactly one catch-up pass, whatever number of refreshes arrived while this one ran.
+            if (listReloadPending) {
+                listReloadPending = false
+                startListPass(computeStatus())
+            }
         }
     }
 

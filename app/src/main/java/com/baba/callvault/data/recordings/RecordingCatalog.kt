@@ -91,6 +91,17 @@ object RecordingCatalog {
         }.onFailure { AppLogger.w(TAG, "markDrive('$displayName') failed: ${it.message}") }
     }
 
+    /**
+     * Remembers [durationSeconds] for [displayName] so the file never has to be opened for it again.
+     *
+     * Only ever called with a positive value: a failed read stays uncached so a transient failure
+     * cannot become a permanent wrong answer, which is the behaviour before this cache existed.
+     */
+    suspend fun setDuration(context: Context, displayName: String, durationSeconds: Long) {
+        runCatching { dao(context).setDuration(displayName, durationSeconds) }
+            .onFailure { AppLogger.w(TAG, "setDuration('$displayName') failed: ${it.message}") }
+    }
+
     /** All catalogued recordings, newest-first. Never throws (returns empty on failure). */
     suspend fun all(context: Context): List<RecordingEntry> =
         runCatching { dao(context).getAll() }.getOrElse {

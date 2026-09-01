@@ -34,6 +34,10 @@ import androidx.room.PrimaryKey
  * @param localSizeBytes  Size of the device copy in bytes, or null when there is no device copy.
  * @param driveSizeBytes  Size of the Drive copy in bytes, or null when there is no Drive copy.
  * @param lastModified    Best-known last-modified / creation epoch millis, used for newest-first sort.
+ * @param durationSeconds Length of the audio, read once off the file and remembered, or null while it
+ *                        has never been read. Cached because reading it costs a SAF file-descriptor
+ *                        open plus a MediaExtractor per recording, and Home used to pay that for
+ *                        EVERY recording the call log could not answer for, on EVERY list load.
  */
 @Entity(tableName = "recordings")
 data class RecordingEntry(
@@ -42,5 +46,6 @@ data class RecordingEntry(
     val driveUri: String? = null,
     val localSizeBytes: Long? = null,
     val driveSizeBytes: Long? = null,
-    val lastModified: Long = 0L
+    val lastModified: Long = 0L,
+    val durationSeconds: Long? = null
 )
