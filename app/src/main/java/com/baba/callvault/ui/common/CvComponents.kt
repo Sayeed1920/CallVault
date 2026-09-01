@@ -39,6 +39,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.baba.callvault.ui.theme.LocalCvBrand
+import com.baba.callvault.R
 
 /**
  * Shared "Signal" UI building blocks. Screens should compose with these instead of raw Material
@@ -85,7 +87,14 @@ fun CvScaffold(
             ) {
                 if (onBack != null) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            // Resourced, not a literal: this scaffold is the top bar on Home,
+                            // Settings, Playback and the wizard, so an English literal here is the
+                            // one thing a screen-reader user hears untranslated on every screen.
+                            contentDescription = stringResource(R.string.general_back),
+                            tint = MaterialTheme.colorScheme.onBackground,
+                        )
                     }
                     Spacer(Modifier.width(2.dp))
                 }

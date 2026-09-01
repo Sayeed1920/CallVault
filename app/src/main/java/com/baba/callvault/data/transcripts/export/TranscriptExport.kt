@@ -71,9 +71,9 @@ object TranscriptExport {
     private const val MINUTES_PER_HOUR = 60L
 
     /** The transcript in [format]. */
-    fun render(format: TranscriptFormat, doc: ExportDocument): String = when (format) {
+    fun render(format: TranscriptFormat, doc: ExportDocument, labels: ExportLabels): String = when (format) {
         TranscriptFormat.TXT -> renderText(doc)
-        TranscriptFormat.MARKDOWN -> renderMarkdown(doc)
+        TranscriptFormat.MARKDOWN -> renderMarkdown(doc, labels)
         TranscriptFormat.SRT -> renderSubtitles(doc, srt = true)
         TranscriptFormat.VTT -> renderSubtitles(doc, srt = false)
         TranscriptFormat.JSON -> renderJson(doc)
@@ -111,13 +111,13 @@ object TranscriptExport {
         }
 
     /**
-     * The transcript with its summary and note, under headings.
+     * The transcript with its summary and note, under headings in the reader's language.
      *
      * The summary comes **first**, before the transcript, because it is the part a reader wants and
      * the transcript can run to hundreds of lines. Sections with nothing in them are omitted rather
      * than left as empty headings.
      */
-    private fun renderMarkdown(doc: ExportDocument): String = buildString {
+    private fun renderMarkdown(doc: ExportDocument, labels: ExportLabels): String = buildString {
         appendLine("# ${doc.title}")
 
         val tags = doc.tags.filter { it.isNotBlank() }
@@ -129,8 +129,8 @@ object TranscriptExport {
         }
 
         val provenance = listOfNotNull(
-            doc.language?.takeIf { it.isNotBlank() }?.let { "Language: $it" },
-            doc.model?.takeIf { it.isNotBlank() }?.let { "Model: $it" }
+            doc.language?.takeIf { it.isNotBlank() }?.let { "${labels.language}: $it" },
+            doc.model?.takeIf { it.isNotBlank() }?.let { "${labels.model}: $it" }
         )
         if (provenance.isNotEmpty()) {
             appendLine()
@@ -141,20 +141,20 @@ object TranscriptExport {
 
         doc.summary?.let { summary ->
             appendLine()
-            appendLine("## Summary")
+            appendLine("## ${labels.summary}")
             appendLine()
             appendLine(summary.intent)
             appendLine()
             appendLine(summary.summary)
-            appendSection("Key points", summary.keyPoints)
-            appendSection("Decisions", summary.decisions)
-            appendSection("Action items", summary.actionItems)
-            appendSection("Key facts", summary.keyFacts)
+            appendSection(labels.keyPoints, summary.keyPoints)
+            appendSection(labels.decisions, summary.decisions)
+            appendSection(labels.actionItems, summary.actionItems)
+            appendSection(labels.keyFacts, summary.keyFacts)
         }
 
         doc.note?.takeIf { it.isNotBlank() }?.let { note ->
             appendLine()
-            appendLine("## Notes")
+            appendLine("## ${labels.notes}")
             appendLine()
             appendLine(note.trim())
         }
@@ -162,7 +162,7 @@ object TranscriptExport {
         val body = renderText(doc)
         if (body.isNotEmpty()) {
             appendLine()
-            appendLine("## Transcript")
+            appendLine("## ${labels.transcript}")
             appendLine()
             doc.segments.filter { it.text.isNotBlank() }.forEach { segment ->
                 val speaker = doc.speakerNames?.of(segment.speaker)?.let { " **$it**" }.orEmpty()

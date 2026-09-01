@@ -605,9 +605,14 @@
     <string name="settings_voip_apps_label">Choisir les applications à enregistrer</string>
     <string name="settings_voip_apps_loading">Recherche d\'applications…</string>
     <string name="settings_voip_apps_all">Toutes les applications sont enregistrées</string>
-    <string name="settings_voip_apps_some">%1$d application(s) ne seront pas enregistrées</string>
+    <plurals name="settings_voip_apps_some">
+        <item quantity="one">%1$d application ne sera pas enregistrée</item>
+        <item quantity="other">%1$d applications ne seront pas enregistrées</item>
+    </plurals>
     <string name="settings_voip_apps_hint">Désactivez une application et ses appels ne seront jamais enregistrés. Tout est activé tant que vous n\'y touchez pas. Les applications incapables d\'enregistrer de l\'audio ne sont pas listées : elles ne peuvent pas passer ce type d\'appel.</string>
     <string name="general_flag_count">Repère (%1$d)</string>
     <string name="voip_recording_paused">En pause. Rien n\'est enregistré pour le moment.</string>
     <string name="voip_recording_held">En attente pour un appel téléphonique. Cet enregistrement reprendra à votre retour.</string>
+    <string name="general_back">Retour</string>
+    <string name="export_heading_transcript">Transcription</string>
 </resources>

@@ -171,6 +171,7 @@ import com.baba.callvault.ui.common.CvScaffold
 import com.baba.callvault.ui.common.CvSectionHeader
 import com.baba.callvault.ui.common.CvStatusPill
 import com.baba.callvault.ui.common.CvTone
+import com.baba.callvault.ui.common.rememberExportLabels
 import com.baba.callvault.ui.theme.LocalCvBrand
 import com.baba.callvault.ui.viewmodels.HomeViewModel
 import com.baba.callvault.ui.viewmodels.HomeViewModel.DirectionFilter
@@ -745,6 +746,11 @@ fun HomeScreen(
             TagRepository.tagsFor(context, displayName)
         }.collectAsState(initial = emptyList())
 
+        // Resolved here because onExport runs from a click, outside composition, where
+        // stringResource cannot be called. Without this the Markdown export writes its headings in
+        // English while the screen behind it shows them translated.
+        val exportLabels = rememberExportLabels()
+
         TranscriptSheet(
             transcript = transcript,
             title = title,
@@ -771,7 +777,7 @@ fun HomeScreen(
                 val file = TranscriptExportFile.write(
                     context = context,
                     fileName = TranscriptExport.fileName(format, displayName),
-                    content = TranscriptExport.render(format, document)
+                    content = TranscriptExport.render(format, document, exportLabels)
                 )
                 // A failed write is reported rather than passed over: the user tapped a format and
                 // is waiting for a chooser, so silence would read as the tap not registering and

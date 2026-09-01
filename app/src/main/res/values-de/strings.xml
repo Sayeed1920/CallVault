@@ -605,9 +605,14 @@
     <string name="settings_voip_apps_label">Aufzuzeichnende Apps wählen</string>
     <string name="settings_voip_apps_loading">Apps werden gesucht …</string>
     <string name="settings_voip_apps_all">Jede App wird aufgezeichnet</string>
-    <string name="settings_voip_apps_some">%1$d App(s) werden nicht aufgezeichnet</string>
+    <plurals name="settings_voip_apps_some">
+        <item quantity="one">%1$d App wird nicht aufgezeichnet</item>
+        <item quantity="other">%1$d Apps werden nicht aufgezeichnet</item>
+    </plurals>
     <string name="settings_voip_apps_hint">Schalten Sie eine App aus, werden ihre Anrufe nie aufgezeichnet. Alles ist an, bis Sie es ändern. Apps ohne Audioaufnahme-Berechtigung werden nicht aufgeführt, da sie keine solchen Anrufe führen können.</string>
     <string name="general_flag_count">Markieren (%1$d)</string>
     <string name="voip_recording_paused">Pausiert. Es wird gerade nichts gespeichert.</string>
     <string name="voip_recording_held">Für einen Telefonanruf angehalten. Diese Aufnahme wird fortgesetzt, wenn Sie zurückkehren.</string>
+    <string name="general_back">Zurück</string>
+    <string name="export_heading_transcript">Transkript</string>
 </resources>
