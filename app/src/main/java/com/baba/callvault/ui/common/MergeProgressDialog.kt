@@ -48,11 +48,11 @@ private const val AUTO_CLOSE_SECONDS = 5
 /**
  * The height the progress body always occupies.
  *
- * Fixed so that finishing does not resize the card, and generous enough that the working state is
- * not a thin strip of text floating in a dialog sized for a list. A ring, a line and a detail sit
- * comfortably in this; a bar and one line did not.
+ * Fixed so that finishing does not resize the card. Sized to a ring plus two lines and no more —
+ * the card it sits on is now 260dp wide rather than the platform's full dialog width, so the body
+ * no longer has to fill space that was never meant for it.
  */
-private val PROGRESS_BODY_HEIGHT = 176.dp
+private val PROGRESS_BODY_HEIGHT = 150.dp
 
 private val RING_SIZE = 84.dp
 private val RING_STROKE = 6.dp

@@ -24,11 +24,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Surface
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +51,48 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.baba.callvault.R
 import com.baba.callvault.data.recordings.RecordingsRepository.RecordingItem
+
+
+/**
+ * The surface both merge cards live on.
+ *
+ * A plain [androidx.compose.material3.AlertDialog] cannot do this: it is laid out at the platform's
+ * dialog width whatever is inside it, so the working state — a ring and two short lines — sat in a
+ * card that had been sized for a list of calls and read as mostly empty. Owning the surface lets it
+ * be wide while choosing and compact while working, and [androidx.compose.animation.animateContentSize]
+ * makes that a change of shape rather than one dialog replacing another.
+ */
+@Composable
+private fun MergeCard(
+    compact: Boolean,
+    onDismissRequest: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            // Back is blocked while working for the same reason a tap outside is: it would hide a
+            // job that is still deleting the user's original calls.
+            dismissOnBackPress = !compact,
+            dismissOnClickOutside = !compact,
+        )
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .then(if (compact) Modifier.width(COMPACT_WIDTH) else Modifier.fillMaxWidth(0.92f))
+                .animateContentSize()
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp), content = content)
+        }
+    }
+}
+
+/** Wide enough for a ring and a line of detail, and no wider. */
+private val COMPACT_WIDTH = 260.dp
 
 /**
  * Chooses which calls to merge into one, and in what order.
@@ -78,99 +125,92 @@ fun MergeCallsDialog(
     val totalSeconds = (primary.durationSeconds ?: 0L) +
         picked.sumOf { name -> candidates.firstOrNull { it.displayName == name }?.durationSeconds ?: 0L }
 
-    AlertDialog(
+    MergeCard(
+        compact = progress != null,
         // Not dismissible once it is working: tapping away would hide a job that is still deleting
         // the user's original calls.
         onDismissRequest = { if (progress == null) onDismiss() },
-        title = { Text(stringResource(R.string.merge_title, who)) },
-        text = {
-            if (progress != null) {
-                MergeProgressBody(progress)
-                return@AlertDialog
-            }
-            Column {
-                MergeRow(item = primary, badge = 1, enabled = false, checked = true, onToggle = {})
-                Text(
-                    text = stringResource(R.string.merge_primary_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 40.dp, bottom = 8.dp)
-                )
-                HorizontalDivider()
-                Spacer(Modifier.size(8.dp))
-                if (candidates.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.merge_no_candidates),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.merge_pick_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.size(4.dp))
-                    LazyColumn(modifier = Modifier.heightIn(max = 280.dp)) {
-                        items(candidates, key = { it.displayName }) { item ->
-                            val at = picked.indexOf(item.displayName)
-                            MergeRow(
-                                item = item,
-                                // +2 because the primary is 1 and this list starts after it.
-                                badge = if (at >= 0) at + 2 else null,
-                                enabled = true,
-                                checked = at >= 0,
-                                onToggle = {
-                                    picked = if (at >= 0) picked - item.displayName
-                                    else picked + item.displayName
-                                }
-                            )
+    ) {
+        if (progress != null) {
+            MergeProgressBody(progress)
+            MergeProgressFooter(progress, onCloseProgress)
+            return@MergeCard
+        }
+
+        Text(
+            text = stringResource(R.string.merge_title, who),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Spacer(Modifier.size(16.dp))
+        MergeRow(item = primary, badge = 1, enabled = false, checked = true, onToggle = {})
+        Text(
+            text = stringResource(R.string.merge_primary_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 44.dp, bottom = 8.dp)
+        )
+        HorizontalDivider()
+        Spacer(Modifier.size(8.dp))
+        if (candidates.isEmpty()) {
+            Text(
+                text = stringResource(R.string.merge_no_candidates),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.merge_pick_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.size(4.dp))
+            LazyColumn(modifier = Modifier.heightIn(max = 280.dp)) {
+                items(candidates, key = { it.displayName }) { item ->
+                    val at = picked.indexOf(item.displayName)
+                    MergeRow(
+                        item = item,
+                        // +2 because the primary is 1 and this list starts after it.
+                        badge = if (at >= 0) at + 2 else null,
+                        enabled = true,
+                        checked = at >= 0,
+                        onToggle = {
+                            picked = if (at >= 0) picked - item.displayName
+                            else picked + item.displayName
                         }
-                    }
-                }
-                if (picked.isNotEmpty()) {
-                    Spacer(Modifier.size(8.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.size(8.dp))
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.merge_summary,
-                            picked.size + 1,
-                            picked.size + 1,
-                            formatDuration(totalSeconds)
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    // Say what merging does to the other calls, here, at the moment of deciding.
-                    // The setting that controls it lives in Storage, and someone who has never
-                    // opened that screen would otherwise find out by noticing three calls missing.
-                    Text(
-                        text = stringResource(
-                            if (keepOriginals) R.string.merge_note_will_keep
-                            else R.string.merge_note_will_delete
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        },
-        confirmButton = {
-            if (progress != null) {
-                MergeProgressFooter(progress, onCloseProgress)
-            } else {
-                TextButton(enabled = picked.isNotEmpty(), onClick = { onConfirm(picked) }) {
-                    Text(stringResource(R.string.merge_confirm))
-                }
-            }
-        },
-        dismissButton = {
-            if (progress == null) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
             }
         }
-    )
+        if (picked.isNotEmpty()) {
+            Spacer(Modifier.size(8.dp))
+            HorizontalDivider()
+            Spacer(Modifier.size(8.dp))
+            Text(
+                text = pluralStringResource(
+                    R.plurals.merge_summary, picked.size + 1, picked.size + 1, formatDuration(totalSeconds)
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            // Say what merging does to the other calls, here, at the moment of deciding. The setting
+            // that controls it lives in Storage, and someone who has never opened that screen would
+            // otherwise find out by noticing three calls missing.
+            Text(
+                text = stringResource(
+                    if (keepOriginals) R.string.merge_note_will_keep else R.string.merge_note_will_delete
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.size(12.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
+            TextButton(enabled = picked.isNotEmpty(), onClick = { onConfirm(picked) }) {
+                Text(stringResource(R.string.merge_confirm))
+            }
+        }
+    }
 }
 
 /**
@@ -264,37 +304,35 @@ fun UnMergeDialog(
     onDismiss: () -> Unit,
     onCloseProgress: () -> Unit,
 ) {
-    AlertDialog(
+    MergeCard(
+        compact = progress != null,
         onDismissRequest = { if (progress == null) onDismiss() },
-        title = { Text(stringResource(R.string.unmerge_title)) },
-        text = {
-            if (progress != null) {
-                MergeProgressBody(progress)
-                return@AlertDialog
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.unmerge_message))
-                Spacer(Modifier.size(4.dp))
-                partLabels.forEachIndexed { i, label ->
-                    Text(
-                        text = "${i + 1}.  $label",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            if (progress != null) {
-                MergeProgressFooter(progress, onCloseProgress)
-            } else {
-                TextButton(onClick = onConfirm) { Text(stringResource(R.string.unmerge_confirm)) }
-            }
-        },
-        dismissButton = {
-            if (progress == null) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
-            }
+    ) {
+        if (progress != null) {
+            MergeProgressBody(progress)
+            MergeProgressFooter(progress, onCloseProgress)
+            return@MergeCard
         }
-    )
+
+        Text(
+            text = stringResource(R.string.unmerge_title),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Spacer(Modifier.size(12.dp))
+        Text(stringResource(R.string.unmerge_message))
+        Spacer(Modifier.size(8.dp))
+        partLabels.forEachIndexed { i, label ->
+            Text(
+                text = "${i + 1}.  $label",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+        }
+        Spacer(Modifier.size(12.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.unmerge_confirm)) }
+        }
+    }
 }
