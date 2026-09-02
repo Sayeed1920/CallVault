@@ -115,4 +115,5 @@
     <string name="unmerge_working">Đang tách…</string>
     <string name="merge_note_will_delete">Các cuộc gọi kia sẽ bị xoá. Tách ra sau này sẽ đưa chúng trở lại.</string>
     <string name="merge_note_will_keep">Các cuộc gọi kia cũng được giữ lại trên máy.</string>
+    <string name="home_scroll_to_top">Lên đầu</string>
 </resources>

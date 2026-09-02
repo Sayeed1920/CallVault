@@ -115,4 +115,5 @@
     <string name="unmerge_working">正在拆开…</string>
     <string name="merge_note_will_delete">其余通话会被移除。之后拆开就能把它们找回来。</string>
     <string name="merge_note_will_keep">其余通话也会保留在手机上。</string>
+    <string name="home_scroll_to_top">回到顶部</string>
 </resources>

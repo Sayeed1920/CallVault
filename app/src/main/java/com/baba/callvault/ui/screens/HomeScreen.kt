@@ -74,6 +74,11 @@ import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -126,6 +131,7 @@ import com.baba.callvault.ui.common.rememberTranscribingPillState
 import com.baba.callvault.ui.common.TranscriptSearchSheet
 import com.baba.callvault.ui.common.MergeCallsDialog
 import com.baba.callvault.ui.common.UnMergeDialog
+import com.baba.callvault.ui.common.UnMergePartState
 import com.baba.callvault.ui.common.DeleteCopiesDialog
 import com.baba.callvault.ui.common.DeleteRecordingDialog
 import com.baba.callvault.ui.common.SeekBar
@@ -238,9 +244,14 @@ fun HomeScreen(
 
     /** Which recording is open on the playback screen, or null for the list. */
     var playbackFor by remember { mutableStateOf<String?>(null) }
+    // Hoisted deliberately. The whole list leaves composition while a recording is open
+    // (`if (playbackFor == null)` below), taking any state remembered inside it — so someone who
+    // scrolled to the hundredth call and opened it came back to the top of the list.
+    val listState = rememberLazyListState()
     var mergeFor by remember { mutableStateOf<RecordingItem?>(null) }
     var unMergeFor by remember { mutableStateOf<RecordingItem?>(null) }
     var unMergeLabels by remember { mutableStateOf<List<String>>(emptyList()) }
+    var unMergeStates by remember { mutableStateOf<List<UnMergePartState>>(emptyList()) }
     var mergeWorking by remember { mutableStateOf(false) }
     // Which recordings were made by merging, fetched once for the whole list rather than per row.
     var mergedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
@@ -261,6 +272,7 @@ fun HomeScreen(
 
     val transcriptScope = rememberCoroutineScope()
     val mergeScope = rememberCoroutineScope()
+    val listScope = rememberCoroutineScope()
     LaunchedEffect(uiState.recordings.size) { mergedCounts = viewModel.mergedCounts() }
 
     /** Raised when transcription is asked for but the model it needs is not installed. */
@@ -571,7 +583,9 @@ fun HomeScreen(
             }
             WhatsNewDialog(onDismiss = dismiss, onOpenSettings = { dismiss(); onOpenSettings() })
         }
+        Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 20.dp,
@@ -728,6 +742,31 @@ fun HomeScreen(
                 }
             }
         }
+
+        // Back to the top from anywhere, without flinging. Appears only once scrolling has actually
+        // buried the top of the list, so a short library never carries a control it does not need.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = listState.firstVisibleItemIndex > 3,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = innerPadding.calculateTopPadding() + 12.dp)
+        ) {
+            FilledTonalButton(
+                onClick = { listScope.launch { listState.animateScrollToItem(0) } },
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.KeyboardArrowUp,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.home_scroll_to_top))
+            }
+        }
+        }
     }
 
     mergeFor?.let { primary ->
@@ -753,10 +792,23 @@ fun HomeScreen(
     unMergeFor?.let { merged ->
         UnMergeDialog(
             partLabels = unMergeLabels,
+            partStates = unMergeStates,
             working = mergeWorking,
             onConfirm = {
                 mergeWorking = true
-                viewModel.unMerge(merged.displayName) { problem ->
+                unMergeStates = List(unMergeLabels.size) { UnMergePartState.PENDING }
+                viewModel.unMerge(
+                    merged.displayName,
+                    onPartProgress = { index, finished ->
+                        unMergeStates = unMergeStates.mapIndexed { i, was ->
+                            when {
+                                i != index -> was
+                                finished -> UnMergePartState.DONE
+                                else -> UnMergePartState.WORKING
+                            }
+                        }
+                    }
+                ) { problem ->
                     mergeWorking = false
                     unMergeFor = null
                     if (problem != null) Toast.makeText(context, problem, Toast.LENGTH_LONG).show()

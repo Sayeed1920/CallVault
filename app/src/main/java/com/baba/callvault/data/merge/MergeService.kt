@@ -17,6 +17,7 @@ import com.baba.callvault.data.recordings.db.MergePartEntry
 import com.baba.callvault.data.recordings.db.RecordingDatabase
 import com.baba.callvault.data.recordings.db.RecordingEntry
 import com.baba.callvault.system.storage.SafHelper
+import com.baba.callvault.system.storage.StorageRouter
 import com.baba.callvault.utils.AppLogger
 import java.io.File
 import java.io.FileInputStream
@@ -140,6 +141,9 @@ object MergeService {
             entries.first().lastModified.takeIf { it > 0 } ?: System.currentTimeMillis()
         )
         RecordingCatalog.setDuration(context, mergedName, boundaries.sumOf { it.durationUs } / 1_000_000L)
+        // Same reason as on the way back: the merged recording is a new file, and the parts' Drive
+        // copies were just deleted, so without this a library kept in Drive loses the conversation.
+        StorageRouter.route(context, published, mergedName, mime)
         val stamped = manifest.map { it.copy(mergedName = mergedName) }
         db.mergePartDao().insertAll(stamped)
         MergeMetadata.onMerge(context, mergedName, stamped)
@@ -155,7 +159,12 @@ object MergeService {
      * flattened, so its parts are originals too. The confirmation shown before this runs lists them,
      * because "I merged two and got three back" is otherwise a genuine surprise.
      */
-    suspend fun unMerge(context: Context, mergedName: String): Outcome {
+    suspend fun unMerge(
+        context: Context,
+        mergedName: String,
+        /** (index, finished) as each part is cut and then restored, for the progress list. */
+        onPartProgress: (Int, Boolean) -> Unit = { _, _ -> },
+    ): Outcome {
         val db = RecordingDatabase.get(context)
         val parts = db.mergePartDao().partsOf(mergedName)
         if (parts.isEmpty()) return Outcome.Refused("This recording was not made by merging")
@@ -175,7 +184,7 @@ object MergeService {
             context.contentResolver.openFileDescriptor(source, "r")!!.use { pfd ->
                 val outs = targets.map { java.io.RandomAccessFile(it, "rw").apply { setLength(0) } }
                 try {
-                    AudioSplit.split(pfd.fileDescriptor, cuts, outs.map { it.fd })
+                    AudioSplit.split(pfd.fileDescriptor, cuts, outs.map { it.fd }) { onPartProgress(it, false) }
                 } finally {
                     outs.forEach { runCatching { it.close() } }
                 }
@@ -211,6 +220,12 @@ object MergeService {
                 context, part.partName, uri, SafHelper.fileSize(context, uri), part.originalLastModified
             )
             RecordingCatalog.setDuration(context, part.partName, part.durationUs / 1_000_000L)
+            // A restored call is a new file, so it needs sending wherever recordings go — otherwise
+            // a part that lived in Drive before the merge comes back device-only, and the copy the
+            // user actually relies on is silently missing. Routed rather than copied directly, so it
+            // follows the current target and schedule instead of replaying an old state.
+            StorageRouter.route(context, uri, part.partName, mime)
+            onPartProgress(i, true)
         }
         db.mergePartDao().deleteParts(mergedName)
         MergeMetadata.onUnMerge(context, mergedName)

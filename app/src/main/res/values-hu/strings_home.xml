@@ -115,4 +115,5 @@
     <string name="unmerge_working">Szétbontás…</string>
     <string name="merge_note_will_delete">A többi hívás törlődik. Későbbi szétbontáskor visszakerülnek.</string>
     <string name="merge_note_will_keep">A többi hívás is a telefonon marad.</string>
+    <string name="home_scroll_to_top">Az elejére</string>
 </resources>

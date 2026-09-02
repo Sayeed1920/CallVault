@@ -115,4 +115,5 @@
     <string name="unmerge_working">Separando…</string>
     <string name="merge_note_will_delete">As outras chamadas são removidas. Separá-la depois as traz de volta.</string>
     <string name="merge_note_will_keep">As outras chamadas também são mantidas no telefone.</string>
+    <string name="home_scroll_to_top">Topo</string>
 </resources>

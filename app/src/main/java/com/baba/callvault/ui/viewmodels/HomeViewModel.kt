@@ -809,9 +809,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Cuts a merged recording back into the calls it was made from. */
-    fun unMerge(mergedName: String, onDone: (String?) -> Unit) {
+    fun unMerge(
+        mergedName: String,
+        onPartProgress: (Int, Boolean) -> Unit = { _, _ -> },
+        onDone: (String?) -> Unit,
+    ) {
         viewModelScope.launch {
-            val outcome = withContext(Dispatchers.IO) { MergeService.unMerge(appContext, mergedName) }
+            val outcome = withContext(Dispatchers.IO) {
+                MergeService.unMerge(appContext, mergedName) { index, finished ->
+                    // Straight back to the main thread: this drives a list the user is watching.
+                    viewModelScope.launch { onPartProgress(index, finished) }
+                }
+            }
             refresh()
             onDone(
                 when (outcome) {

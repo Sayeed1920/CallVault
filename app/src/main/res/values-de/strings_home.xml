@@ -115,4 +115,5 @@
     <string name="unmerge_working">Wird getrennt …</string>
     <string name="merge_note_will_delete">Die anderen Anrufe werden entfernt. Ein späteres Trennen holt sie zurück.</string>
     <string name="merge_note_will_keep">Die anderen Anrufe bleiben ebenfalls auf dem Telefon.</string>
+    <string name="home_scroll_to_top">Nach oben</string>
 </resources>

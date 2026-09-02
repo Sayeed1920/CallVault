@@ -116,4 +116,5 @@
     <string name="unmerge_working">Séparation en cours…</string>
     <string name="merge_note_will_delete">Les autres appels sont supprimés. Les séparer plus tard les fait revenir.</string>
     <string name="merge_note_will_keep">Les autres appels sont également conservés sur le téléphone.</string>
+    <string name="home_scroll_to_top">Haut</string>
 </resources>

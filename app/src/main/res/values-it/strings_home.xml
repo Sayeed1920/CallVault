@@ -115,4 +115,5 @@
     <string name="unmerge_working">Separazione in corso…</string>
     <string name="merge_note_will_delete">Le altre chiamate vengono rimosse. Separandola in seguito tornano.</string>
     <string name="merge_note_will_keep">Le altre chiamate restano anche sul telefono.</string>
+    <string name="home_scroll_to_top">Su</string>
 </resources>

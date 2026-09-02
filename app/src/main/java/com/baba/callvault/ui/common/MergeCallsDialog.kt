@@ -24,7 +24,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -236,6 +239,8 @@ private fun formatDuration(seconds: Long): String {
 @Composable
 fun UnMergeDialog(
     partLabels: List<String>,
+    /** Per-part progress, same order as [partLabels]. */
+    partStates: List<UnMergePartState>,
     working: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -248,11 +253,18 @@ fun UnMergeDialog(
                 Text(stringResource(R.string.unmerge_message))
                 Spacer(Modifier.size(4.dp))
                 partLabels.forEachIndexed { i, label ->
-                    Text(
-                        text = "${i + 1}.  $label",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Each call says where it has got to. Splitting a long conversation takes
+                        // long enough to look stalled, and a single spinner over the whole dialog
+                        // would not say which calls are already safely back.
+                        UnMergePartMark(partStates.getOrElse(i) { UnMergePartState.PENDING })
+                        Spacer(Modifier.size(10.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         },
@@ -267,4 +279,37 @@ fun UnMergeDialog(
             }
         }
     )
+}
+
+/** Where one call has got to while a merged recording is being taken apart. */
+enum class UnMergePartState { PENDING, WORKING, DONE }
+
+/**
+ * The mark beside one call: a dot before it starts, a spinner while it is cut, a tick once it is back.
+ *
+ * All three occupy the same box, so the row does not shift as the state changes — a list that jumps
+ * while you are reading it reads as something going wrong.
+ */
+@Composable
+private fun UnMergePartMark(state: UnMergePartState) {
+    Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+        when (state) {
+            UnMergePartState.PENDING -> Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+            UnMergePartState.WORKING -> CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 2.dp
+            )
+            UnMergePartState.DONE -> Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
 }

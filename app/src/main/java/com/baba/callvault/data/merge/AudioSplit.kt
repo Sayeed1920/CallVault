@@ -54,14 +54,23 @@ object AudioSplit {
      * @param cuts    the parts to recover, which must not overlap.
      * @param outputs one descriptor per cut, in the same order.
      */
-    fun split(merged: FileDescriptor, cuts: List<Cut>, outputs: List<FileDescriptor>) {
+    fun split(
+        merged: FileDescriptor,
+        cuts: List<Cut>,
+        outputs: List<FileDescriptor>,
+        /** Called with each cut's index as it starts, so a slow split can be shown progressing. */
+        onCutStarted: (Int) -> Unit = {},
+    ) {
         require(cuts.size == outputs.size) { "Each cut needs somewhere to go" }
         require(cuts.isNotEmpty()) { "Nothing to split" }
         cuts.zipWithNext().forEach { (a, b) ->
             require(a.frameStart + a.frameCount <= b.frameStart) { "Cuts overlap" }
         }
 
-        cuts.forEachIndexed { i, cut -> writeOne(merged, cut, outputs[i]) }
+        cuts.forEachIndexed { i, cut ->
+            onCutStarted(i)
+            writeOne(merged, cut, outputs[i])
+        }
         AppLogger.i(TAG, "Split a merged recording back into ${cuts.size} calls")
     }
 

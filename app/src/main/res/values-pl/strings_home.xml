@@ -115,4 +115,5 @@
     <string name="unmerge_working">Rozdzielanie…</string>
     <string name="merge_note_will_delete">Pozostałe rozmowy zostaną usunięte. Późniejsze rozdzielenie je przywróci.</string>
     <string name="merge_note_will_keep">Pozostałe rozmowy zostaną też zachowane w telefonie.</string>
+    <string name="home_scroll_to_top">Do góry</string>
 </resources>
