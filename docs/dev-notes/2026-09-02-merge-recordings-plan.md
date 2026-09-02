@@ -147,8 +147,35 @@ a delete:
 
 Steps 1–5 are invisible to the user and carry all the risk; the UI is the cheap half.
 
-## Open, needs the maintainer
+## Chaining: a merged call CAN be merged again
 
-- **How far back does the list go?** Every call with that number, or the last N / last 90 days?
-- **A merged recording as a part of another merge** — allow chaining, or refuse? Refusing in v1 is
-  simpler and no worse.
+Settled 2026-09-02. Refusing this was proposed and **rejected** — the maintainer asked why, and the
+honest answer was that it is barely any work, so the caution was not earned.
+
+**Flattening is what makes it cheap.** Merging M1 = [A, B] with C does not nest. M1's frames simply
+*are* A's frames followed by B's, so the new manifest is the concatenation of M1's part rows with
+C's, and the only work is re-basing `frameStart` when M1 is not the primary:
+
+```
+  M1 = [A, B]                          merge M1 (primary) with C
+  M2.parts = [A, B, C]                 A, B keep their offsets; C appends
+  M2 = [C, A, B]  (C primary)          A, B shift by C's frameCount
+```
+
+`encoderDelayUs` / `encoderPaddingUs` need no adjustment at all: they are properties of each part's
+own original encode, captured once when it was first merged, and re-merging does not touch them.
+
+**The one real consequence, which the UI must not hide:** un-merging M2 returns **A, B and C** — three
+calls — not "M1 and C", because M1 no longer exists as a thing. That is more useful than the
+alternative and avoids two-level un-merges entirely, but it *is* a surprise if unannounced. The
+un-merge confirmation therefore lists exactly which calls will come back, by date and time. No
+partial or one-level-at-a-time un-merge; nobody asked for it and it doubles the state.
+
+Nothing can appear twice, because an original is deleted once merged and so can only live inside one
+merged recording.
+
+## The candidate list
+
+Every call with that number, newest first, loaded lazily. No date cut-off: a cut-off can only ever
+hide the row someone is looking for, and the list is already cheap now that duration is a column
+rather than a file read per row.
