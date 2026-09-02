@@ -113,4 +113,6 @@
     <string name="unmerge_message">Er wird wieder zu diesen Anrufen, jeweils mit dem Transkript und den Markierungen, die er hatte:</string>
     <string name="unmerge_title">Diesen Anruf wieder trennen?</string>
     <string name="unmerge_working">Wird getrennt …</string>
+    <string name="merge_note_will_delete">Die anderen Anrufe werden entfernt. Ein späteres Trennen holt sie zurück.</string>
+    <string name="merge_note_will_keep">Die anderen Anrufe bleiben ebenfalls auf dem Telefon.</string>
 </resources>

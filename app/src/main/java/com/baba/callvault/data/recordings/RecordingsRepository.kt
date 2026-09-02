@@ -15,6 +15,7 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.data.StorageTarget
+import com.baba.callvault.data.recordings.db.RecordingDatabase
 import com.baba.callvault.data.recordings.db.RecordingEntry
 import com.baba.callvault.system.permissions.PermissionChecks
 import com.baba.callvault.utils.AppLogger
@@ -151,12 +152,19 @@ object RecordingsRepository {
             // cannot account for every recording: an **app call is never in the call log at all**, and
             // neither is one older than the log keeps.
             val durations = CallDurationLookup.durationsFor(context, items.mapNotNull { it.startedAtMillis })
+            // A merged recording keeps the timestamp of the call it began with, so the system call
+            // log answers for that ONE call — 5 minutes for a conversation that is now twenty-five.
+            // The log cannot know about merging, so for these the stored length is the only truth.
+            val mergedNames = runCatching {
+                RecordingDatabase.get(context).mergePartDao().allMergedNames().toSet()
+            }.getOrDefault(emptySet())
 
             var probes = 0
             val startedAtNs = System.nanoTime()
 
             items.map { item ->
-                val fromCallLog = item.startedAtMillis?.let { durations[it] }
+                val fromCallLog = if (item.displayName in mergedNames) null
+                else item.startedAtMillis?.let { durations[it] }
                 // Fall back to the recording's own container duration. It is not a guess: it is the
                 // length of the audio actually captured, which is the more direct answer for a list of
                 // recordings. Without it every WhatsApp row showed a blank where its length should be,
@@ -172,8 +180,8 @@ object RecordingsRepository {
                 // and as a just-finished call seeming not to have recorded — the list is emitted in
                 // one piece, so nothing showed until the slowest file had been opened.
                 //
-                // Precedence is unchanged: the call log still wins where it has an answer, so no row
-                // shows a different number than it did before.
+                // Precedence is unchanged for an ordinary recording: the call log still wins where it
+                // has an answer. A merged one is the exception, and has to be — see above.
                 //
                 // Only for a device copy: the Drive one would be a network read per row.
                 val seconds = when {

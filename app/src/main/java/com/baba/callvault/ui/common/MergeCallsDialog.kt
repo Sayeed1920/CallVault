@@ -62,6 +62,8 @@ import com.baba.callvault.data.recordings.RecordingsRepository.RecordingItem
 fun MergeCallsDialog(
     primary: RecordingItem,
     candidates: List<RecordingItem>,
+    /** Whether the calls being merged in will be kept — [AppPreferences.isKeepOriginalsAfterMerge]. */
+    keepOriginals: Boolean,
     working: Boolean,
     onConfirm: (List<String>) -> Unit,
     onDismiss: () -> Unit,
@@ -129,6 +131,17 @@ fun MergeCallsDialog(
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
+                    )
+                    // Say what merging does to the other calls, here, at the moment of deciding.
+                    // The setting that controls it lives in Storage, and someone who has never
+                    // opened that screen would otherwise find out by noticing three calls missing.
+                    Text(
+                        text = stringResource(
+                            if (keepOriginals) R.string.merge_note_will_keep
+                            else R.string.merge_note_will_delete
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

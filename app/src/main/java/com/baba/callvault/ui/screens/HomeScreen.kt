@@ -243,7 +243,7 @@ fun HomeScreen(
     var unMergeLabels by remember { mutableStateOf<List<String>>(emptyList()) }
     var mergeWorking by remember { mutableStateOf(false) }
     // Which recordings were made by merging, fetched once for the whole list rather than per row.
-    var mergedNames by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var mergedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     /** The recording whose delete is awaiting confirmation, raised from the playback screen. */
     var confirmDeleteFor by remember { mutableStateOf<String?>(null) }
 
@@ -261,7 +261,7 @@ fun HomeScreen(
 
     val transcriptScope = rememberCoroutineScope()
     val mergeScope = rememberCoroutineScope()
-    LaunchedEffect(uiState.recordings.size) { mergedNames = viewModel.mergedNames() }
+    LaunchedEffect(uiState.recordings.size) { mergedCounts = viewModel.mergedCounts() }
 
     /** Raised when transcription is asked for but the model it needs is not installed. */
     var showModelMissing by remember { mutableStateOf(false) }
@@ -715,7 +715,8 @@ fun HomeScreen(
                         onMerge = { mergeFor = item },
                         // Only offered on a recording that actually came from a merge; there is
                         // nothing to take apart otherwise.
-                        onUnMerge = if (item.displayName in mergedNames) {
+                        mergedPartCount = mergedCounts[item.displayName] ?: 0,
+                        onUnMerge = if (item.displayName in mergedCounts) {
                             {
                                 mergeScope.launch {
                                     unMergeLabels = viewModel.mergedPartLabels(item.displayName)
@@ -733,6 +734,7 @@ fun HomeScreen(
         MergeCallsDialog(
             primary = primary,
             candidates = viewModel.mergeCandidates(primary),
+            keepOriginals = AppPreferences(context).isKeepOriginalsAfterMerge(),
             working = mergeWorking,
             onConfirm = { picked ->
                 mergeWorking = true
@@ -2020,6 +2022,8 @@ private fun RecordingRow(
     onOpenTranscript: () -> Unit,
     onRetryTranscript: () -> Unit,
     onMerge: () -> Unit = {},
+    /** How many calls this recording was merged from; 0 when it is an ordinary recording. */
+    mergedPartCount: Int = 0,
     /** Null unless this recording was made by merging. */
     onUnMerge: (() -> Unit)? = null,
     transcriptPercent: Int = 0
@@ -2200,7 +2204,7 @@ private fun RecordingRow(
             }
             Spacer(Modifier.width(META_INDENT - PLAY_DISC_SIZE))
             Text(
-                text = buildSubtitle(item),
+                text = buildSubtitle(item, mergedPartCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -2533,11 +2537,17 @@ private val META_INDENT = 62.dp
  * for — off the end on any row with a contact name, which is most of them.
  */
 @Composable
-private fun buildSubtitle(item: RecordingItem): String {
+private fun buildSubtitle(item: RecordingItem, mergedPartCount: Int = 0): String {
     val parts = buildList {
         formatWhen(item)?.let { add(it) }
         item.durationSeconds?.let { add(formatDuration(it)) }
         if (item.sizeBytes > 0) add(formatSize(item.sizeBytes))
+        // Last, so it reads as a note about the row rather than competing with when and how long.
+        // Without it a merged call is indistinguishable from an ordinary one that happens to be
+        // long, and the only clue that three other calls are inside it is that they are missing.
+        if (mergedPartCount > 1) {
+            add(pluralStringResource(R.plurals.merge_row_badge, mergedPartCount, mergedPartCount))
+        }
     }
     return if (parts.isEmpty()) item.displayName else parts.joinToString(" · ")
 }

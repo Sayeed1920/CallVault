@@ -769,15 +769,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Every recording that was made by merging, as one query.
+     * How many calls each merged recording holds, as one query.
      *
      * One query for the whole list, never one per row. Asking per row is precisely the shape that
      * made the list slower the more recordings someone kept — see the duration cache — and it would
      * be no better here for being a cheaper query.
      */
-    suspend fun mergedNames(): Set<String> =
+    suspend fun mergedCounts(): Map<String, Int> =
         withContext(Dispatchers.IO) {
-            RecordingDatabase.get(appContext).mergePartDao().allMergedNames().toSet()
+            RecordingDatabase.get(appContext).mergePartDao().partCounts()
+                .associate { it.mergedName to it.partCount }
         }
 
     /** The parts of a merged recording, labelled for the un-merge confirmation. */

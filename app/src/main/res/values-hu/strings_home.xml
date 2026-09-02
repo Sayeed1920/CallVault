@@ -113,4 +113,6 @@
     <string name="unmerge_message">Ismét ezekké a hívásokká válik, mindegyik a saját átiratával és jelöléseivel:</string>
     <string name="unmerge_title">Szétbontja ezt a hívást?</string>
     <string name="unmerge_working">Szétbontás…</string>
+    <string name="merge_note_will_delete">A többi hívás törlődik. Későbbi szétbontáskor visszakerülnek.</string>
+    <string name="merge_note_will_keep">A többi hívás is a telefonon marad.</string>
 </resources>

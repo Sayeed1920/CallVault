@@ -113,4 +113,6 @@
     <string name="unmerge_message">它会重新变回下面这些通话，各自带着原有的转写稿和标记：</string>
     <string name="unmerge_title">拆开这通电话？</string>
     <string name="unmerge_working">正在拆开…</string>
+    <string name="merge_note_will_delete">其余通话会被移除。之后拆开就能把它们找回来。</string>
+    <string name="merge_note_will_keep">其余通话也会保留在手机上。</string>
 </resources>

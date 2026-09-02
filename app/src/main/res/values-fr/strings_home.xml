@@ -114,4 +114,6 @@
     <string name="unmerge_message">Il redevient ces appels, chacun avec la transcription et les repères qu’il avait :</string>
     <string name="unmerge_title">Séparer cet appel ?</string>
     <string name="unmerge_working">Séparation en cours…</string>
+    <string name="merge_note_will_delete">Les autres appels sont supprimés. Les séparer plus tard les fait revenir.</string>
+    <string name="merge_note_will_keep">Les autres appels sont également conservés sur le téléphone.</string>
 </resources>

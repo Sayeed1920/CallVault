@@ -20,6 +20,9 @@ import androidx.room.Query
  * order the user ticked the parts, which is deliberately neither chronological nor the order the
  * rows happened to be written.
  */
+/** How many calls one merged recording was made from. */
+data class MergedPartCount(val mergedName: String, val partCount: Int)
+
 @Dao
 interface MergePartDao {
 
@@ -34,6 +37,10 @@ interface MergePartDao {
     /** Every merged recording that currently has a manifest. */
     @Query("SELECT DISTINCT mergedName FROM merge_parts")
     suspend fun allMergedNames(): List<String>
+
+    /** How many calls each merged recording holds — one grouped query for a whole list. */
+    @Query("SELECT mergedName, COUNT(*) AS partCount FROM merge_parts GROUP BY mergedName")
+    suspend fun partCounts(): List<MergedPartCount>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(parts: List<MergePartEntry>)

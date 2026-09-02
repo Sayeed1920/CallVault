@@ -113,4 +113,6 @@
     <string name="unmerge_message">Znów stanie się tymi rozmowami, każda z własną transkrypcją i znacznikami:</string>
     <string name="unmerge_title">Rozdzielić tę rozmowę?</string>
     <string name="unmerge_working">Rozdzielanie…</string>
+    <string name="merge_note_will_delete">Pozostałe rozmowy zostaną usunięte. Późniejsze rozdzielenie je przywróci.</string>
+    <string name="merge_note_will_keep">Pozostałe rozmowy zostaną też zachowane w telefonie.</string>
 </resources>

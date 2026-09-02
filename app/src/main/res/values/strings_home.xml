@@ -130,4 +130,6 @@
         <item quantity="one">%1$d call · %2$s</item>
         <item quantity="other">%1$d calls · %2$s</item>
     </plurals>
+    <string name="merge_note_will_delete">The other calls are removed. Taking this apart later brings them back.</string>
+    <string name="merge_note_will_keep">The other calls are kept on the phone as well.</string>
 </resources>

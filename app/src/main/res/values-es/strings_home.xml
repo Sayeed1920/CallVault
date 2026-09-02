@@ -113,4 +113,6 @@
     <string name="unmerge_message">Volverá a ser estas llamadas, cada una con la transcripción y las marcas que tenía:</string>
     <string name="unmerge_title">¿Separar esta llamada?</string>
     <string name="unmerge_working">Separando…</string>
+    <string name="merge_note_will_delete">Las demás llamadas se eliminan. Separarla más adelante las recupera.</string>
+    <string name="merge_note_will_keep">Las demás llamadas también se conservan en el teléfono.</string>
 </resources>

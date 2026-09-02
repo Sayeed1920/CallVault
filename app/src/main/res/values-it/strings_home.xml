@@ -113,4 +113,6 @@
     <string name="unmerge_message">Tornerà a essere queste chiamate, ciascuna con la trascrizione e i segnaposti che aveva:</string>
     <string name="unmerge_title">Separare questa chiamata?</string>
     <string name="unmerge_working">Separazione in corso…</string>
+    <string name="merge_note_will_delete">Le altre chiamate vengono rimosse. Separandola in seguito tornano.</string>
+    <string name="merge_note_will_keep">Le altre chiamate restano anche sul telefono.</string>
 </resources>

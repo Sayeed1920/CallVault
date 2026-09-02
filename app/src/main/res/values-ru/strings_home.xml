@@ -113,4 +113,6 @@
     <string name="unmerge_message">Он снова станет этими звонками — каждый со своей расшифровкой и метками:</string>
     <string name="unmerge_title">Разделить этот звонок?</string>
     <string name="unmerge_working">Разделение…</string>
+    <string name="merge_note_will_delete">Остальные звонки будут удалены. Разделение позже вернёт их обратно.</string>
+    <string name="merge_note_will_keep">Остальные звонки также останутся на телефоне.</string>
 </resources>
