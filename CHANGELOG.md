@@ -3,6 +3,51 @@
 All notable changes to CallVault are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project uses semantic-ish versioning.
 
+## [2.2.1] — unreleased
+
+A maintenance release built entirely from what people reported after 2.2.0 went out. Nothing here is
+a new capability; all of it is something that was wrong, or something CallVault could not tell you.
+
+### Fixed
+
+- **Opening the app is fast again, and stays fast as your library grows.** 2.2.0 re-read the length of
+  every recording the call log could not answer for, every single time the list was drawn — one file
+  open and one media parse each, on the main path. With a few dozen calls the list took long enough
+  that a recording made minutes earlier looked as though it had never happened, and the delay grew
+  with the size of the library rather than staying constant. A recording's length is now read once
+  and remembered, so a list that has been drawn before comes back immediately.
+
+- **CallVault no longer says Drive backup has stopped when it plainly has not.** Two people were
+  warned that their recordings were not reaching Google Drive while every one of them was arriving
+  correctly. The sweep skipped over a recording whose Drive copy was already there without recording
+  that it had seen it, and the health check then read that silence as age, and age as failure. A copy
+  that is present is now stamped as present, and the warning needs evidence about the present rather
+  than an absence of recent news.
+
+- **Three places that were still in English regardless of your language.** The headings inside an
+  exported transcript, the count of selected apps, and the back button's description now follow the
+  app's language like everything else.
+
+### Added
+
+- **The debug report now says who is holding the microphone.** If the phone shows the green microphone
+  dot when no call is happening, the report lists every audio capture the system currently has open,
+  which application each belongs to, and whether it was ever closed — and separately counts CallVault's
+  own privileged recorder processes, of which exactly one should ever be running. This exists to settle
+  a problem that has so far only been reproducible on someone else's phone.
+
+### Documentation
+
+- **The setup wall on OPPO, OnePlus and Realme phones is written down.** On ColorOS and OxygenOS the
+  developer option CallVault needs is called *Disable system optimization* rather than the name every
+  other guide uses, and it is invisible unless the phone's language is set to English — so people
+  reasonably concluded the option had been removed and that CallVault simply did not work on their
+  phone. The README now names both wordings, says where the option hides, and notes that it applies to
+  Shizuku mode too.
+
+- **The in-app "What's new" note had no 2.2.0 entry**, so the largest release the app has had announced
+  itself with the note from the release before it.
+
 ## [2.2.0]
 
 A release about the parts of using a call recorder that are not the recording: finding a call again,

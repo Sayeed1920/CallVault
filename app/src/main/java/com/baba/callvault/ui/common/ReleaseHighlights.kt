@@ -36,6 +36,14 @@ object ReleaseHighlights {
 
     private val ALL = listOf(
         ReleaseHighlight(
+            version = "2.2.1",
+            title = R.string.whatsnew_221_title,
+            body = R.string.whatsnew_221_body,
+            // A maintenance release: everything in it applies on its own and none of it is a setting.
+            // A pointer here would have to name a screen where there is nothing to do.
+            whereToFind = null,
+        ),
+        ReleaseHighlight(
             version = "2.2.0",
             title = R.string.whatsnew_220_title,
             body = R.string.whatsnew_220_body,
