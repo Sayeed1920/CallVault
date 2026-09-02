@@ -30,6 +30,10 @@ interface RecordingNoteDao {
      * a note, and keeping the row would make "this call has a note" true for every recording the user
      * has ever opened and typed into by accident.
      */
+    /** One recording's note. Used when a merge joins the parts' notes together. */
+    @Query("SELECT * FROM recording_notes WHERE displayName = :displayName")
+    suspend fun note(displayName: String): RecordingNoteEntry?
+
     @Query("DELETE FROM recording_notes WHERE displayName = :displayName")
     suspend fun deleteNote(displayName: String)
 

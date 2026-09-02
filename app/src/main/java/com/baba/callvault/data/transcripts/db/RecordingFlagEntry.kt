@@ -45,6 +45,10 @@ interface RecordingFlagDao {
     @Upsert
     suspend fun upsertAll(entries: List<RecordingFlagEntry>)
 
+    /** The marks on one recording, in order. Used when a merge moves them onto a new timeline. */
+    @Query("SELECT atMs FROM recording_flags WHERE displayName = :displayName ORDER BY atMs")
+    suspend fun flagsFor(displayName: String): List<Long>
+
     @Query("DELETE FROM recording_flags WHERE displayName = :displayName")
     suspend fun deleteFor(displayName: String)
 

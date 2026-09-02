@@ -132,13 +132,26 @@ a delete:
 | `recording_waveforms` | peaks concatenated |
 | `call_summaries` | **not inherited.** A summary of half a conversation is worse than none; the merged call offers re-summarise |
 
+Everything is **copied, never moved**: each part keeps its own rows even though its audio is gone.
+They are a few kilobytes of text, and it makes un-merge a matter of deleting what the merge added,
+with each part's own data already sitting where it always was. Redistributing rows back by time
+range would be more code and another chance to lose something.
+
+This is why the merged recording gets a name of its own rather than reusing the primary's: if it
+shared that name, deleting "what the merge added" would delete the primary's own transcript.
+
+**Speaker labels are the one thing that can be dropped.** The channel mapping is learned per call
+from ringback, which only an outgoing call has, so an outgoing call merged with an incoming one has
+one half whose mapping was never established. Concatenating anyway would confidently label half the
+transcript with the speakers swapped. Dropping is recoverable and obvious; swapping is neither.
+
 ## Build order
 
-0. **Progress, 2026-09-02:** steps 1, 2, 4 and 5 are built and green — schema, `AudioConcat`,
-   `AudioSplit`, `MergeService` with the verify-then-delete ordering and the keep-originals setting.
-   `MergeManifest` holds the flattening arithmetic as pure, unit-tested logic. **Not yet done: the
-   metadata migration (step 3b), the UI, and the strings.** Until 3b lands a merge would drop the
-   transcript, marks, tags, star and note — which is why nothing reaches the UI first.
+0. **Progress, 2026-09-02:** the whole invisible half is built and green — schema, `AudioConcat`,
+   `AudioSplit`, `MergeService` (verify-then-delete, keep-originals setting), `MergeManifest`
+   (flattening arithmetic, pure and unit-tested) and `MergeMetadata` (transcript, marks, tags, star,
+   note, speaker labels). **Remaining: the UI and its strings.** 1108 unit tests and 6 instrumented,
+   all passing.
 
 1. `MergePartEntry` + DAO + `MIGRATION_2_3`, with tests. No UI.
 2. `AudioConcat` — the stream-copy join, plus format-compatibility check. Unit-tested against real

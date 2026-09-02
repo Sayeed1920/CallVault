@@ -78,6 +78,10 @@ interface TranscriptDao {
         insertSegments(segments)
     }
 
+    /** Every segment of one recording, in order. Used when a merge moves a transcript. */
+    @Query("SELECT * FROM transcript_segments WHERE displayName = :displayName ORDER BY startMs")
+    suspend fun segmentsFor(displayName: String): List<TranscriptSegmentEntry>
+
     @Query("DELETE FROM transcript_segments WHERE displayName = :displayName")
     suspend fun deleteSegments(displayName: String)
 

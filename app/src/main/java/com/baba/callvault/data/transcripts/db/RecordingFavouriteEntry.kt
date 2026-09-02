@@ -63,6 +63,10 @@ interface RecordingFavouriteDao {
     @Query("INSERT OR REPLACE INTO recording_favourites (displayName) VALUES (:displayName)")
     suspend fun add(displayName: String)
 
+    /** Whether one recording is starred. Used when a merge carries the star across. */
+    @Query("SELECT EXISTS(SELECT 1 FROM recording_favourites WHERE displayName = :displayName)")
+    suspend fun isFavourite(displayName: String): Boolean
+
     @Query("DELETE FROM recording_favourites WHERE displayName = :displayName")
     suspend fun deleteFor(displayName: String)
 }

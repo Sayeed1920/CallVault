@@ -103,6 +103,10 @@ interface RecordingTagDao {
     suspend fun deleteEverywhere(tag: String)
 
     /** Part of the delete cascade: a tag outliving its recording is a record of a deleted call. */
+    /** One recording's tags. Used when a merge unions them onto the merged recording. */
+    @Query("SELECT tag FROM recording_tags WHERE displayName = :displayName ORDER BY tag COLLATE NOCASE")
+    suspend fun tagsFor(displayName: String): List<String>
+
     @Query("DELETE FROM recording_tags WHERE displayName = :displayName")
     suspend fun deleteFor(displayName: String)
 }

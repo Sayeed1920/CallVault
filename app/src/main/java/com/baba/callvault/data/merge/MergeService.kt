@@ -129,7 +129,7 @@ object MergeService {
 
         // 5. Publish. With the originals gone the primary's name is free again, which is what makes
         //    the merged recording read as that conversation continued rather than as a new one.
-        val mergedName = freeName(context, primaryName, keepOriginals)
+        val mergedName = freeName(context, primaryName)
         val published = SafHelper.publishStagedRecording(context, folderUri, mergedName, mime, stagingFile)
             ?: return Outcome.Failed("The merged recording could not be saved to your folder")
         stagingFile.delete()
@@ -140,7 +140,9 @@ object MergeService {
             entries.first().lastModified.takeIf { it > 0 } ?: System.currentTimeMillis()
         )
         RecordingCatalog.setDuration(context, mergedName, boundaries.sumOf { it.durationUs } / 1_000_000L)
-        db.mergePartDao().insertAll(manifest.map { it.copy(mergedName = mergedName) })
+        val stamped = manifest.map { it.copy(mergedName = mergedName) }
+        db.mergePartDao().insertAll(stamped)
+        MergeMetadata.onMerge(context, mergedName, stamped)
 
         AppLogger.i(TAG, "Merged ${names.size} calls into $mergedName (${manifest.size} parts, $actual frames)")
         return Outcome.Merged(mergedName, manifest.size)
@@ -211,6 +213,7 @@ object MergeService {
             RecordingCatalog.setDuration(context, part.partName, part.durationUs / 1_000_000L)
         }
         db.mergePartDao().deleteParts(mergedName)
+        MergeMetadata.onUnMerge(context, mergedName)
         staging.deleteRecursively()
 
         AppLogger.i(TAG, "Un-merged $mergedName back into $restored calls")
@@ -258,15 +261,16 @@ object MergeService {
     }
 
     /**
-     * The name to publish under.
+     * The name to publish under: the primary's, with the millisecond in its timestamp nudged.
      *
-     * Normally the primary's own, which is free again because it has just been deleted — that is what
-     * makes a merged call read as that conversation continued. When the originals are being kept the
-     * name is still taken, so the millisecond in the timestamp is nudged until it is not: the template
-     * still parses, and the date shown is identical to the second.
+     * It would read more neatly to reuse the primary's name exactly — the merged call *is* that
+     * conversation continued — but the primary is also part 1 of the merge, and reusing the name
+     * makes it its own part. That self-reference bites twice: the manifest would say a recording is
+     * contained in itself, and un-merging would delete the very metadata rows it needs to restore.
+     * A distinct name costs nothing visible, because the template still parses and the date shown is
+     * identical to the second, and it keeps both of those cases from ever arising.
      */
-    private suspend fun freeName(context: Context, primaryName: String, keepOriginals: Boolean): String {
-        if (!keepOriginals) return primaryName
+    private suspend fun freeName(context: Context, primaryName: String): String {
         val dao = RecordingDatabase.get(context).recordingDao()
         val dot = primaryName.lastIndexOf('.')
         val stem = if (dot > 0) primaryName.substring(0, dot) else primaryName
