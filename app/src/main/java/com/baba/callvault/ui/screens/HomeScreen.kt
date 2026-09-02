@@ -132,7 +132,6 @@ import com.baba.callvault.ui.common.rememberTranscribingPillState
 import com.baba.callvault.ui.common.TranscriptSearchSheet
 import com.baba.callvault.ui.common.MergeCallsDialog
 import com.baba.callvault.ui.common.UnMergeDialog
-import com.baba.callvault.ui.common.MergeProgressDialog
 import com.baba.callvault.ui.common.MergeProgressState
 import com.baba.callvault.ui.common.DeleteCopiesDialog
 import com.baba.callvault.ui.common.DeleteRecordingDialog
@@ -783,11 +782,11 @@ fun HomeScreen(
             primary = primary,
             candidates = viewModel.mergeCandidates(primary),
             keepOriginals = AppPreferences(context).isKeepOriginalsAfterMerge(),
+            progress = mergeProgress,
             onConfirm = { picked ->
                 val total = picked.size + 1
-                // The picking list goes away the moment the work starts: leaving it up with a
-                // spinner on the button read as nothing having happened.
-                mergeFor = null
+                // The card stays open and its contents change. Closing it and opening a second
+                // dialog meant one surface disappearing and another arriving over it, which flashed.
                 mergeProgress = MergeProgressState(isUnMerge = false, current = 1, total = total)
                 viewModel.merge(
                     primary.displayName,
@@ -800,32 +799,27 @@ fun HomeScreen(
                     // in Drive — so it is said out loud rather than logged and swallowed.
                     if (problem != null) {
                         mergeProgress = null
+                        mergeFor = null
                         Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
                     } else {
                         mergeProgress = mergeProgress?.copy(current = total, finished = true)
                     }
                 }
             },
-            onDismiss = { mergeFor = null }
-        )
-    }
-
-    mergeProgress?.let { progress ->
-        MergeProgressDialog(
-            isUnMerge = progress.isUnMerge,
-            current = progress.current,
-            total = progress.total,
-            finished = progress.finished,
-            onClose = { mergeProgress = null }
+            onDismiss = { mergeFor = null },
+            onCloseProgress = {
+                mergeProgress = null
+                mergeFor = null
+            }
         )
     }
 
     unMergeFor?.let { merged ->
         UnMergeDialog(
             partLabels = unMergeLabels,
+            progress = mergeProgress,
             onConfirm = {
                 val total = unMergeLabels.size
-                unMergeFor = null
                 mergeProgress = MergeProgressState(isUnMerge = true, current = 1, total = total)
                 viewModel.unMerge(
                     merged.displayName,
@@ -835,13 +829,18 @@ fun HomeScreen(
                 ) { problem ->
                     if (problem != null) {
                         mergeProgress = null
+                        unMergeFor = null
                         Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
                     } else {
                         mergeProgress = mergeProgress?.copy(current = total, finished = true)
                     }
                 }
             },
-            onDismiss = { unMergeFor = null }
+            onDismiss = { unMergeFor = null },
+            onCloseProgress = {
+                mergeProgress = null
+                unMergeFor = null
+            }
         )
     }
 

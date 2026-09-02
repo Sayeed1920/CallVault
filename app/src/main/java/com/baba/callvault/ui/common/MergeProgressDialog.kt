@@ -8,11 +8,19 @@
 
 package com.baba.callvault.ui.common
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +39,19 @@ import androidx.compose.ui.unit.dp
 import com.baba.callvault.R
 import kotlinx.coroutines.delay
 
-/** What [MergeProgressDialog] is showing. */
+/** How long the "done" state stays up before closing itself. */
+private const val AUTO_CLOSE_SECONDS = 5
+
+/**
+ * The height the progress body always occupies.
+ *
+ * Fixed so that finishing does not resize the card. The two states hold different things — a
+ * spinner and a count, then a tick and a result — and letting the dialog shrink under the finger
+ * as it completes is most of what made the first version feel abrupt.
+ */
+private val PROGRESS_BODY_HEIGHT = 96.dp
+
+/** What the merge/un-merge card is doing, or null while the user is still choosing. */
 data class MergeProgressState(
     val isUnMerge: Boolean,
     val current: Int,
@@ -38,34 +59,78 @@ data class MergeProgressState(
     val finished: Boolean = false,
 )
 
-/** How long the "done" state stays up before closing itself. */
-private const val AUTO_CLOSE_SECONDS = 5
-
 /**
- * What a merge or un-merge is doing right now.
+ * The working half of the merge and un-merge cards.
  *
- * Merging four long calls is not instant, and the first version showed only a spinner on the
- * confirm button of a dialog still listing the calls — so it read as though nothing had happened
- * and the list was still waiting to be edited. This replaces that list once the work starts:
- * one short dialog that says which call it is on, then that it finished.
+ * Deliberately a body rather than a dialog of its own: opening a second dialog meant one card
+ * closing and another opening over it, which flashed. The card stays; only what is inside it changes.
  */
 @Composable
-fun MergeProgressDialog(
-    /** True while un-merging, so the same dialog serves both directions. */
-    isUnMerge: Boolean,
-    /** 1-based index of the call being handled. */
-    current: Int,
-    total: Int,
-    /** True once the work has finished successfully. */
-    finished: Boolean,
-    onClose: () -> Unit,
-) {
+fun MergeProgressBody(state: MergeProgressState) {
+    // Animated so the bar slides between calls instead of stepping, and glides to full on the last
+    // one rather than snapping there.
+    val target = when {
+        state.finished -> 1f
+        state.total <= 0 -> 0f
+        else -> (state.current - 1).coerceAtLeast(0) / state.total.toFloat()
+    }
+    val progress by animateFloatAsState(targetValue = target, label = "mergeProgress")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(PROGRESS_BODY_HEIGHT),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Spinner and tick share one box, so the text beside them never shifts sideways.
+            Box(modifier = Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+                if (state.finished) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                } else {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                }
+            }
+            Spacer(Modifier.size(12.dp))
+            Text(
+                text = if (state.finished) {
+                    stringResource(
+                        if (state.isUnMerge) R.string.unmerge_progress_done
+                        else R.string.merge_progress_done
+                    )
+                } else {
+                    stringResource(R.string.merge_progress_step, state.current, state.total)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (state.finished) FontWeight.Medium else FontWeight.Normal
+            )
+        }
+        Spacer(Modifier.size(16.dp))
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * The card's footer while working: the countdown and a way out, or nothing at all.
+ *
+ * The row keeps its height in both states, so the card does not grow a button row when it finishes.
+ */
+@Composable
+fun MergeProgressFooter(state: MergeProgressState, onClose: () -> Unit) {
     var remaining by remember { mutableIntStateOf(AUTO_CLOSE_SECONDS) }
 
-    // Closes itself, but never silently: the countdown is on screen, and Close is there for anyone
-    // who does not want to wait out five seconds of a dialog they have already read.
-    LaunchedEffect(finished) {
-        if (!finished) return@LaunchedEffect
+    // Closes itself, but never silently: the countdown is visible, and Close is there for anyone who
+    // would rather not wait it out.
+    LaunchedEffect(state.finished) {
+        if (!state.finished) return@LaunchedEffect
         remaining = AUTO_CLOSE_SECONDS
         while (remaining > 0) {
             delay(1000)
@@ -74,52 +139,18 @@ fun MergeProgressDialog(
         onClose()
     }
 
-    AlertDialog(
-        // Not dismissible mid-flight: tapping away from a merge in progress would hide work that is
-        // still deleting the user's original calls.
-        onDismissRequest = { if (finished) onClose() },
-        title = {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (state.finished) {
             Text(
-                stringResource(
-                    if (isUnMerge) R.string.unmerge_progress_title else R.string.merge_progress_title
-                )
+                text = stringResource(R.string.progress_closing_in, remaining),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        },
-        text = {
-            Column {
-                if (finished) {
-                    Text(
-                        text = stringResource(
-                            if (isUnMerge) R.string.unmerge_progress_done else R.string.merge_progress_done
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(Modifier.size(6.dp))
-                    Text(
-                        text = stringResource(R.string.progress_closing_in, remaining),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.merge_progress_step, current, total),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(Modifier.size(12.dp))
-                    LinearProgressIndicator(
-                        // Determinate: a call-by-call bar says how much is left, where an
-                        // indeterminate one says only that something is happening.
-                        progress = { if (total <= 0) 0f else (current - 1).coerceAtLeast(0) / total.toFloat() },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            if (finished) {
-                TextButton(onClick = onClose) { Text(stringResource(R.string.general_close)) }
-            }
+            Spacer(Modifier.size(8.dp))
+            TextButton(onClick = onClose) { Text(stringResource(R.string.general_close)) }
+        } else {
+            // Same height as a TextButton, so the footer does not appear from nowhere at the end.
+            Spacer(Modifier.height(40.dp))
         }
-    )
+    }
 }

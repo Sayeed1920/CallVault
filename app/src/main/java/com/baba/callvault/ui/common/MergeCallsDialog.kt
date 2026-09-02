@@ -66,8 +66,11 @@ fun MergeCallsDialog(
     candidates: List<RecordingItem>,
     /** Whether the calls being merged in will be kept — [AppPreferences.isKeepOriginalsAfterMerge]. */
     keepOriginals: Boolean,
+    /** Null while the user is still choosing; set once the merge starts, and the card morphs. */
+    progress: MergeProgressState?,
     onConfirm: (List<String>) -> Unit,
     onDismiss: () -> Unit,
+    onCloseProgress: () -> Unit,
 ) {
     // A list, not a set: ticking order is the merge order, so it has to be remembered.
     var picked by remember { mutableStateOf(listOf<String>()) }
@@ -76,9 +79,15 @@ fun MergeCallsDialog(
         picked.sumOf { name -> candidates.firstOrNull { it.displayName == name }?.durationSeconds ?: 0L }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        // Not dismissible once it is working: tapping away would hide a job that is still deleting
+        // the user's original calls.
+        onDismissRequest = { if (progress == null) onDismiss() },
         title = { Text(stringResource(R.string.merge_title, who)) },
         text = {
+            if (progress != null) {
+                MergeProgressBody(progress)
+                return@AlertDialog
+            }
             Column {
                 MergeRow(item = primary, badge = 1, enabled = false, checked = true, onToggle = {})
                 Text(
@@ -148,15 +157,18 @@ fun MergeCallsDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                enabled = picked.isNotEmpty(),
-                onClick = { onConfirm(picked) }
-            ) {
-                Text(stringResource(R.string.merge_confirm))
+            if (progress != null) {
+                MergeProgressFooter(progress, onCloseProgress)
+            } else {
+                TextButton(enabled = picked.isNotEmpty(), onClick = { onConfirm(picked) }) {
+                    Text(stringResource(R.string.merge_confirm))
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
+            if (progress == null) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
+            }
         }
     )
 }
@@ -246,13 +258,20 @@ private fun formatDuration(seconds: Long): String {
 @Composable
 fun UnMergeDialog(
     partLabels: List<String>,
+    /** Null while confirming; set once the un-merge starts, and the card morphs. */
+    progress: MergeProgressState?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    onCloseProgress: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (progress == null) onDismiss() },
         title = { Text(stringResource(R.string.unmerge_title)) },
         text = {
+            if (progress != null) {
+                MergeProgressBody(progress)
+                return@AlertDialog
+            }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(R.string.unmerge_message))
                 Spacer(Modifier.size(4.dp))
@@ -266,10 +285,16 @@ fun UnMergeDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.unmerge_confirm)) }
+            if (progress != null) {
+                MergeProgressFooter(progress, onCloseProgress)
+            } else {
+                TextButton(onClick = onConfirm) { Text(stringResource(R.string.unmerge_confirm)) }
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
+            if (progress == null) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
+            }
         }
     )
 }
