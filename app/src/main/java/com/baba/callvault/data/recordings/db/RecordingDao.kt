@@ -12,6 +12,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Data-access for the recordings catalog ([RecordingEntry]). All mutations are upserts/targeted updates
@@ -19,8 +20,26 @@ import androidx.room.Query
  * stamp the Drive copy onto an existing local row without races. Suspend functions — call off the main
  * thread (Room enforces this).
  */
+/** Just the copy state of one recording, for [RecordingDao.observeCopies]. */
+data class RecordingCopies(
+    val displayName: String,
+    val localUri: String?,
+    val driveUri: String?,
+)
+
 @Dao
 interface RecordingDao {
+
+    /**
+     * Which copies each recording has, as a stream.
+     *
+     * Home reads the catalog once per pass, so a Drive copy stamped afterwards by the copy worker or
+     * the sweep was invisible until the app was relaunched. This is the change signal that fixes
+     * that: deliberately three columns rather than the whole row, because it exists to be compared
+     * cheaply on every table write, not to render anything.
+     */
+    @Query("SELECT displayName, localUri, driveUri FROM recordings")
+    fun observeCopies(): Flow<List<RecordingCopies>>
 
     /** All catalog rows, newest-first (the order Home renders). */
     @Query("SELECT * FROM recordings ORDER BY lastModified DESC, displayName DESC")

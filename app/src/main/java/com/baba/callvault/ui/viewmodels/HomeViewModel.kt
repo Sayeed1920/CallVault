@@ -53,6 +53,10 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -71,6 +75,7 @@ import kotlinx.coroutines.withContext
  * via [RecordingsRepository].
  */
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
+
 
     private val appContext = application.applicationContext
     private val preferences = AppPreferences(appContext)
@@ -458,8 +463,43 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      */
     private var listJob: Job? = null
     private var listReloadPending = false
+    private var watchingCatalog = false
+
+    /**
+     * Re-reads the list when something else changes the catalog.
+     *
+     * A Drive copy is stamped asynchronously — by the copy worker after a recording, a merge or an
+     * un-merge, or by the scheduled sweep — and Home's list is a one-shot pass, so until now the
+     * Drive badge only appeared after the app was restarted.
+     *
+     * Quiet on purpose: this reload does not raise the loading state, because a badge arriving in
+     * the background should not flash a spinner over a list the user is reading. Debounced because a
+     * sweep stamps many rows in quick succession and each one is a table write.
+     */
+    private fun watchCatalog() {
+        viewModelScope.launch {
+            RecordingDatabase.get(appContext).recordingDao().observeCopies()
+                .map { rows -> rows.toSet() }
+                .distinctUntilChanged()
+                .drop(1) // the first emission is the state the current pass already rendered
+                .debounce(CATALOG_SETTLE_MS)
+                .collect { reloadListQuietly() }
+        }
+    }
+
+    private fun reloadListQuietly() {
+        if (listJob?.isActive == true) {
+            listReloadPending = true
+            return
+        }
+        startListPass(_uiState.value.status)
+    }
 
     fun refresh() {
+        if (!watchingCatalog) {
+            watchingCatalog = true
+            watchCatalog()
+        }
         val updatedTo = preferences.getUpdateSuccessBannerVersion()
         val status = computeStatus()
         _uiState.update {
@@ -954,6 +994,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     companion object {
+        /** How long the catalog must stop changing before the list is re-read. */
+        private const val CATALOG_SETTLE_MS = 400L
+
         private const val TAG = "CV:HomeViewModel"
 
         /**
