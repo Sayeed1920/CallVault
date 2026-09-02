@@ -781,7 +781,28 @@ private fun StorageSection(
             expanded = openSub == SUB_RETENTION,
             onToggle = { openSub = if (openSub == SUB_RETENTION) null else SUB_RETENTION },
         ) { RetentionSubSection(preferences, updateTrigger, actions) }
+
+        // Sits under Storage rather than Recording because that is the only thing it changes: what a
+        // merge leaves behind on the phone. It never affects whether a merged call can be taken
+        // apart, which the description says so nobody keeps originals out of misplaced caution.
+        MergeSubSection(preferences, updateTrigger)
     }
+}
+
+/** The one thing merging asks of the user: whether to keep the calls it was made from. */
+@Composable
+private fun MergeSubSection(preferences: AppPreferences, updateTrigger: Int) {
+    var keep by remember(updateTrigger) { mutableStateOf(preferences.isKeepOriginalsAfterMerge()) }
+    SettingsToggleRow(
+        label = stringResource(R.string.settings_merge_keep_originals_title),
+        checked = keep,
+        onCheckedChange = {
+            keep = it
+            preferences.setKeepOriginalsAfterMerge(it)
+        },
+        description = stringResource(R.string.settings_merge_keep_originals_description),
+        descriptionBelow = true,
+    )
 }
 
 /**

@@ -66,6 +66,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.CallMerge
+import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Smartphone
@@ -122,6 +124,8 @@ import com.baba.callvault.ui.common.TranscribingSheet
 import com.baba.callvault.ui.common.rememberTranscribingDisplay
 import com.baba.callvault.ui.common.rememberTranscribingPillState
 import com.baba.callvault.ui.common.TranscriptSearchSheet
+import com.baba.callvault.ui.common.MergeCallsDialog
+import com.baba.callvault.ui.common.UnMergeDialog
 import com.baba.callvault.ui.common.DeleteCopiesDialog
 import com.baba.callvault.ui.common.DeleteRecordingDialog
 import com.baba.callvault.ui.common.SeekBar
@@ -234,6 +238,12 @@ fun HomeScreen(
 
     /** Which recording is open on the playback screen, or null for the list. */
     var playbackFor by remember { mutableStateOf<String?>(null) }
+    var mergeFor by remember { mutableStateOf<RecordingItem?>(null) }
+    var unMergeFor by remember { mutableStateOf<RecordingItem?>(null) }
+    var unMergeLabels by remember { mutableStateOf<List<String>>(emptyList()) }
+    var mergeWorking by remember { mutableStateOf(false) }
+    // Which recordings were made by merging, fetched once for the whole list rather than per row.
+    var mergedNames by remember { mutableStateOf<Set<String>>(emptySet()) }
     /** The recording whose delete is awaiting confirmation, raised from the playback screen. */
     var confirmDeleteFor by remember { mutableStateOf<String?>(null) }
 
@@ -250,6 +260,8 @@ fun HomeScreen(
     var showTranscribingSheet by remember { mutableStateOf(false) }
 
     val transcriptScope = rememberCoroutineScope()
+    val mergeScope = rememberCoroutineScope()
+    LaunchedEffect(uiState.recordings.size) { mergedNames = viewModel.mergedNames() }
 
     /** Raised when transcription is asked for but the model it needs is not installed. */
     var showModelMissing by remember { mutableStateOf(false) }
@@ -699,11 +711,57 @@ fun HomeScreen(
                         onOpenTranscript = { transcriptFor = item.displayName },
                         // Retry runs through the same gate: without a model it would fail exactly the
                         // same silent way a first attempt does.
-                        onRetryTranscript = { startTranscription(item.displayName) }
+                        onRetryTranscript = { startTranscription(item.displayName) },
+                        onMerge = { mergeFor = item },
+                        // Only offered on a recording that actually came from a merge; there is
+                        // nothing to take apart otherwise.
+                        onUnMerge = if (item.displayName in mergedNames) {
+                            {
+                                mergeScope.launch {
+                                    unMergeLabels = viewModel.mergedPartLabels(item.displayName)
+                                    unMergeFor = item
+                                }
+                            }
+                        } else null
                     )
                 }
             }
         }
+    }
+
+    mergeFor?.let { primary ->
+        MergeCallsDialog(
+            primary = primary,
+            candidates = viewModel.mergeCandidates(primary),
+            working = mergeWorking,
+            onConfirm = { picked ->
+                mergeWorking = true
+                viewModel.merge(primary.displayName, picked) { problem ->
+                    mergeWorking = false
+                    mergeFor = null
+                    // A refusal is the user's to act on — different codecs, or a call that is only
+                    // in Drive — so it is said out loud rather than logged and swallowed.
+                    if (problem != null) Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
+                }
+            },
+            onDismiss = { if (!mergeWorking) mergeFor = null }
+        )
+    }
+
+    unMergeFor?.let { merged ->
+        UnMergeDialog(
+            partLabels = unMergeLabels,
+            working = mergeWorking,
+            onConfirm = {
+                mergeWorking = true
+                viewModel.unMerge(merged.displayName) { problem ->
+                    mergeWorking = false
+                    unMergeFor = null
+                    if (problem != null) Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
+                }
+            },
+            onDismiss = { if (!mergeWorking) unMergeFor = null }
+        )
     }
 
     // Dialogs and sheets that either screen can raise.
@@ -1716,7 +1774,13 @@ private fun EmptyRecordings() {
  * squeezing the name further.
  */
 @Composable
-private fun RecordingRowMenu(shareUri: Uri, shareName: String, onDelete: () -> Unit) {
+private fun RecordingRowMenu(
+    shareUri: Uri,
+    shareName: String,
+    onDelete: () -> Unit,
+    onMerge: () -> Unit = {},
+    onUnMerge: (() -> Unit)? = null,
+) {
     val context = LocalContext.current
     var open by remember { mutableStateOf(false) }
 
@@ -1738,6 +1802,24 @@ private fun RecordingRowMenu(shareUri: Uri, shareName: String, onDelete: () -> U
                     context.shareRecording(shareUri, shareName)
                 }
             )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.merge_menu_action)) },
+                leadingIcon = { Icon(Icons.Filled.CallMerge, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onMerge()
+                }
+            )
+            if (onUnMerge != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.merge_menu_take_apart)) },
+                    leadingIcon = { Icon(Icons.Filled.CallSplit, contentDescription = null) },
+                    onClick = {
+                        open = false
+                        onUnMerge()
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.home_delete)) },
                 leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
@@ -1937,6 +2019,9 @@ private fun RecordingRow(
     onTranscribe: () -> Unit,
     onOpenTranscript: () -> Unit,
     onRetryTranscript: () -> Unit,
+    onMerge: () -> Unit = {},
+    /** Null unless this recording was made by merging. */
+    onUnMerge: (() -> Unit)? = null,
     transcriptPercent: Int = 0
 ) {
     // The pending delete target drives the confirm dialog: null = closed.
@@ -2092,7 +2177,9 @@ private fun RecordingRow(
                     shareName = item.displayName,
                     onDelete = {
                         deleteTarget = DeleteTarget.Ask
-                    }
+                    },
+                    onMerge = onMerge,
+                    onUnMerge = onUnMerge
                 )
             }
         }

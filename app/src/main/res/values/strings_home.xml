@@ -107,4 +107,27 @@
     <string name="whatsnew_156_title">Decide what gets recorded, and tidy up recordings</string>
     <string name="whatsnew_156_body">Phone calls and app calls can each record automatically, ask first, or be ignored completely — so \"app calls only\" is now a real setting rather than a combination you had to work out.\n\nRecordings can be shared, and held down to select several at once for sharing or deleting. Deleting a recording kept both on the device and in Drive now asks which copies to remove.</string>
     <string name="whatsnew_156_where">Settings ▸ Recording ▸ Phone calls</string>
+    <string name="merge_confirm">Merge</string>
+    <string name="merge_menu_action">Merge with another call</string>
+    <string name="merge_menu_take_apart">Take apart</string>
+    <string name="merge_no_candidates">There are no other calls with this number on the phone.</string>
+    <string name="merge_only_in_drive">Only in Drive</string>
+    <string name="merge_pick_hint">Tick what continues it. Numbers follow the order you tick.</string>
+    <string name="merge_primary_hint">Starts the merged call</string>
+    <string name="merge_title">Merge calls with %1$s</string>
+    <string name="merge_working">Merging…</string>
+    <string name="settings_merge_keep_originals_description">After merging, leave the calls it was made from on the phone as well. Off by default, so a merge leaves one recording. Taking a merged call apart works either way.</string>
+    <string name="settings_merge_keep_originals_title">Keep the original calls</string>
+    <string name="unmerge_confirm">Take apart</string>
+    <string name="unmerge_message">It becomes these calls again, each with the transcript and marks it had:</string>
+    <string name="unmerge_title">Take this call apart?</string>
+    <string name="unmerge_working">Taking apart…</string>
+    <plurals name="merge_row_badge">
+        <item quantity="one">%1$d call</item>
+        <item quantity="other">%1$d calls</item>
+    </plurals>
+    <plurals name="merge_summary">
+        <item quantity="one">%1$d call · %2$s</item>
+        <item quantity="other">%1$d calls · %2$s</item>
+    </plurals>
 </resources>

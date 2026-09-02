@@ -90,4 +90,27 @@
     <string name="whatsnew_220_body">Отметьте момент прямо во время разговора. Кнопка в уведомлении о звонке ставит закладку там, где вы её нажали, а запись показывает их как метки, с которых начинается воспроизведение — как в телефонных звонках, так и в звонках из приложений. У звонков из приложений наконец появилось управление: пауза, продолжение, остановка и метка — раньше их можно было только начать и завершить.\n\nНайти звонок стало проще: отмечайте звёздочкой те, что стоит сохранить, ставьте свои метки и ищите по кратким изложениям и собственным заметкам, а не только по сказанному. Расшифровки экспортируются в текст, Markdown, SRT, VTT или JSON.\n\nCallVault теперь сообщает и о том, что незаметно перестал работать — если запись не запускается после перезагрузки или записи перестают попадать в Drive. Раньше оба случая проходили молча. Новая уборка может ограничить занимаемое место или отбрасывать совсем короткие записи. Всё это выключено по умолчанию, а запись со звёздочкой никогда не удаляется автоматически.</string>
     <string name="whatsnew_220_where">Настройки ▸ Хранилище ▸ Срок хранения — там находятся параметры уборки</string>
     <string name="whatsnew_211_title">Расшифровки точнее, сводки полнее</string>
+    <plurals name="merge_row_badge">
+        <item quantity="one">Звонков: %1$d</item>
+        <item quantity="other">Звонков: %1$d</item>
+    </plurals>
+    <plurals name="merge_summary">
+        <item quantity="one">Звонков: %1$d · %2$s</item>
+        <item quantity="other">Звонков: %1$d · %2$s</item>
+    </plurals>
+    <string name="merge_confirm">Объединить</string>
+    <string name="merge_menu_action">Объединить с другим звонком</string>
+    <string name="merge_menu_take_apart">Разделить</string>
+    <string name="merge_no_candidates">На телефоне нет других звонков с этим номером.</string>
+    <string name="merge_only_in_drive">Только на Диске</string>
+    <string name="merge_pick_hint">Отметьте то, что его продолжает. Номера идут в том порядке, в каком вы отмечаете.</string>
+    <string name="merge_primary_hint">С него начинается объединённый звонок</string>
+    <string name="merge_title">Объединить звонки с %1$s</string>
+    <string name="merge_working">Объединение…</string>
+    <string name="settings_merge_keep_originals_description">После объединения оставлять на телефоне и те звонки, из которых оно получилось. По умолчанию выключено, поэтому объединение оставляет одну запись. Разделить объединённый звонок можно в любом случае.</string>
+    <string name="settings_merge_keep_originals_title">Сохранять исходные звонки</string>
+    <string name="unmerge_confirm">Разделить</string>
+    <string name="unmerge_message">Он снова станет этими звонками — каждый со своей расшифровкой и метками:</string>
+    <string name="unmerge_title">Разделить этот звонок?</string>
+    <string name="unmerge_working">Разделение…</string>
 </resources>

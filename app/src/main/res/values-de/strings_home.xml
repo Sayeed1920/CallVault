@@ -90,4 +90,27 @@
     <string name="whatsnew_220_body">Markieren Sie einen Moment, während Sie noch sprechen. Eine Schaltfläche in der Anrufbenachrichtigung setzt ein Lesezeichen genau dort, wo Sie drücken; die Aufnahme zeigt sie als Chips, die von dieser Stelle abspielen – bei Telefonaten wie bei App-Anrufen. App-Anrufe haben überhaupt erst Bedienelemente: Pause, Fortsetzen, Stopp und Markieren, wo sich vorher nur starten und beenden ließ.\n\nEin Gespräch wiederzufinden ist einfacher: Markieren Sie die wichtigen mit einem Stern, vergeben Sie eigene Schlagworte, und suchen Sie auch in Zusammenfassungen und eigenen Notizen statt nur im gesprochenen Wort. Transkripte lassen sich als Text, Markdown, SRT, VTT oder JSON exportieren.\n\nCallVault meldet sich außerdem, wenn es unbemerkt aufgehört hat zu funktionieren – wenn die Aufnahme nach einem Neustart nicht anläuft oder Aufnahmen Drive nicht mehr erreichen. Beides blieb bisher stumm. Neue Aufräumoptionen begrenzen den Speicherplatz oder verwerfen sehr kurze Aufnahmen. Alles ist standardmäßig aus, und eine markierte Aufnahme wird nie automatisch gelöscht.</string>
     <string name="whatsnew_220_where">Einstellungen ▸ Speicher ▸ Aufbewahrung für die Aufräumoptionen</string>
     <string name="whatsnew_211_title">Bessere Transkripte, bessere Zusammenfassungen</string>
+    <plurals name="merge_row_badge">
+        <item quantity="one">%1$d Anruf</item>
+        <item quantity="other">%1$d Anrufe</item>
+    </plurals>
+    <plurals name="merge_summary">
+        <item quantity="one">%1$d Anruf · %2$s</item>
+        <item quantity="other">%1$d Anrufe · %2$s</item>
+    </plurals>
+    <string name="merge_confirm">Zusammenführen</string>
+    <string name="merge_menu_action">Mit einem anderen Anruf zusammenführen</string>
+    <string name="merge_menu_take_apart">Wieder trennen</string>
+    <string name="merge_no_candidates">Es gibt keine weiteren Anrufe mit dieser Nummer auf dem Telefon.</string>
+    <string name="merge_only_in_drive">Nur in Drive</string>
+    <string name="merge_pick_hint">Haken Sie an, was ihn fortsetzt. Die Nummern folgen der Reihenfolge Ihrer Auswahl.</string>
+    <string name="merge_primary_hint">Beginnt den zusammengeführten Anruf</string>
+    <string name="merge_title">Anrufe mit %1$s zusammenführen</string>
+    <string name="merge_working">Wird zusammengeführt …</string>
+    <string name="settings_merge_keep_originals_description">Nach dem Zusammenführen die Anrufe, aus denen er entstanden ist, ebenfalls auf dem Telefon lassen. Standardmäßig aus, sodass eine Zusammenführung eine einzige Aufnahme hinterlässt. Das Trennen funktioniert in beiden Fällen.</string>
+    <string name="settings_merge_keep_originals_title">Ursprüngliche Anrufe behalten</string>
+    <string name="unmerge_confirm">Trennen</string>
+    <string name="unmerge_message">Er wird wieder zu diesen Anrufen, jeweils mit dem Transkript und den Markierungen, die er hatte:</string>
+    <string name="unmerge_title">Diesen Anruf wieder trennen?</string>
+    <string name="unmerge_working">Wird getrennt …</string>
 </resources>

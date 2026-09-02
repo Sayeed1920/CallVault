@@ -90,4 +90,27 @@
     <string name="whatsnew_220_body">Zaznacz moment, gdy jeszcze rozmawiasz. Przycisk w powiadomieniu o połączeniu zostawia zakładkę dokładnie tam, gdzie go naciśniesz, a nagranie pokazuje je jako etykiety odtwarzające od tego miejsca — zarówno w rozmowach telefonicznych, jak i w aplikacjach. Rozmowy w aplikacjach mają wreszcie sterowanie: pauza, wznów, zatrzymaj i zaznacz, podczas gdy wcześniej można je było tylko rozpocząć i zakończyć.\n\nOdnalezienie rozmowy jest łatwiejsze: oznacz gwiazdką te warte zachowania, opisz je własnymi słowami i szukaj także w podsumowaniach i własnych notatkach, a nie tylko w wypowiedzianych słowach. Transkrypcje eksportują się jako tekst, Markdown, SRT, VTT lub JSON.\n\nCallVault odzywa się także wtedy, gdy po cichu przestał działać — gdy nagrywanie nie ruszy po ponownym uruchomieniu albo gdy nagrania przestaną trafiać na Drive. Wcześniej oba przypadki były milczące. Nowe porządkowanie może ograniczyć zajmowane miejsce lub odrzucać bardzo krótkie nagrania. Wszystko jest domyślnie wyłączone, a nagranie z gwiazdką nigdy nie jest usuwane automatycznie.</string>
     <string name="whatsnew_220_where">Ustawienia ▸ Pamięć ▸ Przechowywanie, aby znaleźć opcje porządkowania</string>
     <string name="whatsnew_211_title">Lepsze transkrypcje, lepsze podsumowania</string>
+    <plurals name="merge_row_badge">
+        <item quantity="one">%1$d rozmowa</item>
+        <item quantity="other">%1$d rozmowy</item>
+    </plurals>
+    <plurals name="merge_summary">
+        <item quantity="one">%1$d rozmowa · %2$s</item>
+        <item quantity="other">%1$d rozmowy · %2$s</item>
+    </plurals>
+    <string name="merge_confirm">Połącz</string>
+    <string name="merge_menu_action">Połącz z innym połączeniem</string>
+    <string name="merge_menu_take_apart">Rozdziel</string>
+    <string name="merge_no_candidates">W telefonie nie ma innych rozmów z tym numerem.</string>
+    <string name="merge_only_in_drive">Tylko na Dysku</string>
+    <string name="merge_pick_hint">Zaznacz to, co ją kontynuuje. Numery odpowiadają kolejności zaznaczania.</string>
+    <string name="merge_primary_hint">Rozpoczyna połączoną rozmowę</string>
+    <string name="merge_title">Połącz rozmowy z: %1$s</string>
+    <string name="merge_working">Łączenie…</string>
+    <string name="settings_merge_keep_originals_description">Po połączeniu pozostaw w telefonie także rozmowy, z których powstało. Domyślnie wyłączone, dzięki czemu połączenie zostawia jedno nagranie. Rozdzielenie połączonej rozmowy działa w obu przypadkach.</string>
+    <string name="settings_merge_keep_originals_title">Zachowuj oryginalne rozmowy</string>
+    <string name="unmerge_confirm">Rozdziel</string>
+    <string name="unmerge_message">Znów stanie się tymi rozmowami, każda z własną transkrypcją i znacznikami:</string>
+    <string name="unmerge_title">Rozdzielić tę rozmowę?</string>
+    <string name="unmerge_working">Rozdzielanie…</string>
 </resources>

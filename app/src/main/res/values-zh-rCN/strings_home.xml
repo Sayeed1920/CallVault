@@ -90,4 +90,27 @@
     <string name="whatsnew_220_body">边说边标记。通话通知上的按钮会在你按下的位置留下书签，录音页面会把它们显示为可以从那里播放的标签 — 电话通话和应用通话都适用。应用通话现在终于有了控制：暂停、继续、停止和标记，而以前只能开始和结束。\n\n重新找到一通通话更容易了：给值得保留的通话标星，用你自己的词语添加标签，并且不只搜索说过的话，还能搜索摘要和你自己的笔记。转写可导出为文本、Markdown、SRT、VTT 或 JSON。\n\nCallVault 还会在自己悄无声息地停止工作时告诉你 — 比如重启后录音无法启动，或录音不再上传到 Drive。这两种情况以前都是静默的。新的清理选项可以限制录音占用的空间，或丢弃非常短的录音。这些默认全部关闭，而且标星的录音永远不会被自动删除。</string>
     <string name="whatsnew_220_where">设置 ▸ 存储 ▸ 保留，即可找到清理选项</string>
     <string name="whatsnew_211_title">转写更准，摘要更全</string>
+    <plurals name="merge_row_badge">
+        <item quantity="one">%1$d 通电话</item>
+        <item quantity="other">%1$d 通电话</item>
+    </plurals>
+    <plurals name="merge_summary">
+        <item quantity="one">%1$d 通电话 · %2$s</item>
+        <item quantity="other">%1$d 通电话 · %2$s</item>
+    </plurals>
+    <string name="merge_confirm">合并</string>
+    <string name="merge_menu_action">与另一通电话合并</string>
+    <string name="merge_menu_take_apart">拆开</string>
+    <string name="merge_no_candidates">手机上没有与该号码的其他通话。</string>
+    <string name="merge_only_in_drive">仅在云端硬盘中</string>
+    <string name="merge_pick_hint">勾选接续的通话。编号按你勾选的顺序排列。</string>
+    <string name="merge_primary_hint">作为合并后通话的开头</string>
+    <string name="merge_title">合并与 %1$s 的通话</string>
+    <string name="merge_working">正在合并…</string>
+    <string name="settings_merge_keep_originals_description">合并之后，把构成它的那些通话也留在手机上。默认关闭，因此一次合并只留下一条录音。无论开启与否，都可以把合并后的通话拆开。</string>
+    <string name="settings_merge_keep_originals_title">保留原始通话</string>
+    <string name="unmerge_confirm">拆开</string>
+    <string name="unmerge_message">它会重新变回下面这些通话，各自带着原有的转写稿和标记：</string>
+    <string name="unmerge_title">拆开这通电话？</string>
+    <string name="unmerge_working">正在拆开…</string>
 </resources>

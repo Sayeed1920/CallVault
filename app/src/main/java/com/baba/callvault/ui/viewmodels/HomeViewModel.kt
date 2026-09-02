@@ -33,6 +33,8 @@ import com.baba.callvault.data.recordings.RecordingDirection
 import androidx.documentfile.provider.DocumentFile
 import com.baba.callvault.data.recordings.RecordingCatalog
 import com.baba.callvault.utils.AppLogger
+import com.baba.callvault.data.merge.MergeService
+import com.baba.callvault.data.recordings.db.RecordingDatabase
 import com.baba.callvault.data.recordings.RecordingsRepository
 import com.baba.callvault.data.recordings.RecordingsRepository.RecordingItem
 import com.baba.callvault.data.recordings.RecordingsRepository.RecordingSource
@@ -748,6 +750,79 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * thread, then reloads the recordings list. If [item] is the track currently loaded in the inline
      * player, playback is stopped first.
      */
+    // ---- Merging ------------------------------------------------------------------------------
+
+    /**
+     * The other calls with this one's number that could continue it, newest first.
+     *
+     * Filtered to what is actually on the phone: joining copies frame by frame needs the audio here,
+     * not in Drive. Unbounded by date on purpose — a cut-off can only ever hide the row someone came
+     * looking for.
+     */
+    fun mergeCandidates(primary: RecordingItem): List<RecordingItem> {
+        val key = primary.contactName ?: primary.number ?: return emptyList()
+        return _uiState.value.recordings.filter { other ->
+            other.displayName != primary.displayName &&
+                other.localUri != null &&
+                (other.contactName ?: other.number) == key
+        }
+    }
+
+    /**
+     * Every recording that was made by merging, as one query.
+     *
+     * One query for the whole list, never one per row. Asking per row is precisely the shape that
+     * made the list slower the more recordings someone kept — see the duration cache — and it would
+     * be no better here for being a cheaper query.
+     */
+    suspend fun mergedNames(): Set<String> =
+        withContext(Dispatchers.IO) {
+            RecordingDatabase.get(appContext).mergePartDao().allMergedNames().toSet()
+        }
+
+    /** The parts of a merged recording, labelled for the un-merge confirmation. */
+    suspend fun mergedPartLabels(displayName: String): List<String> =
+        withContext(Dispatchers.IO) {
+            RecordingDatabase.get(appContext).mergePartDao().partsOf(displayName).map { it.partName }
+        }
+
+    /**
+     * Joins [primary] and [others] into one recording, in that order.
+     *
+     * [onDone] gets null on success or a message to show. The work is all in [MergeService], which
+     * verifies the joined file before deleting anything.
+     */
+    fun merge(primary: String, others: List<String>, onDone: (String?) -> Unit) {
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) { MergeService.merge(appContext, primary, others) }
+            refresh()
+            onDone(
+                when (outcome) {
+                    is MergeService.Outcome.Merged -> null
+                    is MergeService.Outcome.Refused -> outcome.reason
+                    is MergeService.Outcome.Failed -> outcome.reason
+                    is MergeService.Outcome.UnMerged -> null
+                }
+            )
+        }
+    }
+
+    /** Cuts a merged recording back into the calls it was made from. */
+    fun unMerge(mergedName: String, onDone: (String?) -> Unit) {
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) { MergeService.unMerge(appContext, mergedName) }
+            refresh()
+            onDone(
+                when (outcome) {
+                    is MergeService.Outcome.UnMerged -> null
+                    is MergeService.Outcome.Refused -> outcome.reason
+                    is MergeService.Outcome.Failed -> outcome.reason
+                    is MergeService.Outcome.Merged -> null
+                }
+            )
+        }
+    }
+
     fun deleteRecording(item: RecordingItem) {
         // Stop the inline player if ANY of this item's copies (primary, device, or Drive) is loaded,
         // since delete removes every same-named copy across the configured folders.

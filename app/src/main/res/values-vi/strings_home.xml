@@ -90,4 +90,27 @@
     <string name="whatsnew_220_body">Đánh dấu một khoảnh khắc ngay khi bạn còn đang nói. Một nút trên thông báo cuộc gọi đặt dấu trang đúng chỗ bạn nhấn, và bản ghi hiển thị chúng thành các thẻ phát từ đó — với cả cuộc gọi điện thoại lẫn cuộc gọi trong ứng dụng. Cuộc gọi trong ứng dụng giờ đã có nút điều khiển: tạm dừng, tiếp tục, dừng và đánh dấu, trước đây chỉ có thể bắt đầu và kết thúc.\n\nTìm lại một cuộc gọi dễ hơn: gắn sao cho những cuộc đáng giữ, gắn nhãn bằng từ ngữ của riêng bạn, và tìm kiếm cả trong bản tóm tắt lẫn ghi chú của bạn chứ không chỉ những gì đã nói. Bản ghi lời xuất ra dạng văn bản, Markdown, SRT, VTT hoặc JSON.\n\nCallVault cũng lên tiếng khi nó âm thầm ngừng hoạt động — nếu ghi âm không khởi động sau khi khởi động lại máy, hoặc bản ghi không còn đến được Drive. Trước đây cả hai đều im lặng. Tính năng dọn dẹp mới có thể giới hạn dung lượng bản ghi chiếm hoặc bỏ đi những bản rất ngắn. Tất cả đều tắt mặc định, và bản ghi đã gắn sao không bao giờ bị xoá tự động.</string>
     <string name="whatsnew_220_where">Cài đặt ▸ Lưu trữ ▸ Thời gian giữ để xem các tùy chọn dọn dẹp</string>
     <string name="whatsnew_211_title">Bản ghi lời tốt hơn, tóm tắt tốt hơn</string>
+    <plurals name="merge_row_badge">
+        <item quantity="one">%1$d cuộc gọi</item>
+        <item quantity="other">%1$d cuộc gọi</item>
+    </plurals>
+    <plurals name="merge_summary">
+        <item quantity="one">%1$d cuộc gọi · %2$s</item>
+        <item quantity="other">%1$d cuộc gọi · %2$s</item>
+    </plurals>
+    <string name="merge_confirm">Gộp</string>
+    <string name="merge_menu_action">Gộp với cuộc gọi khác</string>
+    <string name="merge_menu_take_apart">Tách ra</string>
+    <string name="merge_no_candidates">Không có cuộc gọi nào khác với số này trên máy.</string>
+    <string name="merge_only_in_drive">Chỉ có trên Drive</string>
+    <string name="merge_pick_hint">Đánh dấu phần tiếp nối. Số thứ tự theo đúng thứ tự bạn đánh dấu.</string>
+    <string name="merge_primary_hint">Mở đầu cuộc gọi đã gộp</string>
+    <string name="merge_title">Gộp các cuộc gọi với %1$s</string>
+    <string name="merge_working">Đang gộp…</string>
+    <string name="settings_merge_keep_originals_description">Sau khi gộp, vẫn giữ trên máy những cuộc gọi đã tạo nên nó. Mặc định tắt, nên một lần gộp chỉ để lại một bản ghi. Việc tách một cuộc gọi đã gộp vẫn hoạt động trong cả hai trường hợp.</string>
+    <string name="settings_merge_keep_originals_title">Giữ lại các cuộc gọi gốc</string>
+    <string name="unmerge_confirm">Tách ra</string>
+    <string name="unmerge_message">Nó sẽ trở lại thành các cuộc gọi sau, mỗi cuộc giữ nguyên bản chép lời và các dấu của nó:</string>
+    <string name="unmerge_title">Tách cuộc gọi này ra?</string>
+    <string name="unmerge_working">Đang tách…</string>
 </resources>

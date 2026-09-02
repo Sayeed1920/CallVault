@@ -91,4 +91,27 @@
     <string name="whatsnew_220_body">Marquez un moment pendant que vous parlez encore. Un bouton sur la notification d’appel pose un signet là où vous appuyez, et l’enregistrement les affiche sous forme de puces qui lisent à partir de ce point — pour les appels téléphoniques comme pour ceux des applications. Les appels d’applications ont enfin des commandes : pause, reprise, arrêt et marquage, là où l’on ne pouvait que démarrer et terminer.\n\nRetrouver un appel est plus simple : mettez une étoile sur ceux qui comptent, étiquetez-les avec vos propres mots, et cherchez aussi dans les résumés et vos notes, pas seulement dans les paroles. Les transcriptions s’exportent en texte, Markdown, SRT, VTT ou JSON.\n\nCallVault signale aussi lorsqu’il a cessé de fonctionner sans le dire — si l’enregistrement ne démarre pas après un redémarrage, ou si les enregistrements n’arrivent plus sur Drive. Les deux étaient silencieux jusqu’ici. Le nouveau rangement peut plafonner l’espace occupé ou écarter les enregistrements très courts. Tout est désactivé par défaut, et un enregistrement étoilé n’est jamais supprimé automatiquement.</string>
     <string name="whatsnew_220_where">Paramètres ▸ Stockage ▸ Conservation pour les options de rangement</string>
     <string name="whatsnew_211_title">De meilleures transcriptions, de meilleurs résumés</string>
+    <plurals name="merge_row_badge">
+        <item quantity="one">%1$d appel</item>
+        <item quantity="other">%1$d appels</item>
+    </plurals>
+    <plurals name="merge_summary">
+        <item quantity="one">%1$d appel · %2$s</item>
+        <item quantity="other">%1$d appels · %2$s</item>
+    </plurals>
+    <string name="merge_confirm">Fusionner</string>
+    <string name="merge_menu_action">Fusionner avec un autre appel</string>
+    <string name="merge_menu_take_apart">Séparer</string>
+    <string name="merge_no_candidates">Il n’y a pas d’autre appel avec ce numéro sur le téléphone.</string>
+    <string name="merge_only_in_drive">Uniquement dans Drive</string>
+    <string name="merge_pick_hint">Cochez ce qui le poursuit. Les numéros suivent l’ordre dans lequel vous cochez.</string>
+    <string name="merge_primary_hint">Commence l’appel fusionné</string>
+    <string name="merge_title">Fusionner les appels avec %1$s</string>
+    <string name="merge_working">Fusion en cours…</string>
+    <string name="settings_merge_keep_originals_description">Après une fusion, laisser également sur le téléphone les appels dont elle est issue. Désactivé par défaut, afin qu’une fusion ne laisse qu’un seul enregistrement. Séparer un appel fusionné fonctionne dans les deux cas.</string>
+    <string name="settings_merge_keep_originals_title">Conserver les appels d’origine</string>
+    <string name="unmerge_confirm">Séparer</string>
+    <string name="unmerge_message">Il redevient ces appels, chacun avec la transcription et les repères qu’il avait :</string>
+    <string name="unmerge_title">Séparer cet appel ?</string>
+    <string name="unmerge_working">Séparation en cours…</string>
 </resources>
