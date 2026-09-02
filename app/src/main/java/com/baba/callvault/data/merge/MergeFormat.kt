@@ -88,6 +88,30 @@ internal object MergeFormat {
     fun MediaFormat.optInt(key: String, fallback: Int = 0): Int =
         if (containsKey(key)) getInteger(key) else fallback
 
+    /**
+     * How many encoded frames [fd] holds.
+     *
+     * The unit a merge is verified in. Counting frames rather than comparing durations is deliberate:
+     * a duration can round, and a file that lost a frame at the seam would still report the right
+     * length to the nearest second.
+     */
+    fun frameCount(fd: FileDescriptor): Int {
+        val (extractor, format) = openAudio(fd)
+        return try {
+            val capacity = format.optInt(MediaFormat.KEY_MAX_INPUT_SIZE, FALLBACK_MAX_INPUT_SIZE)
+                .coerceAtLeast(FALLBACK_MAX_INPUT_SIZE)
+            val buffer = java.nio.ByteBuffer.allocate(capacity)
+            var n = 0
+            while (extractor.readSampleData(buffer, 0) >= 0) {
+                n++
+                if (!extractor.advance()) break
+            }
+            n
+        } finally {
+            extractor.release()
+        }
+    }
+
     /** A generous read buffer when the container declares no maximum. */
     const val FALLBACK_MAX_INPUT_SIZE = 128 * 1024
 }

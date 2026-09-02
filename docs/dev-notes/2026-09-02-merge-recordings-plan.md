@@ -134,6 +134,12 @@ a delete:
 
 ## Build order
 
+0. **Progress, 2026-09-02:** steps 1, 2, 4 and 5 are built and green — schema, `AudioConcat`,
+   `AudioSplit`, `MergeService` with the verify-then-delete ordering and the keep-originals setting.
+   `MergeManifest` holds the flattening arithmetic as pure, unit-tested logic. **Not yet done: the
+   metadata migration (step 3b), the UI, and the strings.** Until 3b lands a merge would drop the
+   transcript, marks, tags, star and note — which is why nothing reaches the UI first.
+
 1. `MergePartEntry` + DAO + `MIGRATION_2_3`, with tests. No UI.
 2. `AudioConcat` — the stream-copy join, plus format-compatibility check. Unit-tested against real
    fixtures from both capture paths.
@@ -142,6 +148,10 @@ a delete:
 4. `AudioSplit` — the inverse cut, re-applying the codec delays. **Round-trip test is the gate:**
    merge two fixtures, un-merge, assert the decoded PCM matches the originals sample for sample.
 5. The verify-then-delete ordering, plus the "keep the original calls" setting.
+5b. **The metadata migration** — transcript, segments, speaker turns, marks, tags, star, note and
+   waveform, moved onto the merged name with each part's times shifted, and redistributed back by
+   time range on un-merge. Listed separately because it is the one remaining piece that silently
+   loses something a user cares about if it is skipped.
 6. The modal, the ⋮ entry, un-merge + its confirm dialog.
 7. Strings across all ten locales via `scripts/merge-translations.py`.
 

@@ -278,6 +278,7 @@ class AppPreferences(context: Context) {
         ADB_PAIRED("adb_paired"),
         LOOPBACK_ADB_PORT("loopback_adb_port"),
         OFFLINE_RECORDING_ENABLED("offline_recording_enabled"),
+        KEEP_ORIGINALS_AFTER_MERGE("keep_originals_after_merge"),
 
         // --- In-app updates ---
         UPDATE_CHECK_ENABLED("update_check_enabled"),
@@ -467,6 +468,18 @@ class AppPreferences(context: Context) {
 
     /** Sets the offline-recording (loopback) opt-in flag. */
     fun setOfflineRecordingEnabled(enabled: Boolean) = setBoolean(Key.OFFLINE_RECORDING_ENABLED, enabled)
+
+    /**
+     * Whether merging keeps the calls it was made from.
+     *
+     * Off by default, so a merge leaves one recording — the point of the feature. Keeping them is
+     * safe to offer because it is not what makes un-merge possible: the merged file contains the
+     * originals' encoded frames, so un-merge cuts them back out exactly whether or not the separate
+     * files are still there. This setting is for people who would rather hold the originals anyway,
+     * and it costs roughly double the storage on a merged call.
+     */
+    fun isKeepOriginalsAfterMerge() = getBoolean(Key.KEEP_ORIGINALS_AFTER_MERGE, false)
+    fun setKeepOriginalsAfterMerge(keep: Boolean) = setBoolean(Key.KEEP_ORIGINALS_AFTER_MERGE, keep)
 
     // -------- Persistent Recorder Server (CallVault Plan 5) --------
 
