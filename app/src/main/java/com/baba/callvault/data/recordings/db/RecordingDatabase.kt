@@ -16,7 +16,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Room database hosting CallVault's recordings catalog. Single table, single process. A plain
+ * Room database hosting CallVault's recordings catalog. Single process. A plain
  * process-wide singleton ([get]) since there is no DI container in the app.
  *
  * The catalog is a derived, rebuildable cache (it can be re-seeded from the SAF folders), so schema
@@ -25,14 +25,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * maintain.
  *
  * That fallback stays as the safety net, but a migration is written where dropping the table would
- * cost the user something real. Re-seeding walks both SAF folders and then re-reads the length of
+ * cost the user something real — and for `merge_parts` it would cost something unrecoverable, since
+ * no folder walk can rediscover where one call ended and the next began. See [MIGRATION_2_3]. Re-seeding walks both SAF folders and then re-reads the length of
  * every recording, so a drop turns the first launch after an update into the slowest one — the exact
  * complaint [MIGRATION_1_2] exists to end.
  */
-@Database(entities = [RecordingEntry::class], version = 2, exportSchema = false)
+@Database(entities = [RecordingEntry::class, MergePartEntry::class], version = 3, exportSchema = false)
 abstract class RecordingDatabase : RoomDatabase() {
 
     abstract fun recordingDao(): RecordingDao
+
+    abstract fun mergePartDao(): MergePartDao
 
     companion object {
 
@@ -47,6 +50,35 @@ abstract class RecordingDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the merge manifest.
+         *
+         * A migration rather than a drop, and the one place in this file where the destructive
+         * fallback would be genuinely destructive: re-seeding rebuilds the catalog by walking the
+         * SAF folders, and no folder walk can tell you where one call ended and the next began
+         * inside a merged recording. Losing these rows would leave the audio intact and playable but
+         * permanently un-splittable, because merging deletes the originals.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `merge_parts` (" +
+                        "`mergedName` TEXT NOT NULL, " +
+                        "`position` INTEGER NOT NULL, " +
+                        "`partName` TEXT NOT NULL, " +
+                        "`frameStart` INTEGER NOT NULL, " +
+                        "`frameCount` INTEGER NOT NULL, " +
+                        "`startTimeUs` INTEGER NOT NULL, " +
+                        "`durationUs` INTEGER NOT NULL, " +
+                        "`originalLastModified` INTEGER NOT NULL, " +
+                        "`encoderDelayUs` INTEGER NOT NULL, " +
+                        "`encoderPaddingUs` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`mergedName`, `position`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_merge_parts_partName` ON `merge_parts` (`partName`)")
+            }
+        }
+
         @Volatile
         private var INSTANCE: RecordingDatabase? = null
 
@@ -56,7 +88,7 @@ abstract class RecordingDatabase : RoomDatabase() {
                     context.applicationContext,
                     RecordingDatabase::class.java,
                     "recordings.db"
-                ).addMigrations(MIGRATION_1_2)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build().also { INSTANCE = it }
             }

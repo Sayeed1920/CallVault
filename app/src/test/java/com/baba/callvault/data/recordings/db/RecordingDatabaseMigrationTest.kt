@@ -22,7 +22,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The v1 → v2 migration that adds the remembered duration.
+ * The migration chain from v1, which adds the remembered duration and then the merge manifest.
+ *
+ * Deliberately registers **every** migration rather than only the one under test, because that is
+ * what a real upgrade does: someone who skipped a release opens a v1 file against the current
+ * schema and needs the whole chain. Pinning a single step passed happily until v3 existed and then
+ * failed with "a migration from 1 to 3 was required but not found" — which is exactly the crash a
+ * user would have seen on launch, so the test is more useful this way round.
  *
  * Worth a test rather than trusting one ALTER TABLE: Room validates the on-disk schema against the
  * entity every time the database is opened, so a migration that produces the wrong shape does not
@@ -74,7 +80,7 @@ class RecordingDatabaseMigrationTest {
 
         // Act — Room validates the migrated schema against the entity as it opens.
         val db = Room.databaseBuilder(context, RecordingDatabase::class.java, name)
-            .addMigrations(RecordingDatabase.MIGRATION_1_2)
+            .addMigrations(RecordingDatabase.MIGRATION_1_2, RecordingDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
         val rows = db.recordingDao().getAll()
@@ -92,11 +98,31 @@ class RecordingDatabaseMigrationTest {
     }
 
     @Test
+    fun a_v1_file_reaches_the_current_schema_with_its_rows_and_an_empty_manifest() = runBlocking {
+        // Arrange
+        seedVersion1()
+
+        // Act
+        val db = Room.databaseBuilder(context, RecordingDatabase::class.java, name)
+            .addMigrations(RecordingDatabase.MIGRATION_1_2, RecordingDatabase.MIGRATION_2_3)
+            .allowMainThreadQueries()
+            .build()
+
+        // Assert — the catalog survived both steps, and merge_parts exists and is empty
+        assertEquals(1, db.recordingDao().getAll().size)
+        assertEquals(
+            emptyList<MergePartEntry>(),
+            db.mergePartDao().partsOf("20260827_154104.611+0300_voip-WhatsApp_Feroza.ogg")
+        )
+        db.close()
+    }
+
+    @Test
     fun the_migrated_database_can_remember_a_duration() = runBlocking {
         // Arrange
         seedVersion1()
         val db = Room.databaseBuilder(context, RecordingDatabase::class.java, name)
-            .addMigrations(RecordingDatabase.MIGRATION_1_2)
+            .addMigrations(RecordingDatabase.MIGRATION_1_2, RecordingDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
 
