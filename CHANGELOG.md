@@ -33,6 +33,11 @@ All notable changes to CallVault are documented here. The format is based on
   you at the top of the list again. A **Top** button also appears once you have scrolled far enough
   to want it.
 
+- **A recording's Drive badge appears when the copy lands**, instead of on the next launch. Copying
+  to Drive happens in the background — after a call, or after a merge — and the list only read the
+  catalogue once, so a recording could sit there looking device-only for as long as the app stayed
+  open.
+
 ## [2.2.0]
 
 A release about the parts of using a call recorder that are not the recording: finding a call again,

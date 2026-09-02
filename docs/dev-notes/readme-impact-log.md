@@ -155,6 +155,30 @@ so telling a user about it offers them nothing they can act on. See the memory
 - **Wear OS, launcher-icon hiding.** Zero demand and provably non-functional respectively.
 - **Any hardware-acceleration claim.** NNAPI, Hexagon and Vulkan are all ruled out for our stack.
 
+
+## 2026-09-02 — merging calls (2.3.0)
+
+✅ **Folded in.** "What it does" gains a merge bullet, above Transcripts:
+
+> 🔗 **Merge calls that were one conversation** — a call drops and you ring back; join them into one
+> recording, in the order you choose. Lossless, and un-mergeable afterwards.
+
+Three claims in that line, each deliberate and each checked:
+
+- **"Lossless"** is literal, not marketing. The join copies encoded frames without re-encoding, and
+  the round trip was measured — decoded audio matched the original in 0 of 240,640 samples once the
+  encoder priming offset was accounted for. If merging ever grows a re-encode path for mismatched
+  formats, this word has to change.
+- **"in the order you choose"** rather than "in order" — the order is the order you tick, not
+  chronological, and that is a deliberate design decision the README should not paper over.
+- **"un-mergeable afterwards"** is the whole reason merging may delete the originals. It stays true
+  only while `MergeRoundTripTest` passes.
+
+⚠️ **Not claimed, on purpose:** that a merged recording's Drive copy or transcript is preserved. Both
+are, but the bullet is already dense and those are the sort of specifics that age badly.
+
+📷 **Screenshots unaffected** — merging is reached from a row's ⋮ menu, so no pictured screen changed.
+
 ## Review checklist before publishing
 
 1. Re-read this file top to bottom; fold in every ✅ row.
