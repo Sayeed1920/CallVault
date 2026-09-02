@@ -18,7 +18,8 @@ Settled with the maintainer on 2026-09-02, recorded so they are not relitigated:
 - **Order is the order you tick them in, not chronological.** The recording you opened the menu from
   is always ① and cannot be moved. Each one you tick takes the next number. Ticking the 3rd row in
   the list makes it ②, and it plays immediately after ①.
-- **Un-merge is required**, which forces the merge to be non-destructive.
+- **Merge deletes the originals**, leaving one file, with a setting to keep them. Un-merge is still
+  required — which is only honest because the cut is frame-exact (measured below).
 
 ⚠️ Because order is selection order, a merge *can* be assembled out of chronological order. That is
 allowed on purpose. The consequence is that the merged file's timeline is **playback order, not
@@ -26,38 +27,66 @@ wall-clock order** — so each part's header keeps its real date and time, and i
 position inside the merged audio that is re-based. The numbered badges plus the result strip are
 what make the chosen order visible before it is committed.
 
-## Why non-destructive is the only sane shape
+## Un-merge without keeping the originals — MEASURED, not assumed
 
-Merge writes a **new** recording and keeps every original, hidden from the list and recorded as a
-part. Un-merge deletes the merged file and its derived rows; the parts reappear untouched, because
-they were never altered.
+The maintainer's requirement is that a merge leaves **one file**, with un-merge still available. That
+only works if the merged file can be cut back into the originals exactly. It can, and this was
+verified on 2026-09-02 with ffmpeg rather than reasoned about:
 
-The alternative — merge destructively and re-split to undo — means cutting encoded audio back apart
-at a frame boundary and hoping the pieces are what they were. It is lossy and it gets edge cases
-wrong. Not doing that.
+**Why it works.** A stream-copy merge does not re-encode anything. It copies each part's encoded
+frames into a new container and re-stamps their presentation times. The merged file therefore
+*contains the original frames*, unchanged. Cutting at a frame boundary hands them straight back.
 
-Cost is roughly 2× storage for a merged call. Mono AAC runs about 0.5 MB/minute, so an hour of
-merged conversation costs ~30 MB extra. Acceptable.
+**AAC / `.m4a` — bit-exact.**
 
-🚨 **Retention and the storage cap must never reap a part**, exactly as they already never reap a
-starred recording (`StorageCapPolicy`, `RetentionSweepWorker`). A part that vanishes turns un-merge
-into a lie. This is the single highest-risk interaction in the feature.
+| Check | Result |
+|---|---|
+| frame count | 236 + 142 = **378**, exactly |
+| raw frame bytes | merged file's first 42 083 bytes `cmp`-identical to part A; last 25 375 identical to part B |
+| decoded PCM, part A vs its slice of the merge | **0 of 240 640 samples differ** |
 
-## The audio
+The PCM comparison is only clean once a constant **1024-sample (21.33 ms)** offset is accounted for —
+that is the AAC encoder's priming delay, which the container's edit list expresses and a naive
+concatenation drops. It is a fixed, known quantity, not drift: recorded per part at merge time and
+re-applied on the split, it cancels exactly. Left unrecorded, every un-merged part would come back
+21 ms early.
 
-Cheaper than it looks. Every capture path encodes **mono** (`ENCODE_CHANNELS = 1`), and the direct
-and VoIP paths both run at **48 kHz**. Two calls recorded on the same phone with unchanged settings
-are therefore format-identical, and merging is `MediaExtractor` → `MediaMuxer` **stream copy** with
-each part's presentation timestamps offset by the running total. No decode, no re-encode: lossless
-and effectively instant.
+**Opus / `.ogg` — packets exact, trim metadata needs recording.**
 
-**v1 declines mismatches** rather than re-encoding them. A mismatch only happens if the codec setting
-(AAC/`.m4a` vs Opus/`.ogg`) changed between the two calls, which is rare and which the user did
-deliberately. The message says so plainly. Re-encoding is a later addition if anyone asks.
+Packet count 251 + 151 = **402** exactly and every packet size matches in sequence. What
+concatenation drops is the per-stream *pre-skip / end-trim* side data at the seam (312 and 648
+samples in the test, ~6.5 ms and ~13.5 ms). Same treatment: record both values per part, re-apply on
+split.
 
-**At the seam: butt-join and drop a mark.** Padding the real gap with silence bloats the file and
-adds nothing. A mark preserves the information — "there was a 7m54s gap here" — and makes it
-navigable, reusing a feature that already exists.
+**Conclusion: deleting the originals loses nothing recoverable**, provided `merge_parts` stores the
+frame boundary and the codec-delay values. Un-merge is a frame-exact cut, not a re-encode, so it is
+as fast as the merge and equally lossless.
+
+## Merge deletes the originals — with a verify step that cannot be skipped
+
+Default is **delete**; a setting keeps them for anyone who wants the belt and braces.
+
+🚨 The ordering is not negotiable, because it is the only thing standing between a bug and
+unrecoverable data loss:
+
+1. Write the merged file.
+2. **Re-open it and verify**: frame count equals the sum of the parts, duration matches within one
+   frame, and it decodes.
+3. Only on success, delete the originals — device copies and Drive copies alike.
+
+A failed verification keeps everything and reports the failure. Nothing is deleted on the strength of
+a write that was never read back.
+
+**Deleting a merged recording deletes the whole conversation**, since the parts no longer exist
+separately. Its delete confirmation must say how many calls it contains.
+
+### The honest limitation
+
+Un-merge depends on the `merge_parts` rows. Lose `recordings.db` and a merged recording degrades to
+an ordinary un-splittable one — the audio is all still there and plays fine, but the app no longer
+knows where the seams were. That is the same exposure the catalog already carries for Drive URIs, and
+`UntrackedRecordings` already rebuilds what it can from the files themselves. Worth stating plainly
+rather than discovering later; not worth a second copy of the manifest in v1.
 
 ## Schema
 
@@ -66,15 +95,26 @@ navigable, reusing a feature that already exists.
 ```kotlin
 @Entity(tableName = "merge_parts", primaryKeys = ["mergedName", "position"])
 data class MergePartEntry(
-    val mergedName: String,  // the merged recording's displayName
-    val position: Int,       // 1 = the primary, then selection order
-    val partName: String,    // the original recording's displayName
-    val offsetMs: Long,      // where this part begins inside the merged audio
+    val mergedName: String,      // the merged recording's displayName
+    val position: Int,           // 1 = the primary, then selection order
+    val partName: String,        // the original's displayName — restores date, direction, number
+    val frameStart: Int,         // first frame index of this part within the merged stream
+    val frameCount: Int,         // how many frames it owns
+    val startTimeUs: Long,       // its start on the merged timeline
+    val durationUs: Long,
+    val originalLastModified: Long,
+    val encoderDelayUs: Long,    // AAC priming / Opus pre-skip — re-applied on split
+    val encoderPaddingUs: Long,  // end trim, same
 )
 ```
 
-That is everything un-merge needs. **A recording is hidden from the list iff it appears as a
-`partName`** — derived, not a second flag, so the two can never disagree.
+`frameStart` / `frameCount` are what make the cut exact: `MediaExtractor` yields one encoded frame per
+`advance()`, so the boundary is an integer, never a rounded millisecond. The two encoder-delay fields
+are what the measurement above proved necessary — without them every un-merged part returns 21 ms
+early on AAC.
+
+Since the originals are gone by default, there is nothing to hide from the Home list: the merged
+recording is simply the only one there.
 
 ## What happens to the metadata
 
@@ -99,13 +139,13 @@ a delete:
    fixtures from both capture paths.
 3. `MergeService` — orchestration: write the file, copy the metadata, write `merge_parts`, and the
    inverse for un-merge. Transactional; a failed merge must leave nothing behind.
-4. Teach `StorageCapPolicy` and `RetentionSweepWorker` that parts are exempt. **Tests first** — this
-   is where silent data loss would come from.
-5. Hide parts from the Home list.
+4. `AudioSplit` — the inverse cut, re-applying the codec delays. **Round-trip test is the gate:**
+   merge two fixtures, un-merge, assert the decoded PCM matches the originals sample for sample.
+5. The verify-then-delete ordering, plus the "keep the original calls" setting.
 6. The modal, the ⋮ entry, un-merge + its confirm dialog.
 7. Strings across all ten locales via `scripts/merge-translations.py`.
 
-Steps 1–4 are invisible to the user and carry all the risk; the UI is the cheap half.
+Steps 1–5 are invisible to the user and carry all the risk; the UI is the cheap half.
 
 ## Open, needs the maintainer
 
