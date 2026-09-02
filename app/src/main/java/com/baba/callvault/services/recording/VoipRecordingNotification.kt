@@ -117,7 +117,13 @@ object VoipRecordingNotification {
         PendingIntent.getService(
             context,
             action.hashCode(),
-            Intent(context, DaemonKeepAliveService::class.java).apply { this.action = action },
+            // setPackage alongside the component: setting an action on an otherwise explicit
+            // Intent is what makes it read as implicit to a static analyser, and these buttons
+            // stop and mark a live recording — not something to leave resolvable by anyone else.
+            Intent(context, DaemonKeepAliveService::class.java).apply {
+                setPackage(context.packageName)
+                this.action = action
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 }

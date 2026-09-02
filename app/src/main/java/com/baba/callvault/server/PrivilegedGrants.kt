@@ -40,6 +40,10 @@ object PrivilegedGrants {
 
     private const val TAG = "CV:Grants"
 
+    /** Absolute for the same reason as the daemon's pgrep: privileged context, inherited PATH. */
+    private const val APPOPS = "/system/bin/appops"
+    private const val CMD = "/system/bin/cmd"
+
     /** Long enough for a slow `cmd` round trip, short enough not to hang a binder call. */
     private const val TIMEOUT_SEC = 10L
 
@@ -49,8 +53,8 @@ object PrivilegedGrants {
      * The package-level op only. See the class note for why the uid-level variant is not offered.
      */
     fun grantAppOp(packageName: String, opName: String, userId: Int): Boolean {
-        run("appops", "set", "--user", userId.toString(), packageName, opName, "allow")
-        val after = run("appops", "get", "--user", userId.toString(), packageName, opName)
+        run(APPOPS, "set", "--user", userId.toString(), packageName, opName, "allow")
+        val after = run(APPOPS, "get", "--user", userId.toString(), packageName, opName)
         val allowed = GrantOutput.appOpAllowed(after.output, opName)
         AppLogger.i(TAG, "grantAppOp($packageName, $opName) -> $allowed")
         return allowed
@@ -64,8 +68,8 @@ object PrivilegedGrants {
      * a privilege problem.
      */
     fun grantRole(roleName: String, packageName: String, userId: Int): Boolean {
-        run("cmd", "role", "add-role-holder", "--user", userId.toString(), roleName, packageName)
-        val after = run("cmd", "role", "get-role-holders", "--user", userId.toString(), roleName)
+        run(CMD, "role", "add-role-holder", "--user", userId.toString(), roleName, packageName)
+        val after = run(CMD, "role", "get-role-holders", "--user", userId.toString(), roleName)
         val holds = GrantOutput.holdsRole(after.output, packageName)
         AppLogger.i(TAG, "grantRole($roleName, $packageName) -> $holds")
         return holds
