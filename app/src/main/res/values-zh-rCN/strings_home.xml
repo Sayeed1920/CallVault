@@ -106,17 +106,21 @@
     <string name="merge_pick_hint">勾选接续的通话。编号按你勾选的顺序排列。</string>
     <string name="merge_primary_hint">作为合并后通话的开头</string>
     <string name="merge_title">合并与 %1$s 的通话</string>
-    <string name="merge_working">正在合并…</string>
     <string name="settings_merge_keep_originals_description">合并之后，把构成它的那些通话也留在手机上。默认关闭，因此一次合并只留下一条录音。无论开启与否，都可以把合并后的通话拆开。</string>
     <string name="settings_merge_keep_originals_title">保留原始通话</string>
     <string name="unmerge_confirm">拆开</string>
     <string name="unmerge_message">它会重新变回下面这些通话，各自带着原有的转写稿和标记：</string>
     <string name="unmerge_title">拆开这通电话？</string>
-    <string name="unmerge_working">正在拆开…</string>
     <string name="merge_note_will_delete">其余通话会被移除。之后拆开就能把它们找回来。</string>
     <string name="merge_note_will_keep">其余通话也会保留在手机上。</string>
     <string name="home_scroll_to_top">回到顶部</string>
     <string name="whatsnew_230_title">本就是一次对话的通话，可以合成一条录音</string>
     <string name="whatsnew_230_body">通话断了，你们又互相打了回来。在你看来那是一次对话，在 CallVault 看来却是两条录音。现在可以把它们接起来：打开开头那通电话的菜单，选择「与另一通电话合并」，勾选接续的通话。它们会按你勾选的顺序接合，并随之编号，因此在确认之前你就能看清顺序。数量不限，已合并的通话还能再次合并。\n\n接合是无损的，只需片刻：没有任何内容被重新编码，所以合并后的录音原封不动地保留着原始音频。转写稿、标记、标签、星标和笔记都会一并带过来，每个接缝处还会留下一个标记。\n\n合并后的通话可以从同一个菜单拆开，把每一通原始通话连同它原有的转写稿和标记一起还回来。默认会移除构成它的那些通话，对话框会在你确认前说明这一点；你也可以在「设置 ▸ 存储」中选择保留。无论哪种方式，拆开的效果都一样。</string>
     <string name="whatsnew_230_where">任意录音的 ⋮ 菜单 ▸ 与另一通电话合并</string>
+    <string name="merge_progress_title">正在合并</string>
+    <string name="unmerge_progress_title">正在拆开</string>
+    <string name="merge_progress_step">第 %1$d 通，共 %2$d 通</string>
+    <string name="merge_progress_done">合并成功</string>
+    <string name="unmerge_progress_done">拆开成功</string>
+    <string name="progress_closing_in">%1$d 秒后关闭</string>
 </resources>

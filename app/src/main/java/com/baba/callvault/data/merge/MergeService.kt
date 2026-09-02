@@ -62,7 +62,13 @@ object MergeService {
      * The order is the user's — the order they ticked the calls — and is not sorted here. The merged
      * recording inherits the primary's identity, so it keeps its date, direction and number.
      */
-    suspend fun merge(context: Context, primaryName: String, thenNames: List<String>): Outcome {
+    suspend fun merge(
+        context: Context,
+        primaryName: String,
+        thenNames: List<String>,
+        /** Called with each call's index as it is joined, for the progress dialog. */
+        onPartProgress: (Int) -> Unit = {},
+    ): Outcome {
         if (thenNames.isEmpty()) return Outcome.Refused("A merge needs at least two calls")
 
         val names = listOf(primaryName) + thenNames
@@ -93,7 +99,7 @@ object MergeService {
 
         val boundaries = try {
             openAll(context, sources) { fds ->
-                AudioConcat.concat(fds, staged.descriptor.fileDescriptor)
+                AudioConcat.concat(fds, staged.descriptor.fileDescriptor, onPartProgress)
             }
         } catch (e: MergeFormat.Incompatible) {
             cleanUp(staged.descriptor, stagingFile)

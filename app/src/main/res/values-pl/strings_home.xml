@@ -106,17 +106,21 @@
     <string name="merge_pick_hint">Zaznacz to, co ją kontynuuje. Numery odpowiadają kolejności zaznaczania.</string>
     <string name="merge_primary_hint">Rozpoczyna połączoną rozmowę</string>
     <string name="merge_title">Połącz rozmowy z: %1$s</string>
-    <string name="merge_working">Łączenie…</string>
     <string name="settings_merge_keep_originals_description">Po połączeniu pozostaw w telefonie także rozmowy, z których powstało. Domyślnie wyłączone, dzięki czemu połączenie zostawia jedno nagranie. Rozdzielenie połączonej rozmowy działa w obu przypadkach.</string>
     <string name="settings_merge_keep_originals_title">Zachowuj oryginalne rozmowy</string>
     <string name="unmerge_confirm">Rozdziel</string>
     <string name="unmerge_message">Znów stanie się tymi rozmowami, każda z własną transkrypcją i znacznikami:</string>
     <string name="unmerge_title">Rozdzielić tę rozmowę?</string>
-    <string name="unmerge_working">Rozdzielanie…</string>
     <string name="merge_note_will_delete">Pozostałe rozmowy zostaną usunięte. Późniejsze rozdzielenie je przywróci.</string>
     <string name="merge_note_will_keep">Pozostałe rozmowy zostaną też zachowane w telefonie.</string>
     <string name="home_scroll_to_top">Do góry</string>
     <string name="whatsnew_230_title">Rozmowy, które były jedną rozmową, mogą być jednym nagraniem</string>
     <string name="whatsnew_230_body">Połączenie się rwie i oddzwaniacie do siebie. Dla Ciebie to była jedna rozmowa, dla CallVault — dwa nagrania. Teraz możesz je złączyć: otwórz menu rozmowy, od której się zaczęło, wybierz Połącz z innym połączeniem i zaznacz te, które ją kontynuowały. Łączą się w kolejności zaznaczania, numerowane na bieżąco, więc widzisz kolejność przed zatwierdzeniem. Dowolna liczba rozmów, a połączoną rozmowę można łączyć ponownie.\n\nZłączenie jest bezstratne i trwa chwilę: nic nie jest ponownie kodowane, więc połączone nagranie zawiera dokładnie oryginalne audio. Transkrypcja, znaczniki, etykiety, gwiazdka i notatka idą razem z nim, a w każdym miejscu łączenia zostaje znacznik.\n\nPołączoną rozmowę można rozdzielić z tego samego menu, odzyskując każdą pierwotną rozmowę z jej transkrypcją i znacznikami. Domyślnie rozmowy, z których powstała, są usuwane, a okno mówi o tym przed zatwierdzeniem; możesz je zachować w Ustawieniach ▸ Pamięć. Rozdzielanie działa tak samo w obu przypadkach.</string>
     <string name="whatsnew_230_where">Menu ⋮ dowolnego nagrania ▸ Połącz z innym połączeniem</string>
+    <string name="merge_progress_title">Łączenie</string>
+    <string name="unmerge_progress_title">Rozdzielanie</string>
+    <string name="merge_progress_step">Rozmowa %1$d z %2$d</string>
+    <string name="merge_progress_done">Połączono pomyślnie</string>
+    <string name="unmerge_progress_done">Rozdzielono pomyślnie</string>
+    <string name="progress_closing_in">Zamknięcie za %1$d s</string>
 </resources>

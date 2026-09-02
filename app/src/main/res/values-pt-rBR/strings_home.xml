@@ -106,17 +106,21 @@
     <string name="merge_pick_hint">Marque o que a continua. Os números seguem a ordem em que você marca.</string>
     <string name="merge_primary_hint">Começa a chamada mesclada</string>
     <string name="merge_title">Mesclar chamadas com %1$s</string>
-    <string name="merge_working">Mesclando…</string>
     <string name="settings_merge_keep_originals_description">Depois de mesclar, deixar também no telefone as chamadas que a formaram. Desativado por padrão, para que uma mesclagem deixe uma única gravação. Separar uma chamada mesclada funciona nos dois casos.</string>
     <string name="settings_merge_keep_originals_title">Manter as chamadas originais</string>
     <string name="unmerge_confirm">Separar</string>
     <string name="unmerge_message">Ela volta a ser estas chamadas, cada uma com a transcrição e as marcações que tinha:</string>
     <string name="unmerge_title">Separar esta chamada?</string>
-    <string name="unmerge_working">Separando…</string>
     <string name="merge_note_will_delete">As outras chamadas são removidas. Separá-la depois as traz de volta.</string>
     <string name="merge_note_will_keep">As outras chamadas também são mantidas no telefone.</string>
     <string name="home_scroll_to_top">Topo</string>
     <string name="whatsnew_230_title">Chamadas que eram uma conversa podem ser uma gravação</string>
     <string name="whatsnew_230_body">Uma chamada cai e vocês se ligam de novo. Para você foi uma conversa; para o CallVault foram duas gravações. Agora dá para juntá-las: abra o menu da chamada que começou, escolha Mesclar com outra chamada e marque as que a continuaram. Elas se juntam na ordem em que você marca, numeradas conforme avança, então você vê a ordem antes de confirmar. Qualquer número de chamadas, e uma chamada mesclada pode ser mesclada de novo.\n\nA junção é sem perdas e leva um instante: nada é recodificado, então a gravação mesclada contém exatamente o áudio original. A transcrição, as marcações, as etiquetas, a estrela e a nota vêm junto, e fica uma marcação em cada emenda.\n\nUma chamada mesclada pode ser separada pelo mesmo menu, devolvendo cada original com a transcrição e as marcações que tinha. Por padrão as chamadas que a formaram são removidas, e a caixa de diálogo diz isso antes de você confirmar; você pode mantê-las em Configurações ▸ Armazenamento. Separar funciona igual nos dois casos.</string>
     <string name="whatsnew_230_where">O menu ⋮ de qualquer gravação ▸ Mesclar com outra chamada</string>
+    <string name="merge_progress_title">Mesclando</string>
+    <string name="unmerge_progress_title">Separando</string>
+    <string name="merge_progress_step">Chamada %1$d de %2$d</string>
+    <string name="merge_progress_done">Mescladas com sucesso</string>
+    <string name="unmerge_progress_done">Separadas com sucesso</string>
+    <string name="progress_closing_in">Fecha em %1$d s</string>
 </resources>

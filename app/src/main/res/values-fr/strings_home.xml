@@ -107,17 +107,21 @@
     <string name="merge_pick_hint">Cochez ce qui le poursuit. Les numéros suivent l’ordre dans lequel vous cochez.</string>
     <string name="merge_primary_hint">Commence l’appel fusionné</string>
     <string name="merge_title">Fusionner les appels avec %1$s</string>
-    <string name="merge_working">Fusion en cours…</string>
     <string name="settings_merge_keep_originals_description">Après une fusion, laisser également sur le téléphone les appels dont elle est issue. Désactivé par défaut, afin qu’une fusion ne laisse qu’un seul enregistrement. Séparer un appel fusionné fonctionne dans les deux cas.</string>
     <string name="settings_merge_keep_originals_title">Conserver les appels d’origine</string>
     <string name="unmerge_confirm">Séparer</string>
     <string name="unmerge_message">Il redevient ces appels, chacun avec la transcription et les repères qu’il avait :</string>
     <string name="unmerge_title">Séparer cet appel ?</string>
-    <string name="unmerge_working">Séparation en cours…</string>
     <string name="merge_note_will_delete">Les autres appels sont supprimés. Les séparer plus tard les fait revenir.</string>
     <string name="merge_note_will_keep">Les autres appels sont également conservés sur le téléphone.</string>
     <string name="home_scroll_to_top">Haut</string>
     <string name="whatsnew_230_title">Des appels qui étaient une seule conversation peuvent être un seul enregistrement</string>
     <string name="whatsnew_230_body">Un appel se coupe et vous vous rappelez. Pour vous c’était une conversation ; pour CallVault, deux enregistrements. Vous pouvez maintenant les réunir : ouvrez le menu de l’appel qui l’a commencée, choisissez Fusionner avec un autre appel, et cochez ceux qui l’ont poursuivie. Ils sont réunis dans l’ordre où vous les cochez, numérotés au fur et à mesure, si bien que vous voyez l’ordre avant de valider. Autant d’appels que vous voulez, et un appel fusionné peut l’être de nouveau.\n\nLa fusion est sans perte et prend un instant : rien n’est ré-encodé, l’enregistrement fusionné contient donc exactement l’audio d’origine. La transcription, les repères, les étiquettes, l’étoile et la note suivent, et un repère est laissé à chaque jointure.\n\nUn appel fusionné peut être séparé depuis le même menu, ce qui restitue chaque appel d’origine avec sa transcription et ses repères. Par défaut, les appels dont il est issu sont supprimés, et la boîte de dialogue le dit avant que vous validiez ; vous pouvez les conserver dans Paramètres ▸ Stockage. La séparation fonctionne de la même façon dans les deux cas.</string>
     <string name="whatsnew_230_where">Le menu ⋮ d’un enregistrement ▸ Fusionner avec un autre appel</string>
+    <string name="merge_progress_title">Fusion</string>
+    <string name="unmerge_progress_title">Séparation</string>
+    <string name="merge_progress_step">Appel %1$d sur %2$d</string>
+    <string name="merge_progress_done">Fusion réussie</string>
+    <string name="unmerge_progress_done">Séparation réussie</string>
+    <string name="progress_closing_in">Fermeture dans %1$d s</string>
 </resources>

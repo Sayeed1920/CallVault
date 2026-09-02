@@ -78,6 +78,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -131,7 +132,8 @@ import com.baba.callvault.ui.common.rememberTranscribingPillState
 import com.baba.callvault.ui.common.TranscriptSearchSheet
 import com.baba.callvault.ui.common.MergeCallsDialog
 import com.baba.callvault.ui.common.UnMergeDialog
-import com.baba.callvault.ui.common.UnMergePartState
+import com.baba.callvault.ui.common.MergeProgressDialog
+import com.baba.callvault.ui.common.MergeProgressState
 import com.baba.callvault.ui.common.DeleteCopiesDialog
 import com.baba.callvault.ui.common.DeleteRecordingDialog
 import com.baba.callvault.ui.common.SeekBar
@@ -251,8 +253,8 @@ fun HomeScreen(
     var mergeFor by remember { mutableStateOf<RecordingItem?>(null) }
     var unMergeFor by remember { mutableStateOf<RecordingItem?>(null) }
     var unMergeLabels by remember { mutableStateOf<List<String>>(emptyList()) }
-    var unMergeStates by remember { mutableStateOf<List<UnMergePartState>>(emptyList()) }
-    var mergeWorking by remember { mutableStateOf(false) }
+    // Non-null while a merge or un-merge is running or has just finished.
+    var mergeProgress by remember { mutableStateOf<MergeProgressState?>(null) }
     // Which recordings were made by merging, fetched once for the whole list rather than per row.
     var mergedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     /** The recording whose delete is awaiting confirmation, raised from the playback screen. */
@@ -755,6 +757,13 @@ fun HomeScreen(
         ) {
             FilledTonalButton(
                 onClick = { listScope.launch { listState.animateScrollToItem(0) } },
+                // Stated, not defaulted. FilledTonalButton takes secondaryContainer, which in this
+                // scheme is CoralDeep — so the default renders a red button in a teal app. The same
+                // trap has been hit here before; see the M3-defaults note.
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Icon(
@@ -774,47 +783,65 @@ fun HomeScreen(
             primary = primary,
             candidates = viewModel.mergeCandidates(primary),
             keepOriginals = AppPreferences(context).isKeepOriginalsAfterMerge(),
-            working = mergeWorking,
             onConfirm = { picked ->
-                mergeWorking = true
-                viewModel.merge(primary.displayName, picked) { problem ->
-                    mergeWorking = false
-                    mergeFor = null
+                val total = picked.size + 1
+                // The picking list goes away the moment the work starts: leaving it up with a
+                // spinner on the button read as nothing having happened.
+                mergeFor = null
+                mergeProgress = MergeProgressState(isUnMerge = false, current = 1, total = total)
+                viewModel.merge(
+                    primary.displayName,
+                    picked,
+                    onPartProgress = { index ->
+                        mergeProgress = mergeProgress?.copy(current = (index + 1).coerceAtMost(total))
+                    }
+                ) { problem ->
                     // A refusal is the user's to act on — different codecs, or a call that is only
                     // in Drive — so it is said out loud rather than logged and swallowed.
-                    if (problem != null) Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
+                    if (problem != null) {
+                        mergeProgress = null
+                        Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
+                    } else {
+                        mergeProgress = mergeProgress?.copy(current = total, finished = true)
+                    }
                 }
             },
-            onDismiss = { if (!mergeWorking) mergeFor = null }
+            onDismiss = { mergeFor = null }
+        )
+    }
+
+    mergeProgress?.let { progress ->
+        MergeProgressDialog(
+            isUnMerge = progress.isUnMerge,
+            current = progress.current,
+            total = progress.total,
+            finished = progress.finished,
+            onClose = { mergeProgress = null }
         )
     }
 
     unMergeFor?.let { merged ->
         UnMergeDialog(
             partLabels = unMergeLabels,
-            partStates = unMergeStates,
-            working = mergeWorking,
             onConfirm = {
-                mergeWorking = true
-                unMergeStates = List(unMergeLabels.size) { UnMergePartState.PENDING }
+                val total = unMergeLabels.size
+                unMergeFor = null
+                mergeProgress = MergeProgressState(isUnMerge = true, current = 1, total = total)
                 viewModel.unMerge(
                     merged.displayName,
-                    onPartProgress = { index, finished ->
-                        unMergeStates = unMergeStates.mapIndexed { i, was ->
-                            when {
-                                i != index -> was
-                                finished -> UnMergePartState.DONE
-                                else -> UnMergePartState.WORKING
-                            }
-                        }
+                    onPartProgress = { index, _ ->
+                        mergeProgress = mergeProgress?.copy(current = (index + 1).coerceAtMost(total))
                     }
                 ) { problem ->
-                    mergeWorking = false
-                    unMergeFor = null
-                    if (problem != null) Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
+                    if (problem != null) {
+                        mergeProgress = null
+                        Toast.makeText(context, problem, Toast.LENGTH_LONG).show()
+                    } else {
+                        mergeProgress = mergeProgress?.copy(current = total, finished = true)
+                    }
                 }
             },
-            onDismiss = { if (!mergeWorking) unMergeFor = null }
+            onDismiss = { unMergeFor = null }
         )
     }
 

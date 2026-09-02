@@ -52,7 +52,12 @@ object AudioConcat {
      * @return one [PartBoundary] per input, in the same order, for the merge manifest.
      * @throws MergeFormat.Incompatible if the inputs were not recorded the same way.
      */
-    fun concat(inputs: List<FileDescriptor>, output: FileDescriptor): List<PartBoundary> {
+    fun concat(
+        inputs: List<FileDescriptor>,
+        output: FileDescriptor,
+        /** Called with each input's index as it starts, so a long join can be shown progressing. */
+        onPartStarted: (Int) -> Unit = {},
+    ): List<PartBoundary> {
         require(inputs.size >= 2) { "A merge needs at least two recordings" }
 
         val (firstExtractor, firstFormat) = MergeFormat.openAudio(inputs.first())
@@ -66,7 +71,8 @@ object AudioConcat {
         var frameCursor = 0
         var timeCursor = 0L
         try {
-            inputs.forEach { fd ->
+            inputs.forEachIndexed { index, fd ->
+                onPartStarted(index)
                 val boundary = appendOne(fd, firstFormat, muxer, trackIndex, frameCursor, timeCursor)
                 boundaries += boundary
                 frameCursor += boundary.frameCount

@@ -793,9 +793,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      * [onDone] gets null on success or a message to show. The work is all in [MergeService], which
      * verifies the joined file before deleting anything.
      */
-    fun merge(primary: String, others: List<String>, onDone: (String?) -> Unit) {
+    fun merge(
+        primary: String,
+        others: List<String>,
+        onPartProgress: (Int) -> Unit = {},
+        onDone: (String?) -> Unit,
+    ) {
         viewModelScope.launch {
-            val outcome = withContext(Dispatchers.IO) { MergeService.merge(appContext, primary, others) }
+            val outcome = withContext(Dispatchers.IO) {
+                MergeService.merge(appContext, primary, others) { index ->
+                    // Back to the main thread: this drives a dialog the user is watching.
+                    viewModelScope.launch { onPartProgress(index) }
+                }
+            }
             refresh()
             onDone(
                 when (outcome) {

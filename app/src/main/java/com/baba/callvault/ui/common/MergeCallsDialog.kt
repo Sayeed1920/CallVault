@@ -9,6 +9,7 @@
 package com.baba.callvault.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,9 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -67,7 +66,6 @@ fun MergeCallsDialog(
     candidates: List<RecordingItem>,
     /** Whether the calls being merged in will be kept — [AppPreferences.isKeepOriginalsAfterMerge]. */
     keepOriginals: Boolean,
-    working: Boolean,
     onConfirm: (List<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -78,7 +76,7 @@ fun MergeCallsDialog(
         picked.sumOf { name -> candidates.firstOrNull { it.displayName == name }?.durationSeconds ?: 0L }
 
     AlertDialog(
-        onDismissRequest = { if (!working) onDismiss() },
+        onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.merge_title, who)) },
         text = {
             Column {
@@ -111,7 +109,7 @@ fun MergeCallsDialog(
                                 item = item,
                                 // +2 because the primary is 1 and this list starts after it.
                                 badge = if (at >= 0) at + 2 else null,
-                                enabled = !working,
+                                enabled = true,
                                 checked = at >= 0,
                                 onToggle = {
                                     picked = if (at >= 0) picked - item.displayName
@@ -151,27 +149,26 @@ fun MergeCallsDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = picked.isNotEmpty() && !working,
+                enabled = picked.isNotEmpty(),
                 onClick = { onConfirm(picked) }
             ) {
-                if (working) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.size(8.dp))
-                    Text(stringResource(R.string.merge_working))
-                } else {
-                    Text(stringResource(R.string.merge_confirm))
-                }
+                Text(stringResource(R.string.merge_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !working) {
-                Text(stringResource(R.string.general_cancel))
-            }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
         }
     )
 }
 
-/** One call in the merge list: its number badge when ticked, a checkbox when not. */
+/**
+ * One call in the merge list: an empty ring when untouched, a numbered disc once ticked.
+ *
+ * Both marks are the same size inside the same fixed box, and the row's padding does not change with
+ * them. The first version used a Material Checkbox, which carries its own 48dp touch target while
+ * the numbered disc did not — so every row jumped in height as it was ticked and the list visibly
+ * reflowed under the finger doing the ticking.
+ */
 @Composable
 private fun MergeRow(
     item: RecordingItem,
@@ -184,35 +181,41 @@ private fun MergeRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .then(if (enabled) Modifier.clickable(onClick = onToggle) else Modifier)
-            .padding(vertical = 4.dp)
+            .padding(vertical = 6.dp, horizontal = 4.dp)
     ) {
-        if (badge != null) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-            ) {
-                Text(
-                    text = badge.toString(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold
+        Box(modifier = Modifier.size(MARK_BOX), contentAlignment = Alignment.Center) {
+            if (badge != null) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(MARK_DISC)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(
+                        text = badge.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(MARK_DISC)
+                        .clip(CircleShape)
+                        .border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 )
             }
-        } else {
-            Checkbox(checked = checked, onCheckedChange = { onToggle() }, enabled = enabled)
         }
-        Spacer(Modifier.size(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = item.displayDate ?: item.displayName,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        Spacer(Modifier.size(10.dp))
+        Text(
+            text = item.displayDate ?: item.displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
         Text(
             text = formatDuration(item.durationSeconds ?: 0L),
             style = MaterialTheme.typography.bodySmall,
@@ -220,6 +223,10 @@ private fun MergeRow(
         )
     }
 }
+
+/** The mark's slot and the disc inside it. Fixed, so ticking never changes a row's height. */
+private val MARK_BOX = 34.dp
+private val MARK_DISC = 26.dp
 
 /** m:ss, or h:mm:ss once a conversation runs past an hour — which merged ones often will. */
 private fun formatDuration(seconds: Long): String {
@@ -239,77 +246,30 @@ private fun formatDuration(seconds: Long): String {
 @Composable
 fun UnMergeDialog(
     partLabels: List<String>,
-    /** Per-part progress, same order as [partLabels]. */
-    partStates: List<UnMergePartState>,
-    working: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = { if (!working) onDismiss() },
+        onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.unmerge_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(R.string.unmerge_message))
                 Spacer(Modifier.size(4.dp))
                 partLabels.forEachIndexed { i, label ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Each call says where it has got to. Splitting a long conversation takes
-                        // long enough to look stalled, and a single spinner over the whole dialog
-                        // would not say which calls are already safely back.
-                        UnMergePartMark(partStates.getOrElse(i) { UnMergePartState.PENDING })
-                        Spacer(Modifier.size(10.dp))
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = "${i + 1}.  $label",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !working) {
-                Text(stringResource(if (working) R.string.unmerge_working else R.string.unmerge_confirm))
-            }
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.unmerge_confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !working) {
-                Text(stringResource(R.string.general_cancel))
-            }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_cancel)) }
         }
     )
-}
-
-/** Where one call has got to while a merged recording is being taken apart. */
-enum class UnMergePartState { PENDING, WORKING, DONE }
-
-/**
- * The mark beside one call: a dot before it starts, a spinner while it is cut, a tick once it is back.
- *
- * All three occupy the same box, so the row does not shift as the state changes — a list that jumps
- * while you are reading it reads as something going wrong.
- */
-@Composable
-private fun UnMergePartMark(state: UnMergePartState) {
-    Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
-        when (state) {
-            UnMergePartState.PENDING -> Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.outlineVariant)
-            )
-            UnMergePartState.WORKING -> CircularProgressIndicator(
-                modifier = Modifier.size(14.dp),
-                strokeWidth = 2.dp
-            )
-            UnMergePartState.DONE -> Icon(
-                imageVector = Icons.Filled.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-    }
 }
