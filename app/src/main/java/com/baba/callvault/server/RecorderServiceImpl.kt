@@ -394,7 +394,7 @@ open class RecorderServiceImpl(private val apkPath: String) : IRecorderService.S
 
     /** Pids whose command line matches [pattern], excluding the pgrep we run to find them. */
     private fun pidsMatching(pattern: String): List<Int> = runCatching {
-        val process = ProcessBuilder("pgrep", "-f", pattern).redirectErrorStream(true).start()
+        val process = ProcessBuilder(PGREP, "-f", pattern).redirectErrorStream(true).start()
         val output = process.inputStream.bufferedReader().use { it.readText() }
         process.waitFor(5, TimeUnit.SECONDS)
         output.lineSequence().mapNotNull { it.trim().toIntOrNull() }.toList()
@@ -453,6 +453,13 @@ open class RecorderServiceImpl(private val apkPath: String) : IRecorderService.S
 
     companion object {
         private const val TAG = "CV:RecorderServer"
+
+        /**
+         * Absolute, because this runs in the privileged (shell-uid) daemon and PATH is inherited
+         * rather than chosen. The sibling exec sites already spell out /system/bin — this one was
+         * the odd one out, which is what CodeQL's java/relative-path-command picked up.
+         */
+        private const val PGREP = "/system/bin/pgrep"
 
         /** Upper bound the synchronous stopRecording() waits for session teardown (muxer trailer). */
         private const val STOP_AWAIT_MS = 6000L

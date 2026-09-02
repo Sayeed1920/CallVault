@@ -137,7 +137,12 @@ object SilentFailureNotifier {
         val open = PendingIntent.getActivity(
             context,
             id,
+            // Component AND package, though the component alone already makes this explicit: the
+            // pair is what a static analyser can see without following the constructor, and this
+            // PendingIntent leaves the app inside a notification, where an implicit one would be a
+            // real hole. It is immutable for the same reason.
             Intent(context, MainActivity::class.java).apply {
+                setPackage(context.packageName)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
