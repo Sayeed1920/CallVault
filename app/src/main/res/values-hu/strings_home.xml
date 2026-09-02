@@ -123,4 +123,6 @@
     <string name="merge_progress_done">Sikeresen egyesítve</string>
     <string name="unmerge_progress_done">Sikeresen szétbontva</string>
     <string name="progress_closing_in">Bezárás %1$d mp múlva</string>
+    <string name="merge_progress_working">A hívások összefűzése</string>
+    <string name="unmerge_progress_working">A hívások szétválasztása</string>
 </resources>

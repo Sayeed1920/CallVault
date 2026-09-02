@@ -123,4 +123,6 @@
     <string name="merge_progress_done">合并成功</string>
     <string name="unmerge_progress_done">拆开成功</string>
     <string name="progress_closing_in">%1$d 秒后关闭</string>
+    <string name="merge_progress_working">正在接合通话</string>
+    <string name="unmerge_progress_working">正在分离通话</string>
 </resources>

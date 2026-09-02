@@ -785,9 +785,18 @@ fun HomeScreen(
             progress = mergeProgress,
             onConfirm = { picked ->
                 val total = picked.size + 1
+                val candidates = viewModel.mergeCandidates(primary)
+                val seconds = (primary.durationSeconds ?: 0L) + picked.sumOf { name ->
+                    candidates.firstOrNull { it.displayName == name }?.durationSeconds ?: 0L
+                }
                 // The card stays open and its contents change. Closing it and opening a second
                 // dialog meant one surface disappearing and another arriving over it, which flashed.
-                mergeProgress = MergeProgressState(isUnMerge = false, current = 1, total = total)
+                mergeProgress = MergeProgressState(
+                    isUnMerge = false,
+                    current = 1,
+                    total = total,
+                    detail = mergeDetail(context, total, seconds),
+                )
                 viewModel.merge(
                     primary.displayName,
                     picked,
@@ -820,7 +829,12 @@ fun HomeScreen(
             progress = mergeProgress,
             onConfirm = {
                 val total = unMergeLabels.size
-                mergeProgress = MergeProgressState(isUnMerge = true, current = 1, total = total)
+                mergeProgress = MergeProgressState(
+                    isUnMerge = true,
+                    current = 1,
+                    total = total,
+                    detail = context.resources.getQuantityString(R.plurals.merge_row_badge, total, total),
+                )
                 viewModel.unMerge(
                     merged.displayName,
                     onPartProgress = { index, _ ->
@@ -2614,6 +2628,17 @@ private val META_INDENT = 62.dp
  * number no longer trails this line: it pushed the date and duration — the two things the line exists
  * for — off the end on any row with a contact name, which is most of them.
  */
+/**
+ * "4 calls · 23:27" for the progress card's detail line.
+ *
+ * Resolved from resources rather than through `pluralStringResource`, because it is built in a
+ * click handler rather than during composition.
+ */
+private fun mergeDetail(context: android.content.Context, calls: Int, seconds: Long): String =
+    context.resources.getQuantityString(
+        R.plurals.merge_summary, calls, calls, formatDuration(seconds)
+    )
+
 @Composable
 private fun buildSubtitle(item: RecordingItem, mergedPartCount: Int = 0): String {
     val parts = buildList {

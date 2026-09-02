@@ -140,4 +140,6 @@
     <string name="merge_progress_done">Merged successfully</string>
     <string name="unmerge_progress_done">Un-merged successfully</string>
     <string name="progress_closing_in">Closing in %1$ds</string>
+    <string name="merge_progress_working">Joining the calls</string>
+    <string name="unmerge_progress_working">Separating the calls</string>
 </resources>

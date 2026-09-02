@@ -123,4 +123,6 @@
     <string name="merge_progress_done">Erfolgreich zusammengeführt</string>
     <string name="unmerge_progress_done">Erfolgreich getrennt</string>
     <string name="progress_closing_in">Schließt in %1$d s</string>
+    <string name="merge_progress_working">Anrufe werden verbunden</string>
+    <string name="unmerge_progress_working">Anrufe werden getrennt</string>
 </resources>

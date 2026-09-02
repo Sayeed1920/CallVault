@@ -123,4 +123,6 @@
     <string name="merge_progress_done">Успешно объединено</string>
     <string name="unmerge_progress_done">Успешно разделено</string>
     <string name="progress_closing_in">Закроется через %1$d с</string>
+    <string name="merge_progress_working">Соединение звонков</string>
+    <string name="unmerge_progress_working">Разделение звонков</string>
 </resources>
