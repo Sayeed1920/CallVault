@@ -3,6 +3,36 @@
 All notable changes to CallVault are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project uses semantic-ish versioning.
 
+## [2.3.0] — unreleased
+
+### Added
+
+- **Calls that were really one conversation can be merged into one recording.** A call drops and you
+  ring each other back; to you that was one conversation, but it arrives as two recordings. Open the
+  ⋮ menu on the call that started it, choose *Merge with another call*, and tick the ones that
+  continued it — they join in the order you tick them, numbered as you go, so you can see the order
+  before committing to it. It works for any number of calls, and a merged call can be merged again.
+
+  The join is lossless and takes a moment: nothing is re-encoded, so the merged recording contains
+  the original audio exactly. The transcript, marks, tags, star and note come across with it, timed
+  to the merged recording, and a mark is dropped at each seam so the joins are somewhere you can
+  jump to.
+
+- **And they can be un-merged again**, from the same menu, getting every original call back with the
+  transcript and marks it had. This works because the merged recording physically contains the
+  originals, so taking it apart is an exact cut rather than a reconstruction — which is what makes it
+  safe for a merge to leave you with one recording instead of two copies of everything.
+
+  By default the calls a merge was made from are removed, and the dialog says so before you confirm.
+  *Settings ▸ Storage ▸ Keep the original calls* keeps them on the phone as well; un-merging works
+  the same either way.
+
+### Fixed
+
+- **The list keeps your place.** Scrolling a long way down, opening a recording and coming back put
+  you at the top of the list again. A **Top** button also appears once you have scrolled far enough
+  to want it.
+
 ## [2.2.0]
 
 A release about the parts of using a call recorder that are not the recording: finding a call again,

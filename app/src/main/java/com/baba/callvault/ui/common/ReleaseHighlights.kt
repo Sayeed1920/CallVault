@@ -36,6 +36,14 @@ object ReleaseHighlights {
 
     private val ALL = listOf(
         ReleaseHighlight(
+            version = "2.3.0",
+            title = R.string.whatsnew_230_title,
+            body = R.string.whatsnew_230_body,
+            // Merging is reached from a recording's own menu rather than a settings screen, so the
+            // pointer names where the action lives, not something to switch on.
+            whereToFind = R.string.whatsnew_230_where,
+        ),
+        ReleaseHighlight(
             version = "2.2.0",
             title = R.string.whatsnew_220_title,
             body = R.string.whatsnew_220_body,
