@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -92,7 +93,7 @@ private fun MergeCard(
 }
 
 /** Wide enough for a ring and a line of detail, and no wider. */
-private val COMPACT_WIDTH = 260.dp
+private val COMPACT_WIDTH = 284.dp
 
 /**
  * Chooses which calls to merge into one, and in what order.
@@ -181,7 +182,10 @@ fun MergeCallsDialog(
                 }
             }
         }
-        if (picked.isNotEmpty()) {
+        // Always laid out, only faded. Showing this block on the first tick grew the card, which
+        // slid the Cancel and Merge buttons down under the finger — the stutter at the bottom of the
+        // list. Reserving the space costs nothing and means ticking changes no geometry at all.
+        Column(modifier = Modifier.alpha(if (picked.isEmpty()) 0f else 1f)) {
             Spacer(Modifier.size(8.dp))
             HorizontalDivider()
             Spacer(Modifier.size(8.dp))

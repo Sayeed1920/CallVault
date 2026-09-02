@@ -52,7 +52,7 @@ private const val AUTO_CLOSE_SECONDS = 5
  * the card it sits on is now 260dp wide rather than the platform's full dialog width, so the body
  * no longer has to fill space that was never meant for it.
  */
-private val PROGRESS_BODY_HEIGHT = 150.dp
+private val PROGRESS_BODY_HEIGHT = 164.dp
 
 private val RING_SIZE = 84.dp
 private val RING_STROKE = 6.dp
@@ -153,15 +153,15 @@ fun MergeProgressBody(state: MergeProgressState) {
                     else -> R.string.merge_progress_working
                 }
             ),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
         )
         if (state.detail.isNotBlank()) {
-            Spacer(Modifier.size(4.dp))
+            Spacer(Modifier.size(6.dp))
             Text(
                 text = state.detail,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
