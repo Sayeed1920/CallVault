@@ -157,4 +157,16 @@ class SystemLogFilterTest {
     fun `an empty slice caps to empty rather than failing`() {
         assertEquals(emptyList<String>(), SystemLogFilter.capToNewest(emptyList(), 10, 100))
     }
+
+    @Test
+    fun `keeps the warning that names a released-while-active recording client`() {
+        // AudioPolicyService::releaseInput's ALOGW. It is the only field-visible fingerprint of an
+        // input released without being stopped, which is the path that leaves the microphone app-op
+        // started and the green dot lit. Its presence (or absence) tells the two stuck-mic mechanisms
+        // apart, so it must survive the filter even though it never mentions our package.
+        val line = "09-03 12:07:33.500  2701  2848 W AudioPolicyInterfaceImpl: releaseInput " +
+            "releasing active client portId 42"
+
+        assertTrue(SystemLogFilter.keep(line))
+    }
 }

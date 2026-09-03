@@ -33,6 +33,15 @@ object SystemLogFilter {
      */
     private val ALLOWED_TAGS = setOf(
         "AudioFlinger", "AudioPolicyService", "AudioPolicyManager", "AudioRecord", "AudioTrack",
+        // Distinguishes the TWO ways the microphone app-op can be left started, which look identical
+        // from outside and need opposite fixes. This tag carries AudioPolicyService::releaseInput's
+        //     ALOGW("%s releasing active client portId %d")
+        // — an input released while still active, i.e. the path that skips finishRecording() because
+        // only stopInput() calls it. If that line is present when the green dot is stuck, it is the
+        // release-without-stop path (what the handoff teardown fix addresses). If the dot is stuck and
+        // this line is ABSENT, it is instead the `if (!client->silenced)` guard inside stopInput
+        // swallowing the finish — a different bug that our fix does not touch.
+        "AudioPolicyInterfaceImpl",
         "avc", "SELinux", "auditd",
         "ActivityManager", "lowmemorykiller", "libc", "DEBUG", "tombstoned",
         "adbd", "app_process",

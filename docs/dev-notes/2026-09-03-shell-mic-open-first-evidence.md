@@ -270,6 +270,229 @@ policy or the submix.
 
 ---
 
+## Clearing a stranded op without a reboot — measured on the OP9, 2026-09-03
+
+If an op really is stranded, the user's only known recovery is a reboot. Tested what else works, by
+starting a real `RECORD_AUDIO` op on the OP9 test device and trying to clear it:
+
+| Attempt | Result |
+|---|---|
+| `cmd appops reset com.android.shell` | ❌ **does not clear it** — resets modes only, `Running start at:` survives |
+| `cmd appops set com.android.shell RECORD_AUDIO ignore` | ❌ **does not clear it** — the running op is unaffected by a mode flip |
+| `cmd appops stop com.android.shell RECORD_AUDIO` | ✅ **clears it** — `Running start at:` gone, duration closed |
+
+**Why this matters:** the app already holds an ADB shell as uid 2000, so if `stop` works on a genuinely
+stranded op it is a one-command recovery — and a candidate in-app "release the microphone" action,
+instead of telling users to reboot.
+
+❌ **CONFIRMED DEAD for our case — do not build on it.** The caution above was right. From source:
+`AppOpsService` passes `shell.mToken` (= `AppOpsManager.getClientId()`, *system_server's* client id),
+while `AttributedOp.finishOrPause()` looks the op up by `mInProgressEvents.indexOfKey(clientId)`. An op
+started by audioserver is keyed on **audioserver's** token, so the lookup misses and the command is a
+**silent no-op**. It only worked in the table above because `cmd appops start` and `cmd appops stop`
+share system_server's token. `AppOpsManager.finishOp` is token-scoped by construction, so no third
+party can do it either.
+
+**So there is no supported user-space recovery.** What remains:
+- **Restarting audioserver** clears it (its static token dies → `onClientDeath` → `finished`) but
+  destroys every track on the device.
+- **A uid-mode flip** *pauses* the op — `setUidMode` → `attrOp.pause()` →
+  `scheduleOpActiveChangedIfNeededLocked(false)` clears the indicator — but does not finish it, and
+  restoring the mode calls `resume()` and the dot returns. Diagnostic probe, not a fix. Untested.
+- **Reboot.**
+
+This is why the fix matters rather than a recovery button.
+
+The device was left as found: mode `allow`, no running op.
+
+---
+
+## ✅ AOSP source verdict on the fix — it can work (2026-09-03)
+
+Read on `GrapheneOS/platform_frameworks_av` `16-qpr2` + `17`, cross-checked against LineageOS
+`lineage-21.0`/`22.2`/`23.0` and `aosp-mirror/platform_frameworks_base` `main`.
+
+**1. There is NO uid, pid or permission check on `IAudioRecord::stop()`.** `RecordHandle::stop()` →
+`RecordTrack::stop()` → `RecordThread::stop()` → `AudioSystem::stopInput()` →
+`AudioPolicyService::stopInput()` — not one of them checks the caller. The proof it would be visible:
+`RecordTrack::shareAudioHistory()` *is* uid-gated, explicitly —
+
+```cpp
+if (callingUid != mUid || callingPid != mCreatorPid) return PERMISSION_DENIED;
+```
+
+— so AOSP knows how to gate this interface and gates only that one method. `AudioPolicyInterfaceImpl`
+uses `CHECK_PERM(MODIFY_AUDIO_SETTINGS, …)` at ~25 entry points; `startInput`/`stopInput`/`releaseInput`
+are not among them. **Our transaction code and descriptor are also confirmed correct**: the AIDL
+declares `start` then `stop`, so `stop` = `FIRST_CALL_TRANSACTION + 1`, descriptor
+`android.media.IAudioRecord`.
+
+**2. `stopInput()` finishes the op; `releaseInput()` never has** — identical from Android 14 through
+current `main`. Not a regression, and there is **no fix upstream**.
+
+**3. Process death cannot clear it.** The started op is keyed on a **process-static `BBinder` created
+inside audioserver** (`ServiceUtilities.cpp::resolveAttributionSource`, *"a static token for
+audioserver requests"*), not on the helper's binder. App-ops' `onClientDeath` therefore never fires for
+the helper. `AudioPolicyService::binderDied` is a stub that only logs; nothing in AudioFlinger or
+`RecordingActivityMonitor` touches app-ops. **A started `OP_RECORD_AUDIO` outlives the process it is
+attributed to, indefinitely.**
+
+**4. No double-finish risk.** After our explicit `stop()` the track is `PAUSED`, and
+`RecordTrack::destroy()` only calls `stopInput()` for prior states `ACTIVE`/`STARTING_2`/`PAUSING` —
+`PAUSED` takes the `break`. Exactly one `finishRecording`.
+
+### 🚨 Correction to this document's own mechanism claim
+
+`RecordHandle::~RecordHandle()` is `stop_nonvirtual(); mRecordTrack->destroy();` — so dropping the last
+binder reference **does** finish the op. The leak is therefore **not** "destruction skips the op". It is
+that **the destructor never runs while our app still holds the reference**, and a Java `BinderProxy` is
+released only on GC/finalization, at an unpredictable time. Two things follow:
+
+- While we hold the reference the microphone is **genuinely still open** — the track is `ACTIVE` and
+  still capturing. **The green dot is accurate, not stale.** That reframes the whole bug: it is not a
+  cosmetic indicator fault, it is a real open microphone.
+- `forceReleaseCaptureInput()`'s `System.gc()` was already *trying* to trigger this, best-effort. The
+  explicit `stop()` makes finishing the op **deterministic instead of GC-timed**, which is the point.
+
+### Two caveats to carry into the release
+
+- `RecordThread::stop()` **blocks** on `mStartStopCV` until the record thread acknowledges. It is a
+  synchronous binder call — must not run on a UI thread. (Ours runs on the engine's stop path, not the
+  main thread.)
+- If the track was already **terminated or invalidated**, `RecordThread::stop()` returns `false` and
+  `stopInput()` is *not* called from `stop()`; the op is then finished only by destruction. **So keep
+  dropping the binder reference after `stop()` — do not treat the call as a replacement for it.** Our
+  implementation already does both, in that order.
+
+---
+
+## 🚨 The bug is STRUCTURAL to the handoff design, not a missing call
+
+Second independent source pass reached the same conclusion by a different route, and framed it better:
+
+`RecordHandle` is the **audioserver-side `BnAudioRecord`**, and its destructor is the teardown:
+
+```cpp
+RecordHandle::~RecordHandle() {
+    stop_nonvirtual();
+    mRecordTrack->destroy();
+}
+```
+
+It runs only when the last **remote** binder reference drops. Normally the helper's death drops that
+last reference and audioserver tears the track down by itself. **Handing the `IAudioRecord` to the app
+is exactly what defeats that cleanup** — our reference keeps `RecordHandle` alive, `stopInput()` is
+never reached, and the op stays started.
+
+So this is a structural consequence of the handoff feature, not an oversight. **And there is no prior
+art: a GitHub code search for `IAudioRecord` outside AOSP trees finds only vendored headers. Nobody
+else passes a capture binder across processes.**
+
+### 🔎 Field evidence: someone else has this symptom
+
+**[scrcpy #5980](https://github.com/Genymobile/scrcpy/issues/5980)** — *"Microphone Remains Active After
+scrcpy Audio Session Ends (Shell App Still Running)"*, **OnePlus 11, Android 15**, scrcpy 3.2, opened
+April 2025, **still open with zero maintainer replies**. Uses `--audio-source=mic`, i.e.
+`OP_RECORD_AUDIO`. Not identical — their shell process was still alive — but it is the same symptom,
+on the same OEM, publicly unexplained. The first outside confirmation that this is real and not
+specific to us.
+
+### How other projects tear down (none of them documents the hazard)
+
+| Project | Teardown |
+|---|---|
+| scrcpy (both capture classes) | `release()` only |
+| JetBrains Android Studio mirroring agent (shell uid) | explicit `Stop()` then `Release()` |
+| jqssun/android-display-mirror (Shizuku) | `stop(); release();` **and** stops in the `destroy()` hook |
+| AmbientMusicMod | `release()` only |
+
+`AudioRecord.release()` already calls `stop()` internally, so **ordering was never the risk — binder
+liveness is.** That is why only our handoff mode is affected.
+
+### The architecturally safe shape, if we ever revisit handoff
+
+[NowPlaying's `ProxyAudioRecord`](https://github.com/KieronQuinn/NowPlaying) keeps the `AudioRecord`
+**inside** the privileged process and proxies each call (`create`/`startRecording`/`read`/`release`)
+over AIDL. The binder refcount never leaves that process, so death-cleanup keeps working. That is the
+shape that has this bug by construction impossible — at the cost of the daemon being on the call path,
+which is the whole thing handoff exists to avoid. Recorded as a known alternative, not a proposal.
+
+### Worth a separate look: the VoIP policy may leak in audioserver
+
+`AudioRecord.release()` unregisters a capture policy only when the **framework's own** builder wired it
+(`unregisterAudioPolicyOnRelease`). We build the `AudioPolicy` by reflection, so `release()` does not
+unregister it — `unregisterAudioPolicyAsyncStatic` must be called explicitly. We do have
+`VoipAudioPolicy.disarm()`, but it runs only when the feature is switched off. Likely harmless since
+the policy dies with the daemon process, but unverified. scrcpy and the JetBrains agent both leak this
+per session.
+
+---
+
+## ⚠️ There are TWO ways the op can be left started — our fix only covers one
+
+A third source pass corrected part of the story above. Both corrections matter.
+
+### Correction: a killed client's op IS normally finished
+
+`RecordHandle` is the `BnAudioRecord` living **inside audioserver**, so when an ordinary shell recorder
+is SIGKILLed the binder driver drops the remote ref, `~RecordHandle()` runs *in audioserver*, and
+`stop_nonvirtual()` → `stopInput()` precedes `releaseInput()`. **So "a killed daemon can never release
+its capture" is wrong as a general claim.**
+
+**It is right for us, and only for us** — because our app deliberately retains the binder, the
+destructor does not run on the daemon's death. That is the structural point: normal clients are safe
+precisely because nothing else holds the reference. We are the exception, and there is no prior art.
+
+### 🚨 The second mechanism: the `silenced` guard — our fix does NOT address it
+
+`AudioPolicyService::stopInput()` finishes the op **conditionally**:
+
+```cpp
+    // finish the recording app op
+    if (!client->silenced) {
+        finishRecording(client->attributionSource, client->virtualDeviceId, client->attributes.source);
+    }
+```
+
+A client the policy service believes is **silenced** gets no `finishOp` even on a perfectly clean stop.
+And `finishRecording()` early-returns only for `AID_SYSTEM | AID_AUDIOSERVER | AID_MEDIA | AID_ROOT` —
+**uid 2000 is not on that list**, so shell is fully exposed to it.
+
+**This is the important caveat on `a5efcd8`.** Our explicit `stop()` goes through the very same
+`stopInput()` guard. If the client is silenced, the fix finishes nothing. It cures the
+release-without-stop path and is powerless against the silenced-stop path.
+
+### 🔎 Telling them apart in the field — shipped
+
+`AudioPolicyService::releaseInput()` logs `ALOGW("%s releasing active client portId %d")` under tag
+**`AudioPolicyInterfaceImpl`**. That tag is now on the system report's logcat whitelist:
+
+| While the dot is stuck | Reading |
+|---|---|
+| `releasing active client portId …` **present** | release-without-stop → **`a5efcd8` is the right fix** |
+| that line **absent** | the `silenced` guard swallowed the finish → **different bug, fix does not apply** |
+
+### Why this only started happening
+
+AOSP `9f91a5ee` ("Add NativePermissionController for audio perms") made a shell-uid AttributionSource
+declare package `"shell"`. **Before that, a shell recorder had no package and produced no privacy
+indicator at all.** The green dot for shell-uid capture is recent upstream behaviour, not an OEM
+addition — which is why this is surfacing now.
+
+### Google has acknowledged the underlying contract bug
+
+On [Gerrit 3600113](https://android-review.googlesource.com/c/platform/frameworks/av/+/3600113)
+(abandoned 2025-05-05), Google's audio owner wrote 2025-04-22: *"That was a regression in 25Q1 which
+will be resolved in 25Q2 … there are some issues with the API contract between AppOps and audio re ref
+counting. That should be fixed more durably in an upcoming release."* The named fixes landed
+internally and are not on public Gerrit — so a platform fix may arrive independently of ours.
+
+Also found: [GrapheneOS/os-issue-tracker#5128](https://github.com/GrapheneOS/os-issue-tracker/issues/5128)
+— "Microphone Indicator always shown even without usage", closed, labelled `upstream`. App-attributed
+rather than Shell, so it is adjacent rather than the same, but it shows the class is known.
+
+---
+
 ## 🚨 The leading hypothesis now — UNTESTED
 
 `AudioPolicyService::releaseInput()` (`AudioPolicyInterfaceImpl.cpp`) clears `client->active`
