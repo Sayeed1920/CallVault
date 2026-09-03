@@ -173,6 +173,103 @@ version of this doc; that doubt is withdrawn.
 
 ---
 
+## ⚠️ The VoIP disarm test is VOID — do not draw anything from it
+
+The tester **cleared the stuck microphone first, and only then turned VoIP off** and exported. So
+reports (28)/(5) are a clean baseline taken from an already-healthy phone, not a disarm test. They
+neither implicate nor exonerate VoIP. (His words: *"Yes just after the first one log"*.)
+
+## 🚨 The trigger was a CARRIER call, not VoIP
+
+From the tester, unprompted: *"the call just before the bug was neither VoIP nor Android Auto… Yes
+[cell call]"*, with *"Android auto just before, and VoIP call in the morning"*.
+
+**Report (27) confirms it exactly.** The last call before the 12:33 report was carrier, on the
+**handoff** path:
+
+```
+11:46:58.221  capture#5 opened: handoff held record (source=voice-call, ch=2, rate=48000)
+12:07:33.480  RecorderServer: stopHandoff requested
+12:07:33.483  capture#5 released … (still live: 0)
+12:07:33.522  HandoffRecv: handoff capture input released (forced collection of the IAudioRecord ref)
+```
+
+This kills the VoIP-centric framing this document started with. It also means the *near MIC* suspicion
+from the previous section, while sound in principle, was aimed at the wrong call.
+
+### That call itself tore down cleanly
+
+`HandoffSource.releaseHeld()` does `rec.stop()` then `rec.release()` and audits the outcome, and the
+log shows it ran. The daemon was pid 29689 throughout the call and still 29689 at 12:33 — **it did not
+die during that call**. So this is not a simple missing-`stop()`.
+
+### 🚨 But the handoff path has a documented hole, in our own comment
+
+`HandoffReceiver.forceReleaseCaptureInput()` says it plainly:
+
+> In the normal flow the daemon's `stopHandoff` stops its own track and frees the input; **but when the
+> daemon has DIED — the case this whole feature exists for — nothing else can release it.** So force a
+> collection here.
+
+When the daemon dies mid-call, **nobody ever calls `stop()`**. The app drops its binder ref, the
+RecordTrack is destroyed, and destruction reaches `AudioPolicyService::releaseInput()` — which clears
+`client->active` **without** `finishRecording()`. Only `stopInput()` finishes the op. The result is a
+**stranded `OP_RECORD_AUDIO` under uid 2000**: a green dot attributed to "Shell" that no longer belongs
+to any living process and can never clear itself.
+
+This phone demonstrably kills daemons — report (27), 10:26:57:
+`Clearing 3 other recorder process(es): [29687, 29724, 29729] (I am 29689)`.
+
+**This is the leading hypothesis and it is a real latent bug regardless of whether it caused this
+instance.** It is untested.
+
+### Why nothing we collect can see it
+
+A **stranded app-op is invisible to `dumpsys audio`'s record-activity log entirely** — that log tracks
+recording *configurations*, not ops. So a phone with a permanently lit dot can honestly report "No
+capture was left open", which is exactly what report (5) says. Only `dumpsys appops` shows it, as
+`Running start at:` with no closed duration. rc3 does not collect it; `2.3.0-micdiag2` does.
+
+## Earlier reading of the disarm test — superseded by the above
+
+## Disarm test result — reports (28) + (5), 2026-09-03 13:53
+
+The tester turned **VoIP recording off** and exported again. `VoIP recording: off` confirmed in the
+config header.
+
+**Record-activity section now reads:** *"No capture was left open. Every recording that started also
+stopped."* The three `REMOTE_SUBMIX` orphans are gone — consistent with the policy being disarmed so
+no new submix captures are created, plus normal ring turnover. **This tells us nothing new**: we
+already know those entries were never evidence, and their absence is not evidence either.
+
+**What the test could NOT answer: whether the green dot is still lit.** rc3's report has no way to
+see the microphone app-op, which is the only thing that reflects the indicator. So the single fact
+the experiment was run for is missing from its own output. That is the diagnostic gap, restated.
+
+Other facts from this pair:
+
+- One recorder process (**pid 26465**, was 29689 on 2026-09-03 12:33) — **the daemon restarted between
+  the two reports.**
+- No calls, no `CaptureAudit` lines, `Recorder host lines: none` — a 28-minute idle window.
+- `WRITE_SECURE_SETTINGS: false`, with `Self-grant … failed: Stream closed.` filling most of a 52-line
+  report. Still a live, separate problem on this phone.
+
+### Why the daemon restart matters
+
+If the dot **is** still lit after that restart, the held op **outlived the process that started it**.
+That is only possible if the op was never finished — which is exactly the
+`releaseInput()`-without-`finishRecording()` path below, reached via binder death rather than a clean
+teardown. It would also explain why it never clears on its own.
+
+### And the suspect inside the VoIP path is the near capture, not the far one
+
+A VoIP session opens **two** captures: far (`REMOTE_SUBMIX`, cannot light the dot) and **near
+(`MIC`, absolutely can)**. Turning the feature off stops both, so this test cannot separate them — but
+only the near one is a candidate. If the dot cleared, the near MIC capture is where to look, not the
+policy or the submix.
+
+---
+
 ## 🚨 The leading hypothesis now — UNTESTED
 
 `AudioPolicyService::releaseInput()` (`AudioPolicyInterfaceImpl.cpp`) clears `client->active`

@@ -142,13 +142,35 @@ object HandoffReceiver {
     }
 
     private fun releaseRefs() {
-        val had = held != null
+        val binder = held
         held = null
+
+        // Stop the track BEFORE dropping the last reference to it, and this is load-bearing.
+        //
+        // In the normal flow the daemon's stopHandoff already called stop() on its own AudioRecord.
+        // But when the daemon has DIED mid-call — the case the handoff exists for — nothing ever
+        // does, and the track is then destroyed purely by our reference going away. That route runs
+        // AudioPolicyService::releaseInput(), which clears the client WITHOUT calling
+        // finishRecording(); only stopInput() finishes it. The microphone app-op therefore stays
+        // started forever, under uid 2000, owned by no living process — a green "Shell is using the
+        // microphone" dot that nothing can clear, not even restarting the daemon.
+        //
+        // It is invisible in every log we collect: dumpsys audio's record-activity section tracks
+        // recording CONFIGURATIONS, not ops, so the phone honestly reports "no capture left open"
+        // while the indicator stays lit. See docs/dev-notes/2026-09-03-shell-mic-open-first-evidence.md.
+        //
+        // Stopping here is safe in BOTH flows: stopping an already-stopped track is a no-op, and by
+        // this point the drain has ended and the encoder has been joined, so no audio is lost.
+        if (binder != null) {
+            val accepted = HeldRecordControl.stop(binder)
+            AppLogger.i(T, "handoff track stop() before release: accepted=$accepted (finishes the mic app-op)")
+        }
+
         runCatching { cblk?.close() }
         cblk = null
         stopFlag = null
         encodeThread = null
-        if (had) forceReleaseCaptureInput()
+        if (binder != null) forceReleaseCaptureInput()
     }
 
     /**
