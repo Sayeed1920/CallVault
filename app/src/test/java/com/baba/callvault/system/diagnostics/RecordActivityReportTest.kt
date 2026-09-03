@@ -61,7 +61,10 @@ class RecordActivityReportTest {
         assertEquals("2", open.single().riid)
         assertEquals("MIC", open.single().source)
         assertTrue(open.single().isShell)
-        assertTrue(RecordActivityReport.render(dump).contains("green microphone dot"))
+        // Named as ours: the rendered section must attribute the shell capture to CallVault.
+        val rendered = RecordActivityReport.render(dump)
+        assertTrue(rendered.contains("STILL OPEN"))
+        assertTrue(rendered.contains("CallVault's privileged capture"))
     }
 
     @Test
@@ -89,5 +92,77 @@ class RecordActivityReportTest {
     fun `an unreadable dump says so instead of claiming everything is fine`() {
         assertTrue(RecordActivityReport.render(null).contains("could not read"))
         assertTrue(RecordActivityReport.render("").contains("could not read"))
+    }
+
+    // ---- Regression: the submix false positive that cost a day of investigation ----------------
+
+    @Test
+    fun `system-only sources are never counted as captures left open`() {
+        // Arrange — real dumpsys from the maintainer's OP12 (OxygenOS 16), a phone with NO
+        // stuck-microphone symptom. It contains REMOTE_SUBMIX entries that Android structurally
+        // cannot pair with a stop: isSystemOnlyAudioSource() makes RecordingActivityMonitor log the
+        // event and return before updateSnapshot(), so no rec stop is ever emitted for them.
+        val dump = fixture("dumpsys_audio_submix_orphans.txt")
+
+        // Act
+        val open = RecordActivityReport.openCaptures(dump)
+
+        // Assert — the old parser reported five "still open" captures here. All of them were submix.
+        assertTrue("REMOTE_SUBMIX must never be reported as open", open.none { it.source == "REMOTE_SUBMIX" })
+    }
+
+    @Test
+    fun `a healthy phone with submix orphans is not accused of holding the microphone`() {
+        val rendered = RecordActivityReport.render(fixture("dumpsys_audio_submix_orphans.txt"))
+
+        // The claim that sent the investigation the wrong way. It must not appear for submix-only
+        // orphans, because REMOTE_SUBMIX notes RECORD_AUDIO_OUTPUT, which SystemUI does not watch.
+        assertTrue(
+            "must not claim the mic indicator for submix orphans",
+            !rendered.contains("puts the green microphone dot"),
+        )
+    }
+
+    @Test
+    fun `the unpairable entries are still shown, but in their own bucket`() {
+        // They are not evidence of a leak, but hiding them entirely would make the report look like
+        // it had failed to parse. They get counted and labelled instead.
+        val rendered = RecordActivityReport.render(fixture("dumpsys_audio_submix_orphans.txt"))
+        assertTrue(rendered.contains("REMOTE_SUBMIX"))
+        assertTrue(rendered.lowercase().contains("cannot be paired") || rendered.lowercase().contains("not a leak"))
+    }
+
+    @Test
+    fun `the event kind is kept, because it is the discriminating field`() {
+        val dump = """
+            01-01 00:00:00:000 rec update riid:11 uid:2000 session:1 src:MIC not silenced pack:com.android.shell
+        """.trimIndent()
+
+        val open = RecordActivityReport.openCaptures(dump)
+
+        assertEquals(1, open.size)
+        assertEquals("update", open[0].kind)
+        assertTrue(open[0].toString().contains("update"))
+    }
+
+    @Test
+    fun `a saturated ring is called out, because evidence may have been evicted`() {
+        // The log is a 50-entry EventLogger. Un-stoppable submix entries accumulate in it, so a real
+        // capture's rec start can be pushed out entirely — "nothing open" then means "we cannot see".
+        val rendered = RecordActivityReport.render(fixture("dumpsys_audio_submix_orphans.txt"))
+        assertTrue(rendered.lowercase().contains("ring"))
+    }
+
+    @Test
+    fun `a genuine MIC capture left open is still reported and still blamed`() {
+        // The whole point of the class must survive the fix.
+        val dump = """
+            01-01 00:00:00:000 rec start riid:7 uid:2000 session:3 src:MIC not silenced pack:com.android.shell
+        """.trimIndent()
+
+        val open = RecordActivityReport.openCaptures(dump)
+        assertEquals(1, open.size)
+        assertEquals("MIC", open[0].source)
+        assertTrue(RecordActivityReport.render(dump).contains("STILL OPEN"))
     }
 }

@@ -106,6 +106,13 @@ object SystemLogCollector {
         // here, and it is still lighting the green dot on the user's screen.
         val micActivity = RecordActivityReport.render(runShell(context, "dumpsys audio"))
 
+        // The app-op that actually drives the green dot. Collected because the section above CANNOT
+        // answer the question it looks like it answers: its ring log cannot pair system-only sources
+        // at all, and it evicts old events once full. `dumpsys appops` marks a started-and-unfinished
+        // mic op with `Running start at:`, which is the only direct evidence of a stuck indicator —
+        // and the user cannot be asked to run it by hand.
+        val micOps = MicOpReport.render(runShell(context, "dumpsys appops"))
+
         // How many privileged recorders are alive. Paired with the section above on purpose: an open
         // capture plus more than one recorder process names an orphan that outlived its replacement,
         // which is the one arrangement neither the app's log nor the live daemon's ledger can show.
@@ -117,6 +124,7 @@ object SystemLogCollector {
             out.writeText(buildString {
                 appendLine(header(rawLines = raw.count { it == '\n' }, kept = kept.size, attached = capped.size))
                 appendLine(micActivity)
+                appendLine(micOps)
                 appendLine(recorders)
                 appendLine("-----------------------------------------------------------------------------------------")
                 capped.forEach { appendLine(AppLogger.redactForReport(it)) }

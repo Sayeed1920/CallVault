@@ -392,6 +392,13 @@ object AppLogger {
         writer.println("Device: ${Build.DEVICE}")
         writer.println("Product: ${Build.PRODUCT}")
         writer.println("Android Version: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+        // The ROM build, not just the Android version. OEM audio behaviour differs between builds of
+        // the same Android release, and without this every OEM question starts by inferring the ROM
+        // from the model number — which is guesswork. DISPLAY is the user-visible build id
+        // (e.g. "CPH2581_16.0.9.400(EX01)"); INCREMENTAL pins the exact build within it.
+        writer.println("ROM Build: ${Build.DISPLAY}")
+        writer.println("ROM Incremental: ${Build.VERSION.INCREMENTAL}")
+        writer.println("ROM Fingerprint: ${Build.FINGERPRINT}")
         writer.println("Device Country Iso Estimation: ${PhoneNumberManager.getInstance(context).getDeviceCountryIso()}")
         writeConfiguration(writer, context)
     }
