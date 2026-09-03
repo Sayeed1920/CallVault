@@ -70,4 +70,39 @@ class MicOpReportTest {
         assertTrue(MicOpReport.render(null).contains("unavailable"))
         assertTrue(MicOpReport.render("").contains("unavailable"))
     }
+
+    @Test
+    fun `the device-side filtered shape still parses, Access lines and all`() {
+        // What SystemLogCollector actually feeds it: the on-device grep keeps uid, package, every op
+        // header and the running markers, and drops `null=[`, `Access:` and `]`. The parser must not
+        // depend on any of the dropped lines.
+        val filtered = """
+              Uid 2000:
+                Package com.android.shell:
+                  RECORD_AUDIO (allow): 
+                      Running start at: +53ms
+                  READ_CLIPBOARD (allow): 
+        """.trimIndent()
+
+        val held = MicOpReport.heldMicOps(filtered)
+
+        assertEquals(1, held.size)
+        assertEquals("RECORD_AUDIO", held[0].op)
+        assertEquals("2000", held[0].uid)
+    }
+
+    @Test
+    fun `a running non-mic op is never credited to the mic op above it`() {
+        // The reason the device-side filter keeps EVERY op header rather than only the mic ones.
+        // With CAMERA's header dropped, this Running line would be read as RECORD_AUDIO still held.
+        val filtered = """
+              Uid 2000:
+                Package com.android.shell:
+                  RECORD_AUDIO (allow): 
+                  CAMERA (allow): 
+                      Running start at: +5s
+        """.trimIndent()
+
+        assertTrue(MicOpReport.heldMicOps(filtered).isEmpty())
+    }
 }

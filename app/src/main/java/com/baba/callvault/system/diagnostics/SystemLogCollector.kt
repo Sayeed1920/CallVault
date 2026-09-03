@@ -34,6 +34,10 @@ import java.io.File
  */
 object SystemLogCollector {
 
+    /** See the call site: keeps uid/package/op headers and running markers, drops the bulk. */
+    private const val MIC_OPS_COMMAND =
+        "dumpsys appops | grep -E '^[[:space:]]*(Uid [0-9]+:|Package |[A-Z_]+ \\(|Running start at:)'"
+
     private const val TAG = "CV:SystemLog"
 
     /** Filename of the collected slice, alongside the app's own report in the same folder. */
@@ -111,7 +115,18 @@ object SystemLogCollector {
         // at all, and it evicts old events once full. `dumpsys appops` marks a started-and-unfinished
         // mic op with `Running start at:`, which is the only direct evidence of a stuck indicator —
         // and the user cannot be asked to run it by hand.
-        val micOps = MicOpReport.render(runShell(context, "dumpsys appops"))
+        // Filtered on the device, not here: the full dump is ~2.3 MB on a well-used phone (measured
+        // on an OP12), and pulling that through the ADB stream into a String in a 256 MB heap is
+        // waste for the handful of lines that matter. The filter keeps uid, package, EVERY op header
+        // and the running markers — 2.3 MB drops to ~156 KB.
+        //
+        // Every op header is kept deliberately. Narrowing to just the mic ops would let a
+        // `Running start at:` belonging to some later non-mic op (CAMERA, say) follow a mic op header
+        // directly, and the parser would credit the microphone to it. Falls back to the raw dump if
+        // the device's grep does not take the expression, so a picky ROM loses speed, not the section.
+        val micOps = MicOpReport.render(
+            runShell(context, MIC_OPS_COMMAND) ?: runShell(context, "dumpsys appops")
+        )
 
         // How many privileged recorders are alive. Paired with the section above on purpose: an open
         // capture plus more than one recorder process names an orphan that outlived its replacement,
