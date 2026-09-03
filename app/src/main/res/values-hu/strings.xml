@@ -615,4 +615,5 @@
     <string name="voip_recording_held">Telefonhívás miatt tartva. A felvétel folytatódik, amikor visszatér.</string>
     <string name="general_back">Vissza</string>
     <string name="export_heading_transcript">Átirat</string>
+    <string name="settings_bugreport_preparing">Hibakeresési jelentés előkészítése…</string>
 </resources>

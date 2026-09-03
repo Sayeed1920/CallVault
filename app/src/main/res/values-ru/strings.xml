@@ -617,4 +617,5 @@
     <string name="voip_recording_held">Приостановлено из-за телефонного звонка. Запись продолжится, когда вы вернётесь.</string>
     <string name="general_back">Назад</string>
     <string name="export_heading_transcript">Расшифровка</string>
+    <string name="settings_bugreport_preparing">Подготовка отчёта об отладке…</string>
 </resources>

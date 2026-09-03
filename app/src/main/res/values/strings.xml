@@ -342,6 +342,7 @@
     <string name="settings_bugreport_active_warning">Debug logging is ON. Remember to turn it off when you\'re done to save space.</string>
     <string name="settings_bugreport_share_hint">Logs from your last debug session are ready to share.</string>
     <string name="settings_bugreport_share">Share debug logs</string>
+    <string name="settings_bugreport_preparing">Preparing debug report…</string>
     <string name="settings_bugreport_share_empty">No logs yet. Enable debug logging, reproduce the issue, then tap share.</string>
     <string name="settings_bugreport_share_chooser">Share debug logs</string>
 

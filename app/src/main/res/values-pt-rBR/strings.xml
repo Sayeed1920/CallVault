@@ -618,4 +618,5 @@
     <string name="voip_recording_held">Em espera por uma chamada telefônica. Esta gravação continua quando você voltar.</string>
     <string name="general_back">Voltar</string>
     <string name="export_heading_transcript">Transcrição</string>
+    <string name="settings_bugreport_preparing">Preparando o relatório de depuração…</string>
 </resources>

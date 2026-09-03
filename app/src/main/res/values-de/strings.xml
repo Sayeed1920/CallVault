@@ -615,4 +615,5 @@
     <string name="voip_recording_held">Für einen Telefonanruf angehalten. Diese Aufnahme wird fortgesetzt, wenn Sie zurückkehren.</string>
     <string name="general_back">Zurück</string>
     <string name="export_heading_transcript">Transkript</string>
+    <string name="settings_bugreport_preparing">Fehlerbericht wird vorbereitet …</string>
 </resources>

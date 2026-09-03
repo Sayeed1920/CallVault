@@ -617,4 +617,5 @@
     <string name="voip_recording_held">Wstrzymano na czas połączenia telefonicznego. Nagrywanie będzie kontynuowane po powrocie.</string>
     <string name="general_back">Wstecz</string>
     <string name="export_heading_transcript">Transkrypcja</string>
+    <string name="settings_bugreport_preparing">Przygotowywanie raportu debugowania…</string>
 </resources>

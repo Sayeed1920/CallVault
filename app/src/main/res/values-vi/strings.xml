@@ -614,4 +614,5 @@
     <string name="voip_recording_held">Đang giữ vì có cuộc gọi điện thoại. Bản ghi sẽ tiếp tục khi bạn quay lại.</string>
     <string name="general_back">Quay lại</string>
     <string name="export_heading_transcript">Bản ghi lời</string>
+    <string name="settings_bugreport_preparing">Đang chuẩn bị báo cáo gỡ lỗi…</string>
 </resources>

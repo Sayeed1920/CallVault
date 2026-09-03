@@ -615,4 +615,5 @@
     <string name="voip_recording_held">En attente pour un appel téléphonique. Cet enregistrement reprendra à votre retour.</string>
     <string name="general_back">Retour</string>
     <string name="export_heading_transcript">Transcription</string>
+    <string name="settings_bugreport_preparing">Préparation du rapport de débogage…</string>
 </resources>

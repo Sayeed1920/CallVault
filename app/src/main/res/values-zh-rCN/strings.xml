@@ -614,4 +614,5 @@
     <string name="voip_recording_held">因来电而暂挂。返回后本次录音会继续。</string>
     <string name="general_back">返回</string>
     <string name="export_heading_transcript">转写</string>
+    <string name="settings_bugreport_preparing">正在准备调试报告…</string>
 </resources>

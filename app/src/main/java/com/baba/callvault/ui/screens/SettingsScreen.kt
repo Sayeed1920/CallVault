@@ -76,7 +76,11 @@ import com.baba.callvault.server.RecorderBackend
 import com.baba.callvault.utils.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.annotation.StringRes
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.system.AppLock
@@ -171,6 +175,13 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // Shown while the debug report is being built. Building it makes several ADB round-trips, and on
+    // a phone with a flaky transport that is slow — during which the old code showed NOTHING, so the
+    // button read as broken, people tapped again, and leaving the screen cancelled the whole thing
+    // (the scope above is the composable's). Field-reported by a tester on 2026-09-03 as "the share
+    // debug function doesn't work", reproduced as "works only on the second visit".
+    var preparingReport by remember { mutableStateOf(false) }
+
     // Trigger recomposition when settings change by viewmodel.refresh()
     val updateTrigger by viewModel.updateTrigger.collectAsState()
 
@@ -224,21 +235,66 @@ fun SettingsScreen(
         // Build the report off the main thread, then hand it to the system share-sheet. The Share
         // entry point is only shown when a valid log file exists, so the null branch is a safety net.
         onShareLogs = {
-            scope.launch {
-                val report = withContext(Dispatchers.IO) { AppLogger.buildShareableReport(context) }
-                // The system slice carries the daemon's lines and the platform's — the half no bug
-                // report has ever contained. Null when logcat gave nothing usable, in which case the
-                // app's own report still goes on its own.
-                val systemReport = SystemLogCollector.buildReport(context)
-                if (report != null) {
-                    context.shareLogFiles(listOfNotNull(report, systemReport))
-                } else {
-                    Toast.makeText(context, R.string.settings_bugreport_share_empty, Toast.LENGTH_LONG).show()
+            if (!preparingReport) scope.launch {
+                preparingReport = true
+                try {
+                    val report = withContext(Dispatchers.IO) { AppLogger.buildShareableReport(context) }
+                    // The system slice carries the daemon's lines and the platform's — the half no bug
+                    // report has ever contained. Null when logcat gave nothing usable, in which case the
+                    // app's own report still goes on its own.
+                    //
+                    // BOUNDED, and that is the whole point. It makes up to seven ADB round-trips, each
+                    // retrying with a forced reconnect, so on a phone whose transport is unhealthy it
+                    // can outlast any patience. Unbounded, a hang here threw away the app report too —
+                    // which was already built and sitting in the variable above — and the user got
+                    // nothing at all. Now the optional half can fail and the report still goes out.
+                    //
+                    // Run on a scope of its own and time out the AWAIT, not the work. buildReport is
+                    // one long blocking block inside withContext(Dispatchers.IO) with no suspension
+                    // points, and coroutine cancellation is cooperative — a timeout wrapped straight
+                    // around it cannot interrupt a blocked socket read, so it would look like a bound
+                    // and be none. await() IS a suspension point, so this returns on time and abandons
+                    // the stuck thread instead of waiting for it. A detached scope keeps that
+                    // abandoned job from holding up this coroutine's completion as a child would.
+                    val collector = CoroutineScope(Dispatchers.IO)
+                    val pending = collector.async { SystemLogCollector.buildReport(context) }
+                    val systemReport = withTimeoutOrNull(SYSTEM_REPORT_BUDGET_MS) { pending.await() }
+                    if (systemReport == null) {
+                        collector.cancel()
+                        AppLogger.w(
+                            "CV:Settings",
+                            "System report not attached (empty or over ${SYSTEM_REPORT_BUDGET_MS}ms); " +
+                                "sharing the app report alone"
+                        )
+                    }
+                    if (report != null) {
+                        context.shareLogFiles(listOfNotNull(report, systemReport))
+                    } else {
+                        Toast.makeText(context, R.string.settings_bugreport_share_empty, Toast.LENGTH_LONG).show()
+                    }
+                } finally {
+                    preparingReport = false
                 }
             }
         },
         modifier = modifier
     )
+
+    // Modal on purpose: it gives the tap an immediate answer, and it stops a second tap or a walk
+    // back to the previous screen from cancelling work that is already under way.
+    if (preparingReport) {
+        AlertDialog(
+            onDismissRequest = { },
+            confirmButton = {},
+            text = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(16.dp))
+                    Text(stringResource(R.string.settings_bugreport_preparing))
+                }
+            },
+        )
+    }
 }
 
 /**
@@ -262,6 +318,9 @@ fun SettingsScreen(
  * @param onShareLogs            Called to share diagnostic logs via the system share-sheet (Debug section).
  * @param modifier               Optional size/position modifier.
  */
+/** Hard ceiling on the optional system-log half of a debug report. See the share handler. */
+private const val SYSTEM_REPORT_BUDGET_MS = 45_000L
+
 @Composable
 fun SettingsContent(
     preferences: AppPreferences,
