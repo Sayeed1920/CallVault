@@ -22,6 +22,11 @@ i.e. **OxygenOS 16**. CallVault **2.2.1-rc3 (20205)**, STANDALONE, VoIP recordin
 
 ---
 
+> **✅ VERIFIED 2026-09-03 — share-debug fix (`4d380cc`).** The maintainer confirmed on the OP12 that
+> the "Preparing debug report…" modal now appears on tap. The silent-tap failure that blocked every
+> diagnosis is fixed. Not yet confirmed: share completion on an unhealthy transport, and the 45 s
+> degrade-to-app-report-alone branch.
+
 ## The conclusion
 
 Two separate things are true, and both matter:
