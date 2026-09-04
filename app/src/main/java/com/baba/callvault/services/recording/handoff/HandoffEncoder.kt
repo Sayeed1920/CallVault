@@ -44,6 +44,11 @@ class HandoffEncoder(
      * Runs the read → encode → mux loop on the CALLING thread until [pcmIn] reaches EOF (native closed the
      * pipe write end at drain-end / stop), then flushes EOS and finalises the container. Blocking.
      */
+    /** Seconds of audio actually written, readable after [encodeBlocking] returns. */
+    @Volatile
+    var encodedSeconds: Float = 0f
+        private set
+
     fun encodeBlocking() {
         val downmix = downmixToMono && captureChannels == 2
         val encodeChannels = if (downmix) 1 else captureChannels
@@ -117,6 +122,10 @@ class HandoffEncoder(
             if (inIdx >= 0) enc.queueInputBuffer(inIdx, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
             drainEncoder(enc, mux, info, muxerStarted, drainToEos = true)
             AppLogger.i(TAG, "HandoffEncoder finished: ${totalFrames} frames (${totalFrames / sampleRate.toFloat()}s)")
+            // Published so the receiver can reconcile what was encoded against how long the capture
+            // was actually up. That comparison is the one check that catches a short recording no
+            // matter what caused it, including causes nobody has thought of yet.
+            encodedSeconds = totalFrames / sampleRate.toFloat()
         } finally {
             runCatching { enc.stop() }
             runCatching { enc.release() }

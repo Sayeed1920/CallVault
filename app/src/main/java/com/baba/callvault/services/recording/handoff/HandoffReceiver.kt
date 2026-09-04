@@ -54,6 +54,12 @@ object HandoffReceiver {
      */
     @Volatile private var requestRearm: (() -> Boolean)? = null
 
+    /** When the current capture began, for the completeness check in [stop]. */
+    @Volatile private var captureStartedAtMs: Long = 0L
+
+    /** The live encoder, so [stop] can read how much audio actually reached the file. */
+    @Volatile private var encoderRef: HandoffEncoder? = null
+
     /** Set while the supervisor is waiting for a re-armed delivery, so [onReceived] routes it. */
     @Volatile private var awaitingRearm = false
 
@@ -73,6 +79,12 @@ object HandoffReceiver {
 
     /** How long to wait for the daemon's re-armed delivery before giving up on the recording. */
     private const val REARM_WAIT_MS = 4000L
+
+    /** Below this, the ratio is dominated by start-up and rounding and says nothing useful. */
+    private const val MIN_CHECKABLE_SECONDS = 5f
+
+    /** Encoded/captured ratio treated as a whole recording; the shortfall below it is real loss. */
+    private const val COMPLETE_ENOUGH = 0.90f
 
     /** True while a handoff capture is live in the app (survives daemon death). */
     @Volatile
@@ -186,6 +198,7 @@ object HandoffReceiver {
             // silently mis-attributed. (Expected only under severe load; normal finalise is sub-second.)
             AppLogger.e(T, "handoff encoder still running after ${ENCODE_JOIN_MS}ms — recording may be truncated")
         }
+        reportCompleteness()
         releaseRefs()
         isLive = false
         pending = null
@@ -261,20 +274,28 @@ object HandoffReceiver {
         val writeFd = pipe[1].detachFd()             // ownership → native (it close()s = EOF)
         AppLogger.i(T, "handoff capture → SAF fd (pipe writeFd=$writeFd frameSize=${geometry.frameSize} rate=${geometry.sampleRate} ch=${geometry.channels})")
 
+        captureStartedAtMs = System.currentTimeMillis()
+        val enc = HandoffEncoder(
+            pcmIn = ParcelFileDescriptor.AutoCloseInputStream(readPfd),
+            outFd = target.outputFd,
+            sampleRate = geometry.sampleRate,
+            captureChannels = geometry.channels,
+            downmixToMono = target.downmixToMono,
+            mime = target.mime,
+            muxerFormat = target.muxerFormat,
+            bitRate = target.bitRate,
+        )
+        encoderRef = enc
         val encoder = Thread {
             runCatching {
-                HandoffEncoder(
-                    pcmIn = ParcelFileDescriptor.AutoCloseInputStream(readPfd),
-                    outFd = target.outputFd,
-                    sampleRate = geometry.sampleRate,
-                    captureChannels = geometry.channels,
-                    downmixToMono = target.downmixToMono,
-                    mime = target.mime,
-                    muxerFormat = target.muxerFormat,
-                    bitRate = target.bitRate,
-                ).encodeBlocking()
+                enc.encodeBlocking()
                 AppLogger.i(T, "handoff encode DONE")
-            }.onFailure { AppLogger.w(T, "handoff encode error: ${it.message}") }
+            }.onFailure {
+                // ERROR, not WARN: if the encoder dies the pipe's reader is gone, the drain's next
+                // write fails, and the recording stops there — silently, mid-call. This used to be the
+                // one line standing between a lost conversation and knowing why.
+                AppLogger.e(T, "handoff encode FAILED — the recording stops here: ${it.message}", it)
+            }
         }.apply { isDaemon = true; name = "cv-handoff-encode" }
         encodeThread = encoder
         encoder.start()
@@ -311,6 +332,8 @@ object HandoffReceiver {
         var geometry = firstGeometry
         var rearms = 0
 
+        val stats = ByteBuffer.allocateDirect(AudioHandoffNative.STATS_BYTES).order(ByteOrder.nativeOrder())
+
         while (true) {
             val code = runCatching {
                 AudioHandoffNative.nativeDrainToPipe(
@@ -319,10 +342,24 @@ object HandoffReceiver {
                     // Hold the pipe open only while a rebuild is still permitted; once the budget is
                     // spent an abnormal exit really is the end and the encoder must see EOF.
                     rearms < MAX_REARMS,
+                    stats,
                 )
-            }.onFailure { AppLogger.e(T, "handoff drain threw: ${it.message}") }.getOrNull()
+            }.onFailure {
+                // ERROR with the throwable: an UnsatisfiedLinkError here means no audio at all, and its
+                // message alone says nothing useful.
+                AppLogger.e(T, "handoff drain threw — the recording stops here: ${it.message}", it)
+            }.getOrNull()
 
             val exit = AudioHandoffNative.DrainExit.of(code ?: -1)
+            val s = AudioHandoffNative.DrainStats.read(stats)
+            // Everything the native side knows, in the log that survives an export. Ring overrun is
+            // called out separately because it loses audio WITHOUT ending the drain: the encoder
+            // inserts no silence, so the timeline compresses and the file just comes out short.
+            if (s.hasLoss) {
+                AppLogger.e(T, "drain segment LOST AUDIO: $s — the file is short by roughly that much")
+            } else {
+                AppLogger.i(T, "drain segment: $s")
+            }
             if (exit.isClean) {
                 AppLogger.i(T, "handoff drain ended: ${exit.label}")
                 return
@@ -338,6 +375,11 @@ object HandoffReceiver {
                     "not rebuilding the capture (attempts=$rearms/$MAX_REARMS): the recording ends " +
                         "here and the rest of the call is NOT in the file"
                 )
+                // Stop claiming to be recording. Until this line the drain could die and every other
+                // part of the app carried on saying "recording" — the notification, the service, the
+                // engine — for the rest of the call. That is how a 710-second call came back as 1.06
+                // seconds with nothing amiss on screen.
+                isLive = false
                 closePipe(writeFd)
                 return
             }
@@ -353,6 +395,7 @@ object HandoffReceiver {
             val next = rebuild()
             if (next == null) {
                 AppLogger.e(T, "capture rebuild failed — the recording ends here")
+                isLive = false
                 closePipe(writeFd)
                 return
             }
@@ -398,5 +441,39 @@ object HandoffReceiver {
     private fun closePipe(writeFd: Int) {
         runCatching { ParcelFileDescriptor.adoptFd(writeFd).close() }
             .onFailure { AppLogger.w(T, "closing the capture pipe failed: ${it.message}") }
+    }
+
+    /**
+     * Did the file get the whole call?
+     *
+     * One check that catches a short recording **whatever caused it** — an invalidated track, a dead
+     * encoder, a stalled ring, a cause nobody has thought of yet. Everything else in this class
+     * reports a specific known failure; this reports the symptom, so a new failure mode cannot be
+     * silent the way the 2026-09-04 one was (a 710-second call, 1.06 seconds recorded, nothing said).
+     *
+     * Compares audio actually encoded against how long the capture was up. A little slack is normal —
+     * codec priming, the final partial frame, the moments either side of the drain — so only a real
+     * shortfall is reported, and it is reported at ERROR with both numbers.
+     */
+    private fun reportCompleteness() {
+        val startedAt = captureStartedAtMs
+        if (startedAt <= 0L) return
+        val wallSeconds = (System.currentTimeMillis() - startedAt) / 1000f
+        val encodedSeconds = encoderRef?.encodedSeconds ?: 0f
+        captureStartedAtMs = 0L
+        encoderRef = null
+        if (wallSeconds < MIN_CHECKABLE_SECONDS) return
+
+        val ratio = encodedSeconds / wallSeconds
+        if (ratio >= COMPLETE_ENOUGH) {
+            AppLogger.i(T, "recording complete: ${"%.1f".format(encodedSeconds)}s encoded of ${"%.1f".format(wallSeconds)}s captured")
+        } else {
+            AppLogger.e(
+                T,
+                "RECORDING IS SHORT: only ${"%.1f".format(encodedSeconds)}s of audio for a " +
+                    "${"%.1f".format(wallSeconds)}s capture (${(ratio * 100).toInt()}%). The rest of " +
+                    "the call is NOT in the file — see the drain/encode lines above for why."
+            )
+        }
     }
 }

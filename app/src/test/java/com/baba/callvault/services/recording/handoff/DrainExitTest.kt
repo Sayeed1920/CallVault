@@ -30,6 +30,7 @@ class DrainExitTest {
         assertEquals(2, DrainExit.STALLED.code)
         assertEquals(3, DrainExit.MMAP_FAILED.code)
         assertEquals(4, DrainExit.MAX_SECONDS.code)
+        assertEquals(5, DrainExit.PIPE_BROKEN.code)
     }
 
     @Test
@@ -56,5 +57,33 @@ class DrainExitTest {
         DrainExit.entries.filter { it != DrainExit.UNKNOWN }.forEach {
             assertEquals(it, DrainExit.of(it.code))
         }
+    }
+
+    @Test
+    fun `drain stats read back in the order native writes them`() {
+        // The four int64s native fills: bytesStreamed, droppedFrames, overrunEvents, elapsedMs.
+        // Getting this order wrong would report loss as duration and read plausibly either way.
+        val buf = java.nio.ByteBuffer
+            .allocateDirect(AudioHandoffNative.STATS_BYTES)
+            .order(java.nio.ByteOrder.nativeOrder())
+        buf.asLongBuffer().apply { put(0, 1_000L); put(1, 480L); put(2, 2L); put(3, 61_000L) }
+
+        val stats = AudioHandoffNative.DrainStats.read(buf)
+
+        assertEquals(1_000L, stats.bytesStreamed)
+        assertEquals(480L, stats.droppedFrames)
+        assertEquals(2L, stats.overrunEvents)
+        assertEquals(61_000L, stats.elapsedMs)
+        assertTrue("dropped frames are audio loss and must be flagged", stats.hasLoss)
+    }
+
+    @Test
+    fun `no dropped frames is not reported as loss`() {
+        val buf = java.nio.ByteBuffer
+            .allocateDirect(AudioHandoffNative.STATS_BYTES)
+            .order(java.nio.ByteOrder.nativeOrder())
+        buf.asLongBuffer().apply { put(0, 9_999L); put(1, 0L); put(2, 0L); put(3, 30_000L) }
+
+        assertFalse(AudioHandoffNative.DrainStats.read(buf).hasLoss)
     }
 }

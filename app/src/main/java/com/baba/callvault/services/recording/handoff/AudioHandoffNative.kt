@@ -91,7 +91,32 @@ object AudioHandoffNative {
         fd: Int, size: Int, frameCount: Int, dataOff: Int, frameSize: Int,
         guardFrames: Int, writeFd: Int, stopFlag: java.nio.ByteBuffer, maxSeconds: Int,
         keepPipeOpen: Boolean,
+        statsOut: java.nio.ByteBuffer?,
     ): Int
+
+    /** Bytes needed for the [nativeDrainToPipe] stats buffer: four int64s. */
+    const val STATS_BYTES = 32
+
+    /** What one drain segment actually did, read back from the stats buffer. */
+    data class DrainStats(
+        val bytesStreamed: Long,
+        val droppedFrames: Long,
+        val overrunEvents: Long,
+        val elapsedMs: Long,
+    ) {
+        /** True when audio was thrown away because the drain could not keep up with the ring. */
+        val hasLoss: Boolean get() = droppedFrames > 0
+
+        override fun toString(): String =
+            "streamed=${bytesStreamed}B elapsed=${elapsedMs}ms dropped=${droppedFrames}frames/${overrunEvents}overruns"
+
+        companion object {
+            fun read(buf: java.nio.ByteBuffer): DrainStats {
+                val l = buf.asLongBuffer()
+                return DrainStats(l.get(0), l.get(1), l.get(2), l.get(3))
+            }
+        }
+    }
 
     /**
      * Why a drain ended — the single fact that says whether a recording is complete or was cut off.
@@ -109,6 +134,7 @@ object AudioHandoffNative {
         STALLED(2, "ring stalled — the server stopped writing", false),
         MMAP_FAILED(3, "could not map the control block", false),
         MAX_SECONDS(4, "hit the safety cap without a stop signal", false),
+        PIPE_BROKEN(5, "the encoder went away — nothing was reading the captured audio", false),
         UNKNOWN(-1, "unrecognised exit code", false);
 
         companion object {

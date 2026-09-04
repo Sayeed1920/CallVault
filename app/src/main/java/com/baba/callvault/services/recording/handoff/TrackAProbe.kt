@@ -145,6 +145,7 @@ object TrackAProbe {
                     // A one-shot measurement, not a recording: nothing rebuilds it, so the pipe must
                     // close on exit or the probe's reader would never see EOF.
                     false,
+                    null,   // the probe reports its own result; drain counters add nothing here
                 )
             }.onFailure { AppLogger.w(TAG, "drain failed: ${it.message}") }
         }.apply { isDaemon = true; start() }

@@ -212,11 +212,18 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeFind
 #define DRAIN_EXIT_STALLED      2   // server stopped advancing the ring
 #define DRAIN_EXIT_MMAP_FAILED  3   // could not map the control block at all
 #define DRAIN_EXIT_MAX_SECONDS  4   // ran to the safety cap without a stop signal
+#define DRAIN_EXIT_PIPE_BROKEN  5   // the encoder went away; nothing is reading what we write
 
 extern "C" JNIEXPORT jint JNICALL
 Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrainToPipe(
         JNIEnv *env, jclass, jint fd, jint size, jint frameCount, jint dataOff, jint frameSize,
-        jint guardFrames, jint writeFd, jobject stopFlag, jint maxSeconds, jboolean keepPipeOpen) {
+        jint guardFrames, jint writeFd, jobject stopFlag, jint maxSeconds, jboolean keepPipeOpen,
+        jobject statsOut) {
+    // statsOut: a direct ByteBuffer of four int64s the caller reads back afterwards —
+    // {bytesStreamed, droppedFrames, overrunEvents, elapsedMs}. Everything below is also LOGI'd, but
+    // logcat is a 256 KiB ring that rotates within minutes and a user exports a report long after the
+    // event, so anything only logged there is lost. These four numbers are what makes a short recording
+    // explicable after the fact.
     // keepPipeOpen: the caller intends to resume into the SAME pipe with a fresh control block after
     // an abnormal exit, so the encoder must NOT see EOF. Closing here would finalise the container and
     // turn a recoverable mid-call track loss into the truncated file it used to be. On a clean stop
@@ -247,6 +254,12 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
     // pipe NON-BLOCKING. A pipe stall only grows RAM, never stalls the ring read.
     fcntl(writeFd, F_SETFL, O_NONBLOCK);
     std::vector<uint8_t> stage; size_t drainOff = 0;
+    // A write error that is NOT "try again" means the reader is gone for good — the encoder thread
+    // died or was torn down. This used to be an unqualified `return`, which left the loop running: the
+    // stage was never drained, never cleared, and grew at ~192 KB/s for the remaining maxSeconds. Four
+    // hours of that is gigabytes of native heap and eventually a process abort, all while the app still
+    // believed it was recording. Now it ends the drain and says why.
+    bool pipeBroken = false;
     auto pumpPipe = [&](bool finalFlush) {
         while (drainOff < stage.size()) {
             ssize_t n = write(writeFd, stage.data() + drainOff, stage.size() - drainOff);
@@ -254,7 +267,11 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
             else if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                 if (!finalFlush) return;          // pipe full — keep it staged, retry next cycle
                 usleep(2000); continue;           // final flush: wait for the reader to catch up
-            } else return;                        // reader closed / error
+            } else {
+                LOGI("drainToPipe: pipe write failed (errno=%d) — the reader is gone", errno);
+                pipeBroken = true;
+                return;
+            }
         }
         stage.clear(); drainOff = 0;              // fully drained
     };
@@ -285,9 +302,22 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
     const int STALL_LIMIT_CYCLES = 10 * cyclesPerSec;
     uint32_t stallRear = lastFront;
     long stallSinceCycle = 0;
+    // A real clock. Every "t~Ns" used to be i/cyclesPerSec, which assumes each iteration takes exactly
+    // CYCLE_US — it does not, because the copy, the pipe write and scheduling all add to it. Those
+    // timestamps understated elapsed time, and any reconciliation built on them would inherit the error.
+    struct timespec tsStart{};
+    clock_gettime(CLOCK_MONOTONIC, &tsStart);
+    auto elapsedMs = [&]() -> int64_t {
+        struct timespec now{};
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        return (now.tv_sec - tsStart.tv_sec) * 1000LL + (now.tv_nsec - tsStart.tv_nsec) / 1000000LL;
+    };
+    int64_t droppedFrames = 0;   // audio thrown away on overrun — silent loss until now
+    int overrunEvents = 0;
     LOGI("drainToPipe: start frameCount=%u P2=%u dataOff=%d frameSize=%d guard=%u maxSec=%d cycle=%dus (decoupled)", fc, p2, dataOff, fsz, guard, maxSeconds, CYCLE_US);
     for (long i = 0; i < maxCycles; i++) {
-        if (stop && __atomic_load_n(stop, __ATOMIC_ACQUIRE) != 0) { LOGI("drainToPipe: stop requested at t~%lds", i / cyclesPerSec); exitReason = DRAIN_EXIT_STOPPED; break; }
+        if (pipeBroken) { exitReason = DRAIN_EXIT_PIPE_BROKEN; break; }
+        if (stop && __atomic_load_n(stop, __ATOMIC_ACQUIRE) != 0) { LOGI("drainToPipe: stop requested at t=%lldms", (long long) elapsedMs()); exitReason = DRAIN_EXIT_STOPPED; break; }
         uint32_t rear = __atomic_load_n(rearPtr, __ATOMIC_ACQUIRE);  // acquire: data reads see server's release
 
         // Definitive: AudioFlinger has torn the track down (input preempted at maxOpenCount, route
@@ -308,7 +338,10 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
         }
         uint32_t safeRear = (rear - lastFront > guard) ? rear - guard : lastFront; // hold back freshest
         uint32_t avail = safeRear - lastFront;     // unsigned wrap-safe frame count
-        if (avail > fc) avail = fc;                // clamp on overrun (drop stale, resync below)
+        // Overrun: the drain fell more than a ring behind, so everything older than one ring is gone.
+        // The encoder inserts no silence for it, so the timeline COMPRESSES — the file comes out short
+        // rather than gappy, which looks exactly like truncation. Counted so it can be reported.
+        if (avail > fc) { droppedFrames += (avail - fc); overrunEvents++; avail = fc; }
         if (avail > 0) {
             uint32_t startIdx = lastFront & mask;              // physical position (wrap at P2, not fc)
             uint32_t firstFrames = p2 - startIdx;              // contiguous to the physical buffer end
@@ -338,6 +371,16 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
     const bool resumable = (exitReason != DRAIN_EXIT_STOPPED);
     if (!(keepPipeOpen && resumable)) close(writeFd);   // EOF -> reader finalises the container
     munmap(base, size);
-    LOGI("drainToPipe: done, %ld PCM bytes streamed (exit=%d)", totalBytes, exitReason);
+    LOGI("drainToPipe: done, %ld PCM bytes streamed (exit=%d, dropped=%lld frames in %d overruns, %lldms)",
+         totalBytes, exitReason, (long long) droppedFrames, overrunEvents, (long long) elapsedMs());
+    if (statsOut != nullptr) {
+        auto *s = static_cast<int64_t *>(env->GetDirectBufferAddress(statsOut));
+        if (s != nullptr && env->GetDirectBufferCapacity(statsOut) >= 32) {
+            s[0] = (int64_t) totalBytes;
+            s[1] = droppedFrames;
+            s[2] = (int64_t) overrunEvents;
+            s[3] = elapsedMs();
+        }
+    }
     return exitReason;
 }
