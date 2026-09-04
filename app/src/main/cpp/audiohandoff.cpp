@@ -203,12 +203,23 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeFind
 // Stop control: `stopFlag` is a direct ByteBuffer whose first int the app flips to non-zero on call-end;
 // we check it each cycle and exit cleanly. `maxSeconds` is a safety cap (max call length) so a lost stop
 // signal can't drain forever. Replaces Phase-2's fixed duration — the app now owns the recording length.
-extern "C" JNIEXPORT void JNICALL
+// Why the drain ended. Returned to Kotlin so it reaches the app's OWN log file, which survives; the
+// LOGI lines below go only to logcat, whose 256 KiB ring rotates within minutes of the event and is
+// therefore empty by the time a user exports a report. Five field reports in a row failed to capture
+// the reason for exactly that reason. Keep these values in sync with AudioHandoffNative.DrainExit.
+#define DRAIN_EXIT_STOPPED      0   // stop flag flipped — the normal end of a recording
+#define DRAIN_EXIT_INVALIDATED  1   // AudioFlinger tore the track down (CBLK_INVALID)
+#define DRAIN_EXIT_STALLED      2   // server stopped advancing the ring
+#define DRAIN_EXIT_MMAP_FAILED  3   // could not map the control block at all
+#define DRAIN_EXIT_MAX_SECONDS  4   // ran to the safety cap without a stop signal
+
+extern "C" JNIEXPORT jint JNICALL
 Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrainToPipe(
         JNIEnv *env, jclass, jint fd, jint size, jint frameCount, jint dataOff, jint frameSize,
         jint guardFrames, jint writeFd, jobject stopFlag, jint maxSeconds) {
     void *base = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (base == MAP_FAILED) { LOGI("drainToPipe: mmap FAILED"); close(writeFd); return; }
+    if (base == MAP_FAILED) { LOGI("drainToPipe: mmap FAILED"); close(writeFd); return DRAIN_EXIT_MMAP_FAILED; }
+    int exitReason = DRAIN_EXIT_MAX_SECONDS;   // overwritten by whichever break fires below
     auto *stop = static_cast<volatile int32_t *>(env->GetDirectBufferAddress(stopFlag));
     auto *w = reinterpret_cast<volatile uint32_t *>(base);
     auto *frontPtr = reinterpret_cast<volatile uint32_t *>(w + 46); // mFront
@@ -272,7 +283,7 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
     long stallSinceCycle = 0;
     LOGI("drainToPipe: start frameCount=%u P2=%u dataOff=%d frameSize=%d guard=%u maxSec=%d cycle=%dus (decoupled)", fc, p2, dataOff, fsz, guard, maxSeconds, CYCLE_US);
     for (long i = 0; i < maxCycles; i++) {
-        if (stop && __atomic_load_n(stop, __ATOMIC_ACQUIRE) != 0) { LOGI("drainToPipe: stop requested at t~%lds", i / cyclesPerSec); break; }
+        if (stop && __atomic_load_n(stop, __ATOMIC_ACQUIRE) != 0) { LOGI("drainToPipe: stop requested at t~%lds", i / cyclesPerSec); exitReason = DRAIN_EXIT_STOPPED; break; }
         uint32_t rear = __atomic_load_n(rearPtr, __ATOMIC_ACQUIRE);  // acquire: data reads see server's release
 
         // Definitive: AudioFlinger has torn the track down (input preempted at maxOpenCount, route
@@ -280,6 +291,7 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
         if (__atomic_load_n(flagsPtr, __ATOMIC_RELAXED) & CBLK_INVALID_FLAG) {
             LOGI("drainToPipe: TRACK INVALIDATED by AudioFlinger (CBLK_INVALID) at t~%lds after %ld bytes "
                  "— recording ends here", i / cyclesPerSec, totalBytes);
+            exitReason = DRAIN_EXIT_INVALIDATED;
             break;
         }
         // Belt-and-braces: the stream stopped without the flag being set for us to see.
@@ -287,6 +299,7 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
         else if (i - stallSinceCycle > STALL_LIMIT_CYCLES) {
             LOGI("drainToPipe: RING STALLED %ds at rear=%u after %ld bytes (capture stopped upstream) "
                  "— recording ends here", (int) ((i - stallSinceCycle) / cyclesPerSec), rear, totalBytes);
+            exitReason = DRAIN_EXIT_STALLED;
             break;
         }
         uint32_t safeRear = (rear - lastFront > guard) ? rear - guard : lastFront; // hold back freshest
@@ -318,5 +331,6 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
     pumpPipe(true);                           // flush remaining stage (blocking-ish) before EOF
     close(writeFd);                           // EOF -> reader finalises the container
     munmap(base, size);
-    LOGI("drainToPipe: done, %ld PCM bytes streamed", totalBytes);
+    LOGI("drainToPipe: done, %ld PCM bytes streamed (exit=%d)", totalBytes, exitReason);
+    return exitReason;
 }

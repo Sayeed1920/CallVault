@@ -90,5 +90,28 @@ object AudioHandoffNative {
     external fun nativeDrainToPipe(
         fd: Int, size: Int, frameCount: Int, dataOff: Int, frameSize: Int,
         guardFrames: Int, writeFd: Int, stopFlag: java.nio.ByteBuffer, maxSeconds: Int,
-    )
+    ): Int
+
+    /**
+     * Why a drain ended — the single fact that says whether a recording is complete or was cut off.
+     *
+     * The native side has always known this and always logged it, but only to **logcat**, whose
+     * 256 KiB ring rotates within minutes. A user exports a report long after the event, so the line
+     * was invariably gone: five field reports in a row came back without the one thing they were
+     * collected for. Returning the reason puts it in the app's own log file, which persists.
+     *
+     * Values must stay in sync with the `DRAIN_EXIT_*` defines in `audiohandoff.cpp`.
+     */
+    enum class DrainExit(val code: Int, val label: String, val isClean: Boolean) {
+        STOPPED(0, "stop requested (normal end of recording)", true),
+        INVALIDATED(1, "TRACK INVALIDATED by AudioFlinger (CBLK_INVALID) — capture torn down mid-call", false),
+        STALLED(2, "ring stalled — the server stopped writing", false),
+        MMAP_FAILED(3, "could not map the control block", false),
+        MAX_SECONDS(4, "hit the safety cap without a stop signal", false),
+        UNKNOWN(-1, "unrecognised exit code", false);
+
+        companion object {
+            fun of(code: Int): DrainExit = entries.firstOrNull { it.code == code } ?: UNKNOWN
+        }
+    }
 }

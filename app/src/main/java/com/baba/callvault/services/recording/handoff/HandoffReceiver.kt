@@ -235,6 +235,23 @@ object HandoffReceiver {
                     cblkFdNum, geometry.cblkSize, geometry.wrapFrames, geometry.dataOff,
                     geometry.frameSize, HandoffGeometry.GUARD_FRAMES, writeFd, flag, MAX_SECONDS,
                 )
+            }.onSuccess { code ->
+                // The one line that says whether the recording is whole. Written to the app's own log
+                // because the native side's identical message goes only to logcat, which rotates long
+                // before anyone exports a report — which is why five field reports came back without
+                // it. Logged at ERROR when the capture was cut off, so it cannot be skimmed past: at
+                // that moment the recording has already stopped while the call carries on, and the
+                // file the user ends up with is a fraction of the conversation.
+                val exit = AudioHandoffNative.DrainExit.of(code)
+                if (exit.isClean) {
+                    AppLogger.i(T, "handoff drain ended: ${exit.label}")
+                } else {
+                    AppLogger.e(
+                        T,
+                        "handoff drain ended EARLY: ${exit.label}. The recording stopped here; " +
+                            "anything said after this point is NOT in the file."
+                    )
+                }
             }.onFailure { AppLogger.w(T, "handoff drain error: ${it.message}") }
         }.apply { isDaemon = true; name = "cv-handoff-drain" }.start()
 
