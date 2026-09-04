@@ -27,6 +27,83 @@ i.e. **OxygenOS 16**. CallVault **2.2.1-rc3 (20205)**, STANDALONE, VoIP recordin
 > diagnosis is fixed. Not yet confirmed: share completion on an unhealthy transport, and the 45 s
 > degrade-to-app-report-alone branch.
 
+## 🎯 CAUGHT IT — report (29)/(6), 2026-09-04, build `2.3.0-micfix2`
+
+The new diagnostics did their job. First direct capture of the bug:
+
+```
+--- Microphone app-op (what the green dot actually follows) ---
+MICROPHONE HELD: 1 running mic app-op(s), 1 of them as uid 2000 (shell)
+    uid=2000 pack=com.android.shell op=RECORD_AUDIO running since +22m7s384ms
+```
+
+ROM now captured too: **`CPH2653_16.0.10.501(EX01)`**, fingerprint
+`OnePlus/CPH2653EEA/OP5D55L1:16/BP2A.250605.015/…`. And the rewritten record-activity section behaved
+exactly as designed — *"No capture was left open"* plus 9 correctly bucketed unpairable entries (1 ours,
+8 Android Auto's). **The old report would have screamed "9 STILL OPEN".**
+
+### ✅ The fix's call is ACCEPTED — the source analysis was right
+
+```
+CV:HandoffRecv: handoff track stop() before release: accepted=true (finishes the mic app-op)
+```
+
+Four times, on four calls. **There is no uid gate on `IAudioRecord::stop()` — confirmed on a real
+device.** That question is closed.
+
+### ❌ …and the op is still stranded. So it is the OTHER mechanism.
+
+`accepted=true` at 11:27:23, and at 11:37:38 the op was still running. A `stop()` that is accepted and
+still does not finish the op is the `if (!client->silenced)` guard in `stopInput()`. **`a5efcd8` cures
+release-without-stop, and this phone has the silenced-stop bug.**
+
+⚠️ **The absence of `releasing active client portId` is NOT evidence.** The surviving logcat in this
+report spans **11:37:38 → 11:37:40 — two seconds**, all from report generation. The incident at
+11:15–11:27 had rotated out of the 256 KiB ring long before. The detector shipped in `7250ada` can
+only work if the report is taken within minutes of the event.
+
+### 🚨 THE HEADLINE: the stuck mic and a destroyed recording are the SAME EVENT
+
+```
+11:15:33.682  HandoffEncoder started
+11:15:34.755  HandoffEncoder finished: 50880 frames (1.06s)   <-- died 1 second in
+   …call continues 12 more minutes…
+11:27:23.461  Published recording → …_in_[C:2c9c].ogg (2511 bytes)
+```
+
+**A 710-second call produced 2511 bytes.** The mic op that is stuck started at ~11:15:31 — that same
+call. One event explains both symptoms, and the `silenced` theory predicts both:
+
+- a silenced client captures nothing → the native drain sees the track stop → the pipe hits EOF →
+  the encoder "finishes" cleanly at 1.06 s with no error;
+- and at stop, `if (!client->silenced)` skips `finishRecording()` → the op is stranded → the dot
+  sticks.
+
+**The green dot is not the bug. It is the visible residue of a lost recording.** That reorders the
+priority entirely: a user losing a 12-minute call matters more than an indicator.
+
+### It is intermittent — 3 of 4 calls were fine
+
+| Call | Duration | Encoder ran | |
+|---|---|---|---|
+| 09-03 17:40:45 | 29.5 s | 28.3 s | ✅ |
+| 09-03 18:58:50 | 282 s | 281.3 s | ✅ |
+| 09-04 10:57:35 | 15.2 s | 14.8 s | ✅ |
+| **09-04 11:15:32** | **710 s** | **1.06 s** | ❌ |
+
+Only the failed call left a stuck op. Related known class: [[post-update-daemon-race]] (0.02 s into a
+157-byte file) and the older false-ready/0-byte reports — **this is very likely the same defect, now
+with a clean instance and a mechanism.**
+
+### What to build next
+
+1. **Detect truncation when it happens.** `handoff encode DONE` arriving while the call is still up is
+   the signal — today nothing notices, the user gets a 2.5 KB file and no warning. Log it loudly and
+   capture the audio state at that moment, while the logcat ring still holds the cause.
+2. **Then try to recover** — re-arm a capture mid-call. "Resilient recording" silently failed here.
+3. Only then worry about the op. It is downstream.
+
+---
 ## The conclusion
 
 Two separate things are true, and both matter:
