@@ -216,9 +216,13 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeFind
 extern "C" JNIEXPORT jint JNICALL
 Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrainToPipe(
         JNIEnv *env, jclass, jint fd, jint size, jint frameCount, jint dataOff, jint frameSize,
-        jint guardFrames, jint writeFd, jobject stopFlag, jint maxSeconds) {
+        jint guardFrames, jint writeFd, jobject stopFlag, jint maxSeconds, jboolean keepPipeOpen) {
+    // keepPipeOpen: the caller intends to resume into the SAME pipe with a fresh control block after
+    // an abnormal exit, so the encoder must NOT see EOF. Closing here would finalise the container and
+    // turn a recoverable mid-call track loss into the truncated file it used to be. On a clean stop
+    // the pipe is still closed here, because that IS the end of the recording.
     void *base = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (base == MAP_FAILED) { LOGI("drainToPipe: mmap FAILED"); close(writeFd); return DRAIN_EXIT_MMAP_FAILED; }
+    if (base == MAP_FAILED) { LOGI("drainToPipe: mmap FAILED"); if (!keepPipeOpen) close(writeFd); return DRAIN_EXIT_MMAP_FAILED; }
     int exitReason = DRAIN_EXIT_MAX_SECONDS;   // overwritten by whichever break fires below
     auto *stop = static_cast<volatile int32_t *>(env->GetDirectBufferAddress(stopFlag));
     auto *w = reinterpret_cast<volatile uint32_t *>(base);
@@ -329,7 +333,10 @@ Java_com_baba_callvault_services_recording_handoff_AudioHandoffNative_nativeDrai
         usleep(CYCLE_US);
     }
     pumpPipe(true);                           // flush remaining stage (blocking-ish) before EOF
-    close(writeFd);                           // EOF -> reader finalises the container
+    // Close only when this really is the end. A resumable exit leaves the pipe open so the next drain
+    // writes into the same stream and the encoder never notices the seam.
+    const bool resumable = (exitReason != DRAIN_EXIT_STOPPED);
+    if (!(keepPipeOpen && resumable)) close(writeFd);   // EOF -> reader finalises the container
     munmap(base, size);
     LOGI("drainToPipe: done, %ld PCM bytes streamed (exit=%d)", totalBytes, exitReason);
     return exitReason;

@@ -70,6 +70,14 @@ object HandoffSource {
         preferredChannels: Int,
         startTrack: Boolean = true,
     ): Boolean = runCatching {
+        // A second delivery for the same call is a mid-call re-arm after the first track was torn
+        // down. `heldRecord = record` below would otherwise overwrite the old reference and drop it on
+        // the floor — leaking the AudioRecord AND stranding its microphone app-op, which is the exact
+        // defect this whole investigation is about. Let go of the old one first, and audit it.
+        if (heldRecord != null) {
+            AppLogger.i(T, "deliver: releasing the previous held record before re-arming")
+            releaseHeld()
+        }
         val rate = if (sampleRate > 0) sampleRate else DEFAULT_SAMPLE_RATE
         val source = androidAudioSourceForKey(sourceCliKey)
             ?: run { AppLogger.w(T, "deliver: source '$sourceCliKey' has no direct AudioSource"); return@runCatching false }

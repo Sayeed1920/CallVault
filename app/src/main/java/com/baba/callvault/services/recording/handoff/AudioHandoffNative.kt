@@ -90,6 +90,7 @@ object AudioHandoffNative {
     external fun nativeDrainToPipe(
         fd: Int, size: Int, frameCount: Int, dataOff: Int, frameSize: Int,
         guardFrames: Int, writeFd: Int, stopFlag: java.nio.ByteBuffer, maxSeconds: Int,
+        keepPipeOpen: Boolean,
     ): Int
 
     /**

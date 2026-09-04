@@ -48,14 +48,41 @@ object HandoffReceiver {
     @Volatile private var stopFlag: ByteBuffer? = null
     @Volatile private var encodeThread: Thread? = null
 
+    /**
+     * Asks the daemon for a fresh capture, mid-call. Supplied by the engine at [begin], because this
+     * object is Context-less and sits on the push path.
+     */
+    @Volatile private var requestRearm: (() -> Boolean)? = null
+
+    /** Set while the supervisor is waiting for a re-armed delivery, so [onReceived] routes it. */
+    @Volatile private var awaitingRearm = false
+
+    /** Where [onReceived] deposits a re-armed capture for the supervisor to pick up. */
+    private val rearmed = java.util.concurrent.SynchronousQueue<Rearm>()
+
+    private class Rearm(val binder: IBinder?, val cblk: ParcelFileDescriptor, val geometry: HandoffGeometry)
+
+    /**
+     * How many times one recording may rebuild its capture.
+     *
+     * Bounded so a track that is torn down the instant it is created cannot spin: each attempt costs a
+     * daemon round-trip, and past a few the call is not being recorded in any useful sense anyway.
+     * AudioRecord's own restoreRecord_l uses 3 for the same reason.
+     */
+    private const val MAX_REARMS = 3
+
+    /** How long to wait for the daemon's re-armed delivery before giving up on the recording. */
+    private const val REARM_WAIT_MS = 4000L
+
     /** True while a handoff capture is live in the app (survives daemon death). */
     @Volatile
     var isLive: Boolean = false
         private set
 
     /** Engine sets the output target BEFORE calling `IRecorderService.startHandoff`, so the push finds it. */
-    fun begin(target: Target) {
+    fun begin(target: Target, requestRearm: (() -> Boolean)? = null) {
         pending = target
+        this.requestRearm = requestRearm
         isLive = false
     }
 
@@ -82,6 +109,29 @@ object HandoffReceiver {
         if (target == null) {
             AppLogger.w(T, "onReceived with no pending target — ignoring handoff")
             runCatching { cblkFd?.close() }
+            return
+        }
+        // A re-arm in flight: this delivery is a REPLACEMENT capture for the recording already running,
+        // not a new one. Hand it to the supervisor, which resumes the existing pipe and encoder so the
+        // output file continues rather than being finalised and restarted.
+        if (awaitingRearm) {
+            val fdNum = cblkFd?.fd ?: -1
+            val geo = if (fdNum >= 0) HandoffGeometry.of(
+                frameCount = frameCount, sampleRate = sampleRate, channels = channels,
+                cblkSize = AudioHandoffNative.nativeAshmemSize(fdNum),
+            ) else null
+            val bad = if (geo == null) "missing cblk fd" else geo.validationError()
+            if (cblkFd == null || geo == null || bad != null) {
+                AppLogger.e(T, "re-armed handoff rejected ($bad) — the recording ends here")
+                runCatching { cblkFd?.close() }
+                return
+            }
+            // offer(), not put(): if the supervisor has already given up waiting nobody will ever take
+            // this, and blocking a binder thread forever is worse than dropping a capture we cannot use.
+            if (!rearmed.offer(Rearm(binder, cblkFd, geo), REARM_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                AppLogger.e(T, "re-armed handoff arrived but nothing was waiting for it — closing it")
+                runCatching { cblkFd.close() }
+            }
             return
         }
         // Idempotency: a spurious/duplicate delivery must NOT spin up a second drain+encode against the
@@ -229,32 +279,124 @@ object HandoffReceiver {
         encodeThread = encoder
         encoder.start()
 
-        Thread {
-            runCatching {
+        Thread { superviseDrain(cblkFdNum, geometry, writeFd, flag) }
+            .apply { isDaemon = true; name = "cv-handoff-drain" }.start()
+
+        isLive = true
+    }
+
+    /**
+     * Drains, and rebuilds the capture when the platform takes it away mid-call.
+     *
+     * **Why this loop exists.** AudioFlinger invalidates a record track on route changes, input
+     * preemption and audioserver restarts. An ordinary `AudioRecord` never notices: `obtainBuffer()`
+     * sees the dead track and calls `restoreRecord_l()`, which recreates it — preserving position,
+     * retrying three times — and recording continues. The handoff deliberately bypasses `AudioRecord`
+     * to drain the control block directly, and in doing so gave that recovery up. The result was
+     * measured in the field on 2026-09-04: a 710-second call whose drain ended after 1.06 s produced a
+     * 2511-byte file, with nothing in the app noticing. This restores parity.
+     *
+     * The pipe and the encoder are deliberately kept alive across a rebuild, so the output file
+     * continues rather than being finalised and restarted. The audio buffered when the track died is
+     * unrecoverable — AOSP's own restore loses it too — so a seam of a few hundred milliseconds
+     * remains. That is the difference between a whole recording and losing the rest of the call.
+     */
+    private fun superviseDrain(
+        firstCblkFd: Int,
+        firstGeometry: HandoffGeometry,
+        writeFd: Int,
+        flag: ByteBuffer,
+    ) {
+        var cblkFdNum = firstCblkFd
+        var geometry = firstGeometry
+        var rearms = 0
+
+        while (true) {
+            val code = runCatching {
                 AudioHandoffNative.nativeDrainToPipe(
                     cblkFdNum, geometry.cblkSize, geometry.wrapFrames, geometry.dataOff,
                     geometry.frameSize, HandoffGeometry.GUARD_FRAMES, writeFd, flag, MAX_SECONDS,
+                    // Hold the pipe open only while a rebuild is still permitted; once the budget is
+                    // spent an abnormal exit really is the end and the encoder must see EOF.
+                    rearms < MAX_REARMS,
                 )
-            }.onSuccess { code ->
-                // The one line that says whether the recording is whole. Written to the app's own log
-                // because the native side's identical message goes only to logcat, which rotates long
-                // before anyone exports a report — which is why five field reports came back without
-                // it. Logged at ERROR when the capture was cut off, so it cannot be skimmed past: at
-                // that moment the recording has already stopped while the call carries on, and the
-                // file the user ends up with is a fraction of the conversation.
-                val exit = AudioHandoffNative.DrainExit.of(code)
-                if (exit.isClean) {
-                    AppLogger.i(T, "handoff drain ended: ${exit.label}")
-                } else {
-                    AppLogger.e(
-                        T,
-                        "handoff drain ended EARLY: ${exit.label}. The recording stopped here; " +
-                            "anything said after this point is NOT in the file."
-                    )
-                }
-            }.onFailure { AppLogger.w(T, "handoff drain error: ${it.message}") }
-        }.apply { isDaemon = true; name = "cv-handoff-drain" }.start()
+            }.onFailure { AppLogger.e(T, "handoff drain threw: ${it.message}") }.getOrNull()
 
-        isLive = true
+            val exit = AudioHandoffNative.DrainExit.of(code ?: -1)
+            if (exit.isClean) {
+                AppLogger.i(T, "handoff drain ended: ${exit.label}")
+                return
+            }
+
+            // Abnormal. Say so in the app's own log — the native side's identical message goes only to
+            // logcat, whose ring rotates long before a user exports a report.
+            AppLogger.e(T, "handoff drain ended EARLY after ${geometry.sampleRate}Hz capture: ${exit.label}")
+
+            if (code == null || rearms >= MAX_REARMS) {
+                AppLogger.e(
+                    T,
+                    "not rebuilding the capture (attempts=$rearms/$MAX_REARMS): the recording ends " +
+                        "here and the rest of the call is NOT in the file"
+                )
+                closePipe(writeFd)
+                return
+            }
+            // A stop that landed while we were between drains: not a failure, just the end.
+            if (flag.getInt(0) != 0) {
+                AppLogger.i(T, "stop requested during rebuild — ending normally")
+                closePipe(writeFd)
+                return
+            }
+
+            rearms++
+            AppLogger.w(T, "rebuilding the capture, attempt $rearms/$MAX_REARMS (call is still up)")
+            val next = rebuild()
+            if (next == null) {
+                AppLogger.e(T, "capture rebuild failed — the recording ends here")
+                closePipe(writeFd)
+                return
+            }
+            // Let go of the dead track only once its replacement is in hand, so a failed rebuild does
+            // not also throw away the reference that keeps the app's claim on the old one.
+            val oldCblk = cblk
+            held = next.binder
+            cblk = next.cblk
+            runCatching { oldCblk?.close() }
+            cblkFdNum = next.cblk.fd
+            geometry = next.geometry
+            AppLogger.i(T, "capture rebuilt (cblkFd=$cblkFdNum ch=${geometry.channels} rate=${geometry.sampleRate}) — recording continues")
+        }
+    }
+
+    /** Asks the daemon for a replacement capture and waits for it to be pushed back. */
+    private fun rebuild(): Rearm? {
+        val ask = requestRearm ?: run {
+            AppLogger.e(T, "no rebuild path wired for this session")
+            return null
+        }
+        awaitingRearm = true
+        return try {
+            if (!runCatching { ask() }.onFailure { AppLogger.e(T, "rebuild request threw: ${it.message}") }
+                    .getOrDefault(false)
+            ) {
+                AppLogger.e(T, "the daemon refused to re-arm the capture")
+                return null
+            }
+            rearmed.poll(REARM_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+                ?: run { AppLogger.e(T, "no re-armed capture arrived within ${REARM_WAIT_MS}ms"); null }
+        } finally {
+            awaitingRearm = false
+        }
+    }
+
+    /**
+     * Closes the pipe's write end, which is what tells the encoder to finalise the container.
+     *
+     * Native owns the fd while it is draining and closes it on a clean stop; when it is told to keep it
+     * open for a rebuild that never comes, closing falls to us or the encoder waits forever.
+     */
+    private fun closePipe(writeFd: Int) {
+        runCatching { ParcelFileDescriptor.adoptFd(writeFd).close() }
+            .onFailure { AppLogger.w(T, "closing the capture pipe failed: ${it.message}") }
     }
 }

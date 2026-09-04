@@ -488,7 +488,18 @@ class AudioRecordingEngine {
                 muxerFormat = codecEnum.outputFormat,
                 bitRate = bitRate,
                 downmixToMono = true,
-            )
+            ),
+            // How the receiver rebuilds a capture the platform tore down mid-call. It asks for exactly
+            // what was asked for originally, so the replacement matches the recording already in
+            // progress; the daemon releases the dead track before creating the new one.
+            requestRearm = {
+                runCatching {
+                    RecorderConnection.service?.startHandoff(
+                        audioSourceEnum.cliKey, HANDOFF_SAMPLE_RATE, preferredChannels
+                    ) == true
+                }.onFailure { AppLogger.w(TAG, "re-arm request failed: ${it.message}") }
+                    .getOrDefault(false)
+            },
         )
         AppLogger.i(TAG, "Handoff: calling daemon startHandoff(${audioSourceEnum.cliKey}, $HANDOFF_SAMPLE_RATE, $preferredChannels)")
         val t1 = System.currentTimeMillis()

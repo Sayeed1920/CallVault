@@ -142,6 +142,9 @@ object TrackAProbe {
                 AudioHandoffNative.nativeDrainToPipe(
                     cblk.fd, geometry.cblkSize, geometry.wrapFrames, geometry.dataOff,
                     geometry.frameSize, HandoffGeometry.GUARD_FRAMES, writeFd, flag, seconds,
+                    // A one-shot measurement, not a recording: nothing rebuilds it, so the pipe must
+                    // close on exit or the probe's reader would never see EOF.
+                    false,
                 )
             }.onFailure { AppLogger.w(TAG, "drain failed: ${it.message}") }
         }.apply { isDaemon = true; start() }
