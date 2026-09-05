@@ -194,14 +194,29 @@ class TranscriptionRunner(
         )
     }
 
-    /** Folds one run's observed speed into this phone's stored factor for [modelId]. */
+    /** Folds one run's observed cost into this phone's stored figures for [modelId]. */
     private fun recordSpeed(modelId: String, audioMs: Long, elapsedMs: Long) {
-        val measured = TranscriptionEstimate.measure(audioMs, elapsedMs) ?: return
+        // The two halves of a run, learned separately because they scale differently: setup costs
+        // the same whatever the call's length, and only the rest is per-second work. A run that
+        // never reported its setup leaves this at zero, which charges the whole run as work — the
+        // old behaviour, and pessimistic rather than wrong.
+        val setupMs = TranscriptionEngine.lastSetupMs.coerceIn(0L, elapsedMs)
+        val workMs = elapsedMs - setupMs
+
+        val measured = TranscriptionEstimate.measure(audioMs, workMs) ?: return
         val prefs = AppPreferences(context)
         // Speeds measured under a different thread policy describe a machine that no longer exists.
         // Discarded here rather than averaged away, which would quote a wrong estimate on each of
         // the next several runs while it converged.
-        prefs.setRtfCalibrationThreads(TranscriptionEngine.preferredThreadCount())
+        //
+        // The count the run ACTUALLY used, not a fresh reading: preferredThreadCount() derives from
+        // online cores, which a phone varies with thermal state, so asking again here could report a
+        // policy no run ever used and wipe every stored figure on the strength of it.
+        prefs.setRtfCalibrationThreads(
+            TranscriptionEngine.lastThreadCount.takeIf { it > 0 }
+                ?: TranscriptionEngine.preferredThreadCount()
+        )
+        val model = TranscriptionModel.fromId(modelId)
         val blended = TranscriptionEstimate.blend(
             stored = prefs.getTranscriptionRtf(modelId),
             measured = measured,
@@ -209,11 +224,27 @@ class TranscriptionRunner(
             // `blend` its own rejected value as the safe default, so an impossible reading — a
             // half-second clip that paid a full model load, say — was stored as this phone's
             // permanent speed and quoted back as "about 3 hours" for a two-minute call (issue #26).
-            fallback = TranscriptionModel.fromId(modelId)?.realTimeFactor
-                ?: TranscriptionEstimate.DEFAULT_RTF,
+            fallback = model?.realTimeFactor ?: TranscriptionEstimate.DEFAULT_RTF,
         )
         prefs.setTranscriptionRtf(modelId, blended)
-        AppLogger.i(TAG, "Measured %.2fx real time for %s; stored %.2fx".format(measured, modelId, blended))
+
+        // Only learned when the engine actually reported it; a zero means "not timed", and storing
+        // that as a fixed cost of nothing would under-quote every short call from here on.
+        val blendedLoad = if (setupMs > 0L) {
+            TranscriptionEstimate.blendLoadMs(
+                stored = prefs.getTranscriptionLoadMs(modelId),
+                measured = setupMs,
+                fallback = model?.seedLoadMs ?: setupMs,
+            ).also { prefs.setTranscriptionLoadMs(modelId, it) }
+        } else {
+            prefs.getTranscriptionLoadMs(modelId)
+        }
+
+        AppLogger.i(
+            TAG,
+            "Measured %.2fx real time for %s (setup %d ms, work %d ms over %d ms of audio); stored %.2fx, load %s"
+                .format(measured, modelId, setupMs, workMs, audioMs, blended, blendedLoad?.toString() ?: "unmeasured")
+        )
     }
 
     /**

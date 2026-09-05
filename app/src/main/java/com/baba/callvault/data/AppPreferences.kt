@@ -16,6 +16,7 @@ import com.baba.callvault.integrations.scrcpy.ScrcpyAudioCodec
 import com.baba.callvault.integrations.scrcpy.ScrcpyAudioSource
 import com.baba.callvault.data.StorageTarget
 import com.baba.callvault.data.SyncScheduleMode
+import com.baba.callvault.transcription.TranscriptionEstimate
 import com.baba.callvault.transcription.TranscriptionLanguageChoice
 import com.baba.callvault.transcription.model.TranscriptionModel
 
@@ -57,6 +58,19 @@ class AppPreferences(context: Context) {
          * sweep in [setRtfCalibrationThreads] removes it along with them.
          */
         private const val RTF_CALIBRATION_KEY = "transcription_rtf_threads_v2"
+
+        /**
+         * Deliberately NOT the old "transcription_rtf_" prefix.
+         *
+         * What is stored under it changed meaning: it is now work time over *billable* audio, with
+         * the model load charged separately, where it used to be whole-run time over raw audio
+         * length. Reading an old value as a new one would be wrong — and on the phones that hit
+         * issue #26 the old value is an absurd number that would take a dozen runs to average away.
+         * A new prefix retires those quietly, and the first run after updating measures afresh.
+         */
+        private const val RATE_PREFIX = "transcription_rate_v2_"
+        private const val LOAD_PREFIX = "transcription_load_v2_"
+        private const val LEGACY_RATE_PREFIX = "transcription_rtf_"
     }
 
     /**
@@ -687,11 +701,43 @@ class AppPreferences(context: Context) {
      * float would round a figure used to multiply hour-long recordings.
      */
     fun getTranscriptionRtf(modelId: String): Double? =
-        prefs.getString("transcription_rtf_" + modelId, null)?.toDoubleOrNull()
+        prefs.getString(RATE_PREFIX + modelId, null)?.toDoubleOrNull()
 
     /** Records this phone's measured real-time factor for [modelId]. */
     fun setTranscriptionRtf(modelId: String, rtf: Double) =
-        prefs.edit { putString("transcription_rtf_" + modelId, rtf.toString()) }
+        prefs.edit { putString(RATE_PREFIX + modelId, rtf.toString()) }
+
+    /**
+     * This phone's measured fixed cost per run for [modelId], or null before it has ever run.
+     *
+     * Separate from the rate because it behaves differently: loading an 874 MB model costs the same
+     * whether the call is ten seconds or ten minutes. Folding it into the rate is what made short
+     * clips measure as an impossibly slow phone in issue #26.
+     */
+    fun getTranscriptionLoadMs(modelId: String): Long? =
+        prefs.getString(LOAD_PREFIX + modelId, null)?.toLongOrNull()
+
+    /** Records this phone's measured fixed cost per run for [modelId]. */
+    fun setTranscriptionLoadMs(modelId: String, loadMs: Long) =
+        prefs.edit { putString(LOAD_PREFIX + modelId, loadMs.toString()) }
+
+    /** Whether this phone has ever timed a real run of [modelId], as opposed to inheriting a seed. */
+    fun hasMeasuredRun(modelId: String): Boolean = getTranscriptionRtf(modelId) != null
+
+    /**
+     * What a run of [model] costs on this phone: measured where it has been measured, seeded from
+     * the model's published figures where it has not.
+     *
+     * One accessor rather than two lookups at each call site. The confirmation dialog and the
+     * progress pill both need this, they must agree — a dialog promising two minutes over a bar
+     * pacing itself to five is worse than either alone — and the previous shape had each of them
+     * assembling it themselves from the same two preferences.
+     */
+    fun getRunCost(model: TranscriptionModel): TranscriptionEstimate.RunCost =
+        TranscriptionEstimate.RunCost(
+            loadMs = getTranscriptionLoadMs(model.id) ?: model.seedLoadMs,
+            rtf = getTranscriptionRtf(model.id) ?: model.realTimeFactor,
+        )
 
     /**
      * The thread policy the stored speeds were measured under.
@@ -708,7 +754,13 @@ class AppPreferences(context: Context) {
         if (getRtfCalibrationThreads() == threads) return
         prefs.edit {
             prefs.all.keys
-                .filter { it.startsWith("transcription_rtf_") && it != RTF_CALIBRATION_KEY }
+                .filter { key ->
+                    // LEGACY_RATE_PREFIX is swept too. Values under it were measured against raw
+                    // audio length including the model load, which is a different quantity from what
+                    // is stored now, so they must never be read back as if they meant the same thing.
+                    (key.startsWith(RATE_PREFIX) || key.startsWith(LOAD_PREFIX) ||
+                        key.startsWith(LEGACY_RATE_PREFIX)) && key != RTF_CALIBRATION_KEY
+                }
                 .forEach { remove(it) }
             putInt(RTF_CALIBRATION_KEY, threads)
         }

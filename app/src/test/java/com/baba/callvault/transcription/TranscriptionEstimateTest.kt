@@ -57,18 +57,74 @@ class TranscriptionEstimateTest {
     @Test
     fun measuring_needs_a_real_length_to_divide_by() {
         // Guards against dividing by zero when the container declares no duration.
-        assertEquals(null, TranscriptionEstimate.measure(audioMs = 0L, elapsedMs = 5_000L))
-        assertEquals(null, TranscriptionEstimate.measure(audioMs = -1L, elapsedMs = 5_000L))
+        assertEquals(null, TranscriptionEstimate.measure(audioMs = 0L, workMs = 5_000L))
+        assertEquals(null, TranscriptionEstimate.measure(audioMs = -1L, workMs = 5_000L))
     }
 
     @Test
     fun measuring_divides_the_time_taken_by_the_length_of_the_audio() {
-        assertEquals(3.0, TranscriptionEstimate.measure(audioMs = 60_000L, elapsedMs = 180_000L)!!, 0.001)
+        assertEquals(3.0, TranscriptionEstimate.measure(audioMs = 60_000L, workMs = 180_000L)!!, 0.001)
     }
 
     @Test
-    fun the_estimate_is_the_length_of_the_call_times_the_factor() {
-        assertEquals(180_000L, TranscriptionEstimate.estimateMs(audioMs = 60_000L, rtf = 3.0))
+    fun the_estimate_is_a_fixed_cost_plus_a_rate_per_second_of_audio() {
+        // Was audio x factor alone. A run pays for loading an 874 MB model before it looks at any
+        // audio, and that cost does not shrink with a shorter call — modelling it as pure rate is
+        // what made short clips quote nonsense in issue #26.
+        val cost = TranscriptionEstimate.RunCost(loadMs = 5_000L, rtf = 3.0)
+        assertEquals(185_000L, TranscriptionEstimate.estimateMs(audioMs = 60_000L, cost = cost))
+    }
+
+    @Test
+    fun a_clip_shorter_than_whispers_window_is_billed_for_the_whole_window() {
+        // whisper pads anything shorter than 30 seconds up to 30 seconds and does the same work on
+        // it. A five-second voicemail therefore costs what half a minute costs, and promising
+        // otherwise is how the estimate came out far below the truth for short calls.
+        val cost = TranscriptionEstimate.RunCost(loadMs = 0L, rtf = 1.0)
+        assertEquals(30_000L, TranscriptionEstimate.estimateMs(audioMs = 5_000L, cost = cost))
+        assertEquals(30_000L, TranscriptionEstimate.estimateMs(audioMs = 29_000L, cost = cost))
+        // Past the window it goes back to scaling with the audio.
+        assertEquals(60_000L, TranscriptionEstimate.estimateMs(audioMs = 60_000L, cost = cost))
+    }
+
+    @Test
+    fun a_short_clip_measures_the_same_speed_as_a_long_one() {
+        // The heart of issue #26. The same phone, the same model, the same true speed — measured
+        // from a 5-second clip and from a 5-minute one. Dividing by raw audio length made the short
+        // clip look 6x slower and that number became the phone's permanent opinion.
+        val fromShortClip = TranscriptionEstimate.measure(audioMs = 5_000L, workMs = 30_000L)!!
+        val fromLongCall = TranscriptionEstimate.measure(audioMs = 300_000L, workMs = 300_000L)!!
+
+        assertEquals(1.0, fromShortClip, 0.001)
+        assertEquals(1.0, fromLongCall, 0.001)
+    }
+
+    @Test
+    fun the_fixed_cost_is_learned_the_same_cautious_way_as_the_rate() {
+        // Nothing measured yet: the published seed stands.
+        assertEquals(4_000L, TranscriptionEstimate.blendLoadMs(stored = null, measured = null, fallback = 4_000L))
+        // A first real measurement beats a figure from someone else's hardware outright.
+        assertEquals(9_000L, TranscriptionEstimate.blendLoadMs(stored = null, measured = 9_000L, fallback = 4_000L))
+        // Later ones move it without one slow run taking over.
+        val next = TranscriptionEstimate.blendLoadMs(stored = 4_000L, measured = 9_000L, fallback = 4_000L)
+        assertTrue("must move toward the new measurement", next > 4_000L)
+        assertTrue("must not jump all the way to it", next < 9_000L)
+    }
+
+    @Test
+    fun an_impossible_fixed_cost_is_refused() {
+        // A load timed at zero, or at four minutes, is a broken measurement rather than a fast or
+        // slow phone. Storing either would poison the estimate exactly as the rate once was.
+        assertEquals(4_000L, TranscriptionEstimate.blendLoadMs(stored = 4_000L, measured = 0L, fallback = 4_000L))
+        assertEquals(4_000L, TranscriptionEstimate.blendLoadMs(stored = 4_000L, measured = 600_000L, fallback = 4_000L))
+    }
+
+    @Test
+    fun a_run_whose_setup_was_not_timed_still_yields_a_usable_rate() {
+        // Setup time is reported by the engine. A path that never set it reports zero, and treating
+        // that as "the load was instant" would inflate the rate for every future estimate — so the
+        // work time simply is the whole run, which is what the old code assumed anyway.
+        assertEquals(2.0, TranscriptionEstimate.measure(audioMs = 60_000L, workMs = 120_000L)!!, 0.001)
     }
 
     @Test

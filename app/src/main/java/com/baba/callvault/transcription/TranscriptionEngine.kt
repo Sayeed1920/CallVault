@@ -10,6 +10,7 @@ package com.baba.callvault.transcription
 
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import com.baba.callvault.utils.AppLogger
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -38,6 +39,30 @@ object TranscriptionEngine {
      */
     @Volatile
     var isRunning: Boolean = false
+        private set
+
+    /**
+     * What the last run spent getting ready before it looked at any audio: loading the model, and
+     * unpacking the VAD model on the first run of the app's life.
+     *
+     * Reported rather than inferred, because it is the one part of a run whose cost does not scale
+     * with the length of the call — and folding it into the per-second rate is what made a
+     * ten-second clip measure as an impossibly slow phone (issue #26). Zero when the last run never
+     * reached setup, which callers must read as "unknown" rather than as "instant".
+     */
+    @Volatile
+    var lastSetupMs: Long = 0L
+        private set
+
+    /**
+     * The thread count the last run actually used.
+     *
+     * Recorded because `preferredThreadCount()` reads *online* cores, which a phone varies with
+     * thermal state — so asking again after the run can report a policy no run ever used, and
+     * discard every stored speed on the strength of it.
+     */
+    @Volatile
+    var lastThreadCount: Int = 0
         private set
 
 
@@ -226,15 +251,27 @@ object TranscriptionEngine {
             AppLogger.i(TAG, "Transcribing ${durationMs / 1000}s in ${plan.size} passes of up to ${ChunkPlan.TARGET_CHUNK_MS / 1000}s")
         }
 
+        // Setup starts here: everything from this point to the first chunk is a cost the run pays
+        // once, whatever the length of the call.
+        lastSetupMs = 0L
+        val setupStartedAt = SystemClock.elapsedRealtime()
         val ptr = WhisperNative.initContext(modelPath, context.applicationInfo.nativeLibraryDir)
         if (ptr == 0L) error("Could not load whisper model at $modelPath")
         try {
             val threads = preferredThreadCount()
+            lastThreadCount = threads
             // Extracted here rather than at startup: it costs a file copy once in the app's
             // lifetime, and this is the only place that needs it. Null when it could not be
             // unpacked, which decodes exactly as the app did before VAD existed.
             val vadModelPath = if (settings.useVad) VadModel.ensureExtracted(context) else null
-            AppLogger.i(TAG, "Transcribing with $threads threads, lang=${language ?: "auto"}, $settings")
+            // Setup ends here — the next thing this does is decode audio. Captured before the loop
+            // so a run aborted part-way still leaves an honest figure behind.
+            lastSetupMs = SystemClock.elapsedRealtime() - setupStartedAt
+            AppLogger.i(
+                TAG,
+                "Transcribing with $threads threads, lang=${language ?: "auto"}, $settings " +
+                    "(setup took ${lastSetupMs} ms)",
+            )
 
             val all = mutableListOf<TranscriptSegment>()
             plan.forEachIndexed { index, chunk ->

@@ -70,8 +70,7 @@ fun rememberSmoothedPercent(
                 val prefs = AppPreferences(context)
                 val model = TranscriptionModel.fromId(prefs.getTranscriptionModelId())
                     ?: TranscriptionModel.DEFAULT
-                val rtf = prefs.getTranscriptionRtf(model.id) ?: model.realTimeFactor
-                TranscriptionEstimate.estimateMs(audioMs, rtf)
+                TranscriptionEstimate.estimateMs(audioMs, prefs.getRunCost(model))
             }
         }
     }

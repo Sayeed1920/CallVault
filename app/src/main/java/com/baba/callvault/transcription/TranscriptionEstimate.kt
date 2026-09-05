@@ -42,10 +42,51 @@ object TranscriptionEstimate {
      */
     const val DEFAULT_RTF = 2.0
 
-    /** Observed factor for a run, or null when the audio length was not known well enough to divide by. */
-    fun measure(audioMs: Long, elapsedMs: Long): Double? {
+    /**
+     * whisper pads anything shorter than this up to it and does a full window of work regardless.
+     *
+     * So a five-second voicemail costs what half a minute costs. Dividing by the raw audio length
+     * made that clip look six times slower than the phone really is, and — before the fallback hole
+     * was closed — that reading became the phone's permanent opinion of itself. It is the reason
+     * issue #26 saw hours quoted for calls of a few seconds.
+     */
+    const val WHISPER_WINDOW_MS = 30_000L
+
+    /** Loads outside this range are broken measurements, not fast or slow storage. */
+    private val BELIEVABLE_LOAD_MS = 200L..300_000L
+
+    /** What a run actually costs on this phone: a fixed cost, plus a rate per second of audio. */
+    data class RunCost(val loadMs: Long, val rtf: Double)
+
+    /** The audio a run is really charged for — never less than one whisper window. */
+    fun billableMs(audioMs: Long): Long = maxOf(audioMs, WHISPER_WINDOW_MS)
+
+    /**
+     * Observed factor for a run, or null when the audio length was not known well enough to divide by.
+     *
+     * [workMs] is the run WITHOUT its setup — the model load is charged separately, because it does
+     * not shrink when the call is shorter. A caller that cannot separate the two passes the whole
+     * elapsed time, which is what this measured before and is still safe, only pessimistic.
+     */
+    fun measure(audioMs: Long, workMs: Long): Double? {
         if (audioMs <= 0L) return null
-        return elapsedMs.toDouble() / audioMs.toDouble()
+        return workMs.toDouble() / billableMs(audioMs).toDouble()
+    }
+
+    /**
+     * The fixed cost to estimate with, given what is stored and what was just measured.
+     *
+     * Same shape and the same caution as [blend], because it fails the same way: one broken reading
+     * written straight to preferences is quoted back at the user for the next dozen runs.
+     */
+    fun blendLoadMs(stored: Long?, measured: Long?, fallback: Long): Long {
+        val believable = measured?.takeIf { it in BELIEVABLE_LOAD_MS }
+        val safeFallback = fallback.takeIf { it in BELIEVABLE_LOAD_MS } ?: BELIEVABLE_LOAD_MS.first
+        return when {
+            believable == null -> stored ?: safeFallback
+            stored == null -> believable
+            else -> (stored * (1 - SMOOTHING) + believable * SMOOTHING).toLong()
+        }
     }
 
     /**
@@ -72,6 +113,7 @@ object TranscriptionEstimate {
         }
     }
 
-    /** How long [audioMs] of audio will take at [rtf]. */
-    fun estimateMs(audioMs: Long, rtf: Double): Long = (audioMs * rtf).toLong()
+    /** How long a run over [audioMs] of audio will take, at this phone's measured [cost]. */
+    fun estimateMs(audioMs: Long, cost: RunCost): Long =
+        cost.loadMs + (billableMs(audioMs) * cost.rtf).toLong()
 }

@@ -339,7 +339,7 @@ fun HomeScreen(
                     val audioMs = uri?.let { AudioDecoder.durationMs(context, it) } ?: 0L
                     if (audioMs <= 0L) null else TranscriptionEstimate.estimateMs(
                         audioMs = audioMs,
-                        rtf = prefs.getTranscriptionRtf(model.id) ?: model.realTimeFactor
+                        cost = prefs.getRunCost(model),
                     )
                 }
                 confirmTranscribe = Triple(displayName, estimate, language)

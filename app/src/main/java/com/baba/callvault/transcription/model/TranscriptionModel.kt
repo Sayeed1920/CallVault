@@ -164,5 +164,25 @@ enum class TranscriptionModel(
         val DEFAULT = LARGE_V3_TURBO_Q8_0
 
         fun fromId(id: String?): TranscriptionModel? = entries.firstOrNull { it.id == id }
+
+        /**
+         * 📐 CALCULATED, not measured: a conservative sequential read rate for phone flash storage,
+         * used only to seed [seedLoadMs] before a device has timed a real run.
+         *
+         * Deliberately pessimistic. Over-promising is the failure that gets reported — a dialog that
+         * says thirty seconds and takes two minutes reads as a hang — while a first estimate that is
+         * slightly long is replaced by a measured one as soon as the run finishes.
+         */
+        private const val SEED_LOAD_BYTES_PER_MS = 200_000L
     }
+
+    /**
+     * Opening guess at what loading this model costs, before the phone has timed it once.
+     *
+     * Derived from [sizeBytes] rather than written down per tier, because it is dominated by reading
+     * the file off flash: an 874 MB model cannot load as fast as a 190 MB one on the same phone, and
+     * a table of hand-entered numbers would drift the moment a tier is added. Replaced by
+     * `AppPreferences.getTranscriptionLoadMs` after the first real run.
+     */
+    val seedLoadMs: Long get() = sizeBytes / SEED_LOAD_BYTES_PER_MS
 }
