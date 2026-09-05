@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">Chép lời %1$s sẽ khiến máy bận và hao pin rõ rệt. Bạn có thể dừng bất cứ lúc nào.\n\nCâu hỏi này có thể bật lại trong mục Chép lời ở Cài đặt.</string>
     <string name="transcribe_confirm_title">Việc này mất khoảng %1$s</string>
     <string name="transcribe_confirm_title_unknown">Chép lời cuộc gọi này?</string>
+    <string name="transcribe_confirm_title_first_run">Lần đầu tiên có thể mất một lúc</string>
     <string name="transcribe_estimate_hours">%1$d giờ %2$d phút</string>
     <string name="transcribe_estimate_minutes">%1$d phút</string>
     <string name="transcribe_estimate_under_minute">một phút</string>

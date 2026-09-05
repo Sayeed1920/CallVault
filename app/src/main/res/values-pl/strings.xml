@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">Transkrypcja %1$s zajmuje telefon i zauważalnie zużywa baterię. Możesz przerwać w dowolnej chwili.\n\nTo pytanie można włączyć ponownie w sekcji Transkrypcja w Ustawieniach.</string>
     <string name="transcribe_confirm_title">Zajmie to około %1$s</string>
     <string name="transcribe_confirm_title_unknown">Przepisać tę rozmowę?</string>
+    <string name="transcribe_confirm_title_first_run">Pierwsze przetwarzanie może chwilę potrwać</string>
     <string name="transcribe_estimate_hours">%1$d godz. %2$d min</string>
     <string name="transcribe_estimate_minutes">%1$d min</string>
     <string name="transcribe_estimate_under_minute">minutę</string>

@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">Расшифровка %1$s займёт телефон и заметно потратит заряд. Остановить можно в любой момент.\n\nЭтот вопрос можно вернуть в разделе «Расшифровка» в настройках.</string>
     <string name="transcribe_confirm_title">Это займёт около %1$s</string>
     <string name="transcribe_confirm_title_unknown">Расшифровать этот звонок?</string>
+    <string name="transcribe_confirm_title_first_run">Первая расшифровка может занять некоторое время</string>
     <string name="transcribe_estimate_hours">%1$d ч %2$d мин</string>
     <string name="transcribe_estimate_minutes">%1$d мин</string>
     <string name="transcribe_estimate_under_minute">минуту</string>

@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">Transcribir %1$s mantiene el teléfono ocupado y gasta bastante batería. Puedes detenerlo cuando quieras.\n\nEsta pregunta se puede volver a activar en Transcripción, dentro de Ajustes.</string>
     <string name="transcribe_confirm_title">Esto tardará unos %1$s</string>
     <string name="transcribe_confirm_title_unknown">¿Transcribir esta llamada?</string>
+    <string name="transcribe_confirm_title_first_run">La primera vez puede tardar un rato</string>
     <string name="transcribe_estimate_hours">%1$d h %2$d min</string>
     <string name="transcribe_estimate_minutes">%1$d min</string>
     <string name="transcribe_estimate_under_minute">un minuto</string>

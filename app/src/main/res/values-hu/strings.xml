@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">A(z) %1$s átírása leköti a telefont, és érezhetően fogyasztja az akkumulátort. Bármikor leállíthatja.\n\nEz a kérdés a Beállítások Átírás részében kapcsolható vissza.</string>
     <string name="transcribe_confirm_title">Ez körülbelül %1$s lesz</string>
     <string name="transcribe_confirm_title_unknown">Átírja ezt a hívást?</string>
+    <string name="transcribe_confirm_title_first_run">Az első eltarthat egy ideig</string>
     <string name="transcribe_estimate_hours">%1$d ó %2$d p</string>
     <string name="transcribe_estimate_minutes">%1$d p</string>
     <string name="transcribe_estimate_under_minute">egy perc</string>

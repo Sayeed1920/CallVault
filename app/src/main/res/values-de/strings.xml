@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">Das Transkribieren von %1$s hält Ihr Telefon beschäftigt und verbraucht spürbar Akku. Sie können es jederzeit anhalten.\n\nDiese Frage lässt sich unter Transkription in den Einstellungen wieder aktivieren.</string>
     <string name="transcribe_confirm_title">Das dauert etwa %1$s</string>
     <string name="transcribe_confirm_title_unknown">Diesen Anruf transkribieren?</string>
+    <string name="transcribe_confirm_title_first_run">Der erste Durchlauf kann etwas dauern</string>
     <string name="transcribe_estimate_hours">%1$d Std. %2$d Min.</string>
     <string name="transcribe_estimate_minutes">%1$d Min.</string>
     <string name="transcribe_estimate_under_minute">eine Minute</string>

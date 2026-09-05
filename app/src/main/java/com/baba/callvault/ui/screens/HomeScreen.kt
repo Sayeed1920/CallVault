@@ -1035,9 +1035,20 @@ fun HomeScreen(
     }
 
     confirmTranscribe?.let { (displayName, estimateMs, language) ->
+        // Before this phone has timed a single run, the number comes from figures published for
+        // other hardware — right to within a factor of two or three, which is not a promise worth
+        // making to someone watching a progress bar. Say so plainly instead; every run after the
+        // first quotes a measured figure.
+        val isFirstRun = remember(displayName) {
+            val prefs = AppPreferences(context)
+            val model = TranscriptionModel.fromId(prefs.getTranscriptionModelId())
+                ?: TranscriptionModel.DEFAULT
+            !prefs.hasMeasuredRun(model.id)
+        }
         TranscribeConfirmDialog(
             title = RecordingLabel.forDisplayName(uiState.recordings, displayName),
             estimate = estimateMs?.let { formatEstimate(it) },
+            isFirstRun = isFirstRun,
             onDismiss = { confirmTranscribe = null },
             onConfirm = { dontAskAgain ->
                 if (dontAskAgain) AppPreferences(context).setTranscriptionConfirmBeforeRun(false)

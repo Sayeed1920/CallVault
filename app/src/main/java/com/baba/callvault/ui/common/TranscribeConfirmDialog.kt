@@ -59,12 +59,17 @@ fun formatEstimate(ms: Long): String = when {
  *
  * @param estimate human-readable duration, already formatted; null when the recording's length could
  *   not be read, in which case the dialog asks without promising a number it does not have.
+ * @param isFirstRun true until this phone has timed a run of the chosen model. The estimate then
+ *   rests on figures published for other hardware, which are right to within a factor of two or
+ *   three — so the dialog says the run may take a while rather than naming a number it cannot yet
+ *   stand behind. Issue #26's reporter asked for exactly this, having been quoted hours.
  * @param onConfirm receives whether the user asked not to be shown this again.
  */
 @Composable
 fun TranscribeConfirmDialog(
     title: String,
     estimate: String?,
+    isFirstRun: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (dontAskAgain: Boolean) -> Unit
 ) {
@@ -75,8 +80,11 @@ fun TranscribeConfirmDialog(
         icon = { Icon(imageVector = Icons.Filled.Schedule, contentDescription = null) },
         title = {
             Text(
-                text = estimate?.let { stringResource(R.string.transcribe_confirm_title, it) }
-                    ?: stringResource(R.string.transcribe_confirm_title_unknown)
+                text = when {
+                    isFirstRun -> stringResource(R.string.transcribe_confirm_title_first_run)
+                    estimate != null -> stringResource(R.string.transcribe_confirm_title, estimate)
+                    else -> stringResource(R.string.transcribe_confirm_title_unknown)
+                }
             )
         },
         text = {

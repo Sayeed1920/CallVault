@@ -386,6 +386,7 @@
     <string name="transcribe_confirm_message">Transcrever %1$s mantém o telefone ocupado e consome bateria de forma perceptível. Você pode parar quando quiser.\n\nEsta pergunta pode ser reativada em Transcrição, nas Configurações.</string>
     <string name="transcribe_confirm_title">Isso vai levar cerca de %1$s</string>
     <string name="transcribe_confirm_title_unknown">Transcrever esta chamada?</string>
+    <string name="transcribe_confirm_title_first_run">A primeira vez pode demorar um pouco</string>
     <string name="transcribe_estimate_hours">%1$d h %2$d min</string>
     <string name="transcribe_estimate_minutes">%1$d min</string>
     <string name="transcribe_estimate_under_minute">um minuto</string>

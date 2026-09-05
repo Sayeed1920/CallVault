@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">Trascrivere %1$s tiene occupato il telefono e consuma batteria in modo evidente. Puoi interrompere in qualsiasi momento.\n\nQuesta domanda si può riattivare in Trascrizione, nelle Impostazioni.</string>
     <string name="transcribe_confirm_title">Ci vorranno circa %1$s</string>
     <string name="transcribe_confirm_title_unknown">Trascrivere questa chiamata?</string>
+    <string name="transcribe_confirm_title_first_run">La prima volta può richiedere un po\' di tempo</string>
     <string name="transcribe_estimate_hours">%1$d h %2$d min</string>
     <string name="transcribe_estimate_minutes">%1$d min</string>
     <string name="transcribe_estimate_under_minute">un minuto</string>
