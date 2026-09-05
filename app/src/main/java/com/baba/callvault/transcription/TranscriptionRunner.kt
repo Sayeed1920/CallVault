@@ -10,6 +10,7 @@ package com.baba.callvault.transcription
 
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import androidx.core.net.toUri
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.data.recordings.RecordingCatalog
@@ -145,7 +146,11 @@ class TranscriptionRunner(
 
         mark(displayName, TranscriptState.RUNNING, modelId, language)
 
-        val startedAt = System.currentTimeMillis()
+        // Monotonic, like every other duration in this app. The wall clock can be corrected by NTP
+        // or changed by the user mid-run, and this number is not merely displayed — it is divided by
+        // the audio length and stored as this phone's permanent speed, so a clock jump would be
+        // learned as a property of the hardware and quoted back for the next dozen runs.
+        val startedAt = SystemClock.elapsedRealtime()
         // Named before the words are decoded, so a brand or a contact is spelled rather than
         // guessed at. Best-effort: no glossary and no resolvable name simply means no prompt.
         val prompt = runCatching { promptFor(displayName) }.getOrNull()
@@ -176,7 +181,7 @@ class TranscriptionRunner(
                 mark(displayName, TranscriptState.DONE, modelId, language)
                 // What it really cost on this phone, so the next estimate is measured rather than
                 // inherited from whatever hardware the published figure came from.
-                recordSpeed(modelId, audioMs, System.currentTimeMillis() - startedAt)
+                recordSpeed(modelId, audioMs, SystemClock.elapsedRealtime() - startedAt)
                 // Count, never content: a transcript is the substance of a private call.
                 AppLogger.i(TAG, "Transcribed $displayName (${segments.size} segment(s))")
                 true
