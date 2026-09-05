@@ -788,3 +788,58 @@ process and the next place to look is the daemon's own `AudioRecord`, not the ap
 `WRITE_SECURE_SETTINGS: false` on this device, with USB debugging on and Wireless debugging off.
 Not implicated in this failure — the daemon was connected and recording — but it is the grant that
 install-over drops, and it is worth telling the tester to re-arm it.
+
+---
+
+# ✅ Why six rounds produced no answer — and the fix (2026-09-05)
+
+The tester reported that CallVault produced only the debug report and never the system report. **It
+was our bug, not his setup**, and it is the reason six iterations produced no usable evidence.
+
+## Reproduced on our own OP12
+
+His transport state, from report (30)'s header: `Wireless debugging: false`,
+`WRITE_SECURE_SETTINGS: false`. Ours differed in exactly one way — we re-grant that permission over
+the cable on every install, so **our test phone is systematically healthier than any real user's.**
+
+Setting the OP12 to his state (`pm revoke WRITE_SECURE_SETTINGS`, Wireless debugging off) and tapping
+Share reproduced it exactly: a long modal, then **one file**. Confirmed by the maintainer.
+
+## Cause
+
+The system report runs seven commands — `logcat -g`, `logcat -G`, `logcat -d`, `dumpsys audio`,
+`dumpsys appops`, `ps`, `logcat -G` to restore — each through the app's own ADB shell, each able to
+force a reconnect, all behind the share screen's 45-second budget (`SettingsScreen`,
+`SYSTEM_REPORT_BUDGET_MS`). When the budget runs out the app shares the debug report alone and
+**says nothing at all**.
+
+Two further facts made it worse on his device:
+
+- Turning Wireless debugging on is not enough on its own. Without `WRITE_SECURE_SETTINGS` the app
+  cannot manage the transport, and install-over silently drops that grant — which he had done
+  repeatedly, because we kept sending him builds.
+- The ROM floods logcat. Measured on the OP12: the 256 KiB ring sat at 252 KiB consumed, almost all
+  of it `OsenseCommonUtils` spam, so CallVault's own lines rotate out within seconds. Any diagnosis
+  resting on logcat history was doomed regardless.
+
+## Fix — collect over binder instead of over ADB
+
+The daemon already runs as the shell user and the app already talks to it over binder, so it can run
+these dumps itself: no Wireless debugging, no `WRITE_SECURE_SETTINGS`, no transport, no retries, no
+budget to run out. It works in Shizuku mode too, where the ADB path deliberately refuses.
+
+A **whitelist, not a command runner** (`DiagnosticDumps`): the app names a dump, the daemon decides
+what that name means, so nothing reaching the binder can choose what executes as shell. The only
+caller-supplied value on a command line is the logcat size on restore, refused unless it is a plain
+size. Absolute paths throughout, per the earlier CodeQL finding. ADB remains the fallback when no
+daemon is connected.
+
+**✅ VERIFIED 2026-09-05** by the maintainer on the OP12, still in the tester's broken state: two
+files, fast. The condition that produced one file twenty minutes earlier now produces both.
+
+## The lesson worth keeping
+
+We asked the tester to tell us what happened six times because we could not make it happen ourselves.
+Both bugs found today were reproducible on our own hardware once we tried: this one by matching his
+permission state, and the re-arm bug by exercising the rebuild path at all — it failed 100% of the
+time and never needed his phone. **Reproduce before shipping another build to a user.**
