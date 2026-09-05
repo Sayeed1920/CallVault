@@ -39,15 +39,44 @@ import com.baba.callvault.R
  * more useful than "15 minutes 47 seconds".
  */
 @Composable
-fun formatEstimate(ms: Long): String = when {
-    ms < 60_000L -> stringResource(R.string.transcribe_estimate_under_minute)
-    ms < 3_600_000L -> stringResource(R.string.transcribe_estimate_minutes, (ms / 60_000L).toInt())
-    else -> stringResource(
-        R.string.transcribe_estimate_hours,
-        (ms / 3_600_000L).toInt(),
-        ((ms % 3_600_000L) / 60_000L).toInt()
-    )
+fun formatEstimate(ms: Long): String {
+    val minutes = quotedMinutes(ms)
+    return when {
+        ms < 60_000L -> stringResource(R.string.transcribe_estimate_under_minute)
+        // Decided on the ROUNDED total, so 59 min 59 s reads as "1 h 0 min" rather than "60 minutes".
+        minutes < MINUTES_PER_HOUR -> stringResource(R.string.transcribe_estimate_minutes, minutes)
+        else -> stringResource(
+            R.string.transcribe_estimate_hours,
+            minutes / MINUTES_PER_HOUR,
+            minutes % MINUTES_PER_HOUR,
+        )
+    }
 }
+
+/**
+ * Whole minutes to quote for [ms], **rounded up**.
+ *
+ * Rounding up rather than truncating, for two reasons found together in issue #26.
+ *
+ * Truncating lost up to 59 seconds on every quote — a 6.9-minute run was announced as "6 minutes" —
+ * and that stacked on an estimate which already aims at the middle of its own spread. The dialog was
+ * therefore biased low twice, and low is the direction that hurts: a run overshooting the time it
+ * promised reads as a hang, which is the complaint this whole area exists to answer.
+ *
+ * It also hid the estimate learning. After a slow run moved the stored figure from 6.0 to 6.4
+ * minutes, truncation still printed "6", so the correction was invisible and looked like nothing had
+ * happened at all.
+ *
+ * The spare seconds this adds are not padding for its own sake — they roughly cover the run-to-run
+ * spread from a phone that has warmed up, which is what made a measured 6-minute estimate take 7.4.
+ */
+internal fun quotedMinutes(ms: Long): Int {
+    if (ms <= 0L) return 0
+    return ((ms + MS_PER_MINUTE - 1) / MS_PER_MINUTE).toInt()
+}
+
+private const val MS_PER_MINUTE = 60_000L
+private const val MINUTES_PER_HOUR = 60
 
 /**
  * Asks before starting a transcription, saying how long it is expected to take.
