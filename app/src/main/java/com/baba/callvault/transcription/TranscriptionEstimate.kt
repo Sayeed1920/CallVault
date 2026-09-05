@@ -33,6 +33,15 @@ object TranscriptionEstimate {
     /** Factors outside this range are measurement bugs, not fast or slow phones. */
     private val BELIEVABLE = 0.05..50.0
 
+    /**
+     * Used when neither the measurement nor the published figure can be believed.
+     *
+     * Roughly the middle of the tiers this app ships, so a wrong answer here is wrong by a factor of
+     * two rather than by an order of magnitude. It exists only so that [blend] can always return
+     * something sane; reaching it means a caller passed nonsense.
+     */
+    const val DEFAULT_RTF = 2.0
+
     /** Observed factor for a run, or null when the audio length was not known well enough to divide by. */
     fun measure(audioMs: Long, elapsedMs: Long): Double? {
         if (audioMs <= 0L) return null
@@ -48,8 +57,14 @@ object TranscriptionEstimate {
      */
     fun blend(stored: Double?, measured: Double?, fallback: Double): Double {
         val believable = measured?.takeIf { it in BELIEVABLE }
+        // The fallback is held to the same standard as the measurement, and that is not paranoia:
+        // the one real caller used to pass `measured` in as `fallback`, so a factor this function
+        // had just rejected came straight back through the `stored ?: fallback` branch below and was
+        // written to preferences. That is issue #26's "about 3 hours" for a two-minute call. The
+        // call site is fixed; this makes the same mistake impossible to repeat.
+        val safeFallback = fallback.takeIf { it in BELIEVABLE } ?: DEFAULT_RTF
         return when {
-            believable == null -> stored ?: fallback
+            believable == null -> stored ?: safeFallback
             // The published figure came from different hardware; the first real measurement here beats
             // it outright rather than being averaged with it.
             stored == null -> believable

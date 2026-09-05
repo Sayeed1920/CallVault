@@ -19,6 +19,7 @@ import com.baba.callvault.data.transcripts.db.TranscriptDatabase
 import com.baba.callvault.data.transcripts.db.TranscriptEntry
 import com.baba.callvault.data.transcripts.db.TranscriptSegmentEntry
 import com.baba.callvault.data.transcripts.db.TranscriptState
+import com.baba.callvault.transcription.model.TranscriptionModel
 import com.baba.callvault.utils.AppLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
@@ -199,7 +200,12 @@ class TranscriptionRunner(
         val blended = TranscriptionEstimate.blend(
             stored = prefs.getTranscriptionRtf(modelId),
             measured = measured,
-            fallback = measured
+            // The MODEL'S published figure, never `measured`. Passing the measurement here handed
+            // `blend` its own rejected value as the safe default, so an impossible reading — a
+            // half-second clip that paid a full model load, say — was stored as this phone's
+            // permanent speed and quoted back as "about 3 hours" for a two-minute call (issue #26).
+            fallback = TranscriptionModel.fromId(modelId)?.realTimeFactor
+                ?: TranscriptionEstimate.DEFAULT_RTF,
         )
         prefs.setTranscriptionRtf(modelId, blended)
         AppLogger.i(TAG, "Measured %.2fx real time for %s; stored %.2fx".format(measured, modelId, blended))

@@ -70,4 +70,31 @@ class TranscriptionEstimateTest {
     fun the_estimate_is_the_length_of_the_call_times_the_factor() {
         assertEquals(180_000L, TranscriptionEstimate.estimateMs(audioMs = 60_000L, rtf = 3.0))
     }
+
+    @Test
+    fun an_unbelievable_fallback_is_refused_like_an_unbelievable_measurement() {
+        // Defence in depth for issue #26. The clamp above only ever guarded `measured`, and the one
+        // caller passed the measurement in as the fallback too — so a factor the clamp had just
+        // rejected walked back in through `stored ?: fallback` and was written to preferences. A
+        // stored 5000 quotes a two-minute call at about four days.
+        //
+        // The call site is fixed, but the fallback is now checked as well, so the same mistake
+        // cannot be made again by a future caller.
+        assertEquals(
+            TranscriptionEstimate.DEFAULT_RTF,
+            TranscriptionEstimate.blend(stored = null, measured = 5000.0, fallback = 5000.0),
+            0.001,
+        )
+    }
+
+    @Test
+    fun an_impossible_first_measurement_leaves_the_published_figure_in_place() {
+        // The same situation with the call site behaving: nothing stored, an absurd measurement, and
+        // a sane published figure. The published figure must survive.
+        assertEquals(
+            published,
+            TranscriptionEstimate.blend(stored = null, measured = 5000.0, fallback = published),
+            0.001,
+        )
+    }
 }
