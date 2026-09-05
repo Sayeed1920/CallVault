@@ -45,7 +45,7 @@ localises the crackling defect to one file. Worth saying so when we reply.
 
 | # | Title | Root cause | Verified? | Severity | State on HEAD |
 |---|---|---|---|---|---|
-| 28 | Crackling in audio | Default carrier path **silently drops a 21 ms PCM chunk** whenever the encoder is busy, splicing the waveform | ✅ **PROVEN by A/B on our own hardware** | **Critical** — corrupts the core artefact | 🧪 **28a FIXED** (`1499a33`); 28c/28d/28e done |
+| 28 | Crackling in audio | Default carrier path **silently drops a 21 ms PCM chunk** whenever the encoder is busy, splicing the waveform | ✅ **PROVEN by A/B on our own hardware** | **Critical** — corrupts the core artefact | 🧪 **ALL PARTS DONE** — 28a `1499a33`, 28b `1f54eda`+`f8445df`, 28c `fe78b95`, 28d/28e done, 28g `39136e2`, plus the Shizuku audit `1970c33`. Awaiting a real call. |
 | 26 | Transcription estimates wildly off | Believability clamp is defeated by `fallback = measured`; one absurd sample is stored permanently | ✅ in code | High — visible nonsense | ✅ **DONE — VERIFIED on device 2026-09-05** |
 | 25 | Wrong timestamps on long pauses | whisper.cpp's VAD maps **any** pause onto a hardcoded 100 ms bridge; post-pause starts interpolate into the silence | ✅ in code | Medium | Still present |
 | 27 | Rotation closes entry + scrolls to top | Activity is recreated; `playbackFor` is `remember`, not `rememberSaveable` | ✅ in code | Medium — daily annoyance | ✅ **VERIFIED on device 2026-09-05** (`fix/rotation-state-issue-27`); one follow-up fix 🧪 |
@@ -53,6 +53,12 @@ localises the crackling defect to one file. Worth saying so when we reply.
 **The single most important line in this document:** issue #28 is a real audio-corruption bug in
 the default recording path, it is trivially fixable, and the fix is a copy-paste from a file we
 already fixed months ago.
+
+**Update, 2026-09-05 evening — that line was half right, and the half it missed is the point.** The
+copy-paste fixed the encoder drop (28a). It did not fix the *other* way the same splice signature is
+produced: the ring overrunning while the single capture thread was busy (28b). Both are now closed, and
+the recording carries a counter that says which of the two, if either, is happening on the reporter's
+phone. **Do not read 28a's fix as "the crackling is fixed" until a report from his device says so.**
 
 ---
 
