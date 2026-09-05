@@ -38,6 +38,23 @@ All notable changes to CallVault are documented here. The format is based on
   catalogue once, so a recording could sit there looking device-only for as long as the app stayed
   open.
 
+- **Turning the phone no longer throws away what you were doing.** Rotating closed the recording you
+  had open and dropped you back at the top of the list — reported by someone who rotates deliberately,
+  to read a longer transcript and get a wider waveform. The same thing quietly cleared a multi-selection
+  part-way through choosing, closed the transcript sheet and its search, and dismissed whichever dialog
+  was open, including the bulk-delete one after you had picked which copies to remove. All of it now
+  survives the turn, and a recording that was playing keeps playing on the screen it belongs to.
+
+- **The app lock no longer asks again every time you rotate.** Turning the phone counted as leaving the
+  app, so it demanded a fingerprint each time — while a phone that flips between angles in your hand
+  could ask several times over. It now tells a rotation apart from actually leaving: backgrounding the
+  app, or closing it from recents, still locks it exactly as before.
+
+- **The unlock screen no longer flashes on every open.** A card reading "locked", with an Unlock button,
+  was drawn for a moment before the fingerprint prompt appeared and again as it disappeared. That card
+  exists only so a prompt dismissed by accident does not leave force-stopping the app as the only way
+  back in, and it now appears only in that case.
+
 ## [2.2.1] — unreleased
 
 A maintenance release built entirely from what people reported after 2.2.0 went out. Nothing here is

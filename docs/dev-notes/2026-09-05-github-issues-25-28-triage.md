@@ -22,7 +22,7 @@ localises the crackling defect to one file. Worth saying so when we reply.
 | 28 | Crackling in audio | Default carrier path **silently drops a 21 ms PCM chunk** whenever the encoder is busy; the fix already exists in the sibling encoder and was never back-ported | ✅ in code | **Critical** — corrupts the core artefact | Still present |
 | 26 | Transcription estimates wildly off | Believability clamp is defeated by `fallback = measured`; one absurd sample is stored permanently | ✅ in code | High — visible nonsense | Still present |
 | 25 | Wrong timestamps on long pauses | whisper.cpp's VAD maps **any** pause onto a hardcoded 100 ms bridge; post-pause starts interpolate into the silence | ✅ in code | Medium | Still present |
-| 27 | Rotation closes entry + scrolls to top | Activity is recreated; `playbackFor` is `remember`, not `rememberSaveable` | ✅ in code | Medium — daily annoyance | 🧪 **FIXED on `fix/rotation-state-issue-27`** — awaiting on-device confirmation |
+| 27 | Rotation closes entry + scrolls to top | Activity is recreated; `playbackFor` is `remember`, not `rememberSaveable` | ✅ in code | Medium — daily annoyance | ✅ **VERIFIED on device 2026-09-05** (`fix/rotation-state-issue-27`); one follow-up fix 🧪 |
 
 **The single most important line in this document:** issue #28 is a real audio-corruption bug in
 the default recording path, it is trivially fixable, and the fix is a copy-paste from a file we
@@ -450,25 +450,26 @@ submodule is pinned at `371b5a7` at both `v2.2.0` and HEAD. Worth checking befor
 
 ## Issue #27 — rotation closes expanded entry and scrolls to top
 
-> ### 🧪 VERIFYING — fixed 2026-09-05 on branch `fix/rotation-state-issue-27`
+> ### ✅ VERIFIED 2026-09-05 — fixed on branch `fix/rotation-state-issue-27`
 >
-> Three commits off `8e3059e`, one concern each so any can be reverted alone:
+> Confirmed by the maintainer on the OP12 (build `2.3.0-rot27`, versionCode 20316): the open
+> recording stays open, the list keeps its place, multi-selection survives, open dialogs survive,
+> the app lock does not re-prompt on rotation — **and both negative lock cases still lock**
+> (background-and-return, and kill-from-recents). Those two were the security-relevant checks.
 >
-> | commit | covers | change |
-> |---|---|---|
-> | `ab7a055` | 27a + 27c | `playbackFor` → `rememberSaveable` |
-> | `67aa104` | 27d | the rest of Home's screen state, + `ui/common/StateSavers.kt` and 12 unit tests |
-> | `a3341d1` | 27e | App Lock carried across recreation, guarded on `isChangingConfigurations` |
+> | commit | covers | change | state |
+> |---|---|---|---|
+> | `ab7a055` | 27a + 27c | `playbackFor` → `rememberSaveable` | ✅ VERIFIED |
+> | `67aa104` | 27d | the rest of Home's screen state, + `ui/common/StateSavers.kt` and 12 tests | ✅ VERIFIED |
+> | `a3341d1` | 27e | App Lock carried across recreation, guarded on `isChangingConfigurations` | ✅ VERIFIED |
+> | `cf31f5d` | 27g | the unlock card no longer flashes on open | 🧪 VERIFYING |
 >
-> 1144 unit tests pass (was 1132; the 12 new ones cover the encodings). Compiles clean.
+> 1151 unit tests pass (was 1132). Assembles clean.
 >
-> **What is NOT yet established:** none of this has been rotated on a real phone. Per the
-> project's own rule, that keeps it VERIFYING however green the suite is.
-> **To settle it**, on a build from this branch: open a recording and rotate (it should stay open,
-> audio uninterrupted); scroll well down the list, open a call, rotate, go back (should return to
-> where you were); start a multi-selection and rotate (should survive); with App Lock on, rotate
-> (should not re-prompt); then background the app and return (it **should** re-prompt) and kill it
-> from recents and reopen (it **should** re-prompt). The last two are the security-relevant checks.
+> **Still VERIFYING:** the flash fix (`cf31f5d`) was written after the device pass and has not been
+> installed. **To settle it:** open the app with App Lock on — no "locked / Unlock" card should
+> appear before or after the fingerprint prompt. Then dismiss the prompt by tapping outside it: the
+> card **must** appear, because it is the only way back in without force-stopping the app.
 
 **Why any state is lost:** `MainActivity` declares no `android:configChanges` and no
 `android:screenOrientation` (`AndroidManifest.xml:84-87`), so rotation fully destroys and recreates
@@ -532,6 +533,23 @@ data class, so where an item is needed it is re-resolved from the ViewModel's su
   prompt has destroyed nothing, whereas restoring one bound to a row the refreshed list no longer
   contains leaves a Delete button pointed at something invisible. Dismissing is the safe failure.
 - Dropdown menus (`expanded`, `open`) — closing on rotation is conventional.
+
+### 27g — NEW, found on the device: the unlock card flashed on every open
+
+Not in the report and not visible in any screenshot — the maintainer saw it while checking 27e.
+Opening the app with App Lock on flashed a card reading "CallVault / locked / Unlock" before the
+fingerprint prompt appeared, and again as it tore down.
+
+Cause is lifecycle order, not the lock logic: `onCreate` composes before `onStart` asks for the
+prompt, so the locked window drew its full card for a frame with nothing yet on top of it. Fixed in
+`cf31f5d` by making the window a function of state — `appLockUi(lockEnabled, isUnlocked,
+promptDismissed)` returning `APP` / `WAITING` / `DOOR` — so the card is raised by exactly one thing,
+a prompt returning unauthenticated, and the locked window otherwise draws only its background.
+
+The card is deliberately kept for that one case: a prompt dismissed by a tap outside it would
+otherwise leave force-stopping the app as the only way back in. The decision is a pure function with
+7 tests rather than lifecycle order, because a timing bug like this cannot be seen in a screenshot
+and would come back the moment someone reordered a lifecycle call.
 
 ### 27f — NEW FINDING: a merge in flight is killed by rotation
 
@@ -609,9 +627,11 @@ These matter more than any individual fix.
   reporter's attached recording confirms the mechanism statistically (p = 5.4 × 10⁻¹⁵ against the
   1024-frame chunk boundary, uniform against Opus's 960). A post-fix recording re-analysed the
   same way is a sufficient check; a Samsung A/B is now a nice-to-have, not a blocker.
-- **Confirm all of #27** on a build from `fix/rotation-state-issue-27` — the checklist is at the top
-  of the #27 section. The two App Lock negative cases (background-and-return, kill-from-recents)
-  matter most; everything else is convenience, that one is security.
+- ~~**Confirm all of #27**~~ — **done on device 2026-09-05**, including both App Lock negative cases.
+  Only the follow-up flash fix (`cf31f5d`, 27g) is still unconfirmed; see the top of the #27 section.
+- **Release notes for #27 are written** — `CHANGELOG.md` under 2.3.0 → Fixed, and the in-app note
+  (`whatsnew_230_body`) in all ten languages. The in-app note stays headline-led on merging, with
+  rotation as one closing sentence; the changelog carries the detail.
 - **Decide whether #27f** (a merge in flight dies on rotation) gets its own issue. Not fixed here.
 - **Falsify or confirm #26b's trigger** by logging `availableProcessors()` per run.
 - **Establish whether the screen-lock risk is real under Shizuku** before silencing that warning (#28e).
