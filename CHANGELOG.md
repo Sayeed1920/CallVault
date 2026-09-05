@@ -53,6 +53,10 @@ All notable changes to CallVault are documented here. The format is based on
   than quoting a figure measured on somebody else's hardware. Estimates already stored are discarded
   once, because they were measuring a different thing; the next run replaces them.
 
+  The quoted time is also rounded up rather than down. Truncating threw away up to 59 seconds on
+  every estimate, on top of an estimate that already aims at the middle — so it was biased short
+  twice over, and a run that overshoots what it promised reads as a hang.
+
 - **Turning the phone no longer throws away what you were doing.** Rotating closed the recording you
   had open and dropped you back at the top of the list — reported by someone who rotates deliberately,
   to read a longer transcript and get a wider waveform. The same thing quietly cleared a multi-selection

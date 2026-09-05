@@ -10,13 +10,12 @@
 > | issue | state when parked | what unblocks it |
 > |---|---|---|
 > | #27 | ✅ fixed, verified on device | nothing — ready to merge |
-> | #26 | 🧪 fixed, **waiting on real-world ETA numbers** | the maintainer transcribing a short clip and a long call on `2.3.0-est26` and reporting quoted vs actual |
+> | #26 | ✅ **DONE**, verified on device | nothing — ready to merge |
 > | #28 | diagnosed only, no code | a decision on the bounded-retry fix (see 28a) |
 > | #25 | diagnosed only, no code | a check of upstream whisper.cpp, then a session of its own |
 >
-> **The one open loop to remember:** #26's fix is unverified in the real world. The arithmetic is
-> checked and 1158 tests pass, but no run has been timed on a phone since the change. Until those
-> numbers come back it stays 🧪, however good the reasoning looks.
+> **#26 closed 2026-09-05.** Measured on the OP12: a real 7.38-minute run, quoted at 7 minutes. The
+> same code previously quoted hours for a two-minute call.
 >
 > Neither branch is merged. `fix/transcription-estimates-issue-26` is stacked on
 > `fix/rotation-state-issue-27`, which is stacked on `8e3059e`.
@@ -29,7 +28,7 @@ order of work" table near the end, which is a plan rather than a record.
 | issue | state |
 |---|---|
 | #27 | ✅ VERIFIED on device 2026-09-05, plus one follow-up fix still 🧪 |
-| #26 | 🧪 fixed on `fix/transcription-estimates-issue-26`, not yet run on a phone |
+| #26 | ✅ DONE — fixed and VERIFIED on device 2026-09-05 |
 | #25, #28 | diagnosed only — no code written |
 **Reported against:** v2.2.0 (the current public release, 2026-08-30).
 **HEAD at time of writing:** `8e3059e` on `fix/mic-diagnostics-appops`, 47 commits ahead of `v2.2.0`.
@@ -47,7 +46,7 @@ localises the crackling defect to one file. Worth saying so when we reply.
 | # | Title | Root cause | Verified? | Severity | State on HEAD |
 |---|---|---|---|---|---|
 | 28 | Crackling in audio | Default carrier path **silently drops a 21 ms PCM chunk** whenever the encoder is busy; the fix already exists in the sibling encoder and was never back-ported | ✅ in code | **Critical** — corrupts the core artefact | Still present |
-| 26 | Transcription estimates wildly off | Believability clamp is defeated by `fallback = measured`; one absurd sample is stored permanently | ✅ in code | High — visible nonsense | 🧪 **FIXED on `fix/transcription-estimates-issue-26`** — awaiting an on-device run |
+| 26 | Transcription estimates wildly off | Believability clamp is defeated by `fallback = measured`; one absurd sample is stored permanently | ✅ in code | High — visible nonsense | ✅ **DONE — VERIFIED on device 2026-09-05** |
 | 25 | Wrong timestamps on long pauses | whisper.cpp's VAD maps **any** pause onto a hardcoded 100 ms bridge; post-pause starts interpolate into the silence | ✅ in code | Medium | Still present |
 | 27 | Rotation closes entry + scrolls to top | Activity is recreated; `playbackFor` is `remember`, not `rememberSaveable` | ✅ in code | Medium — daily annoyance | ✅ **VERIFIED on device 2026-09-05** (`fix/rotation-state-issue-27`); one follow-up fix 🧪 |
 
