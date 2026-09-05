@@ -58,6 +58,26 @@ already fixed months ago.
 
 ## Issue #28 — crackling in audio
 
+> ### 🧪 SMALL PARTS DONE 2026-09-05 — branch `fix/issue-28-small-parts`
+>
+> The three sub-issues that are not the crackling are fixed or resolved. **28a (the crackling
+> itself) and 28b are untouched** and are the next phase.
+>
+> | part | what it was | state |
+> |---|---|---|
+> | **28c** AAC kills the next recording | a failed start was completely silent | 🧪 `e04d595` — the app now says so, and logs why |
+> | **28d** Shizuku loses speaker labels | **not a bug** — structural | ✅ resolved, needs only a reply |
+> | **28e** Shizuku USB nag loop | warned about a setting it refuses to read or change | 🧪 `1c37f1f` |
+> | 28a crackling | drops a 21 ms chunk when the encoder is busy | ⬜ next phase |
+> | 28b ring overrun | single-threaded capture loop, ~80 ms ring | ⬜ next phase, with 28a |
+>
+> 1188 unit tests pass. **None of this has been on a phone yet.**
+> **To settle 28c:** set the audio codec to AAC and make a call. Either it records — in which case
+> his failure is something else and the log now says what — or a notification appears saying the
+> recording did not start, where previously there was silence and no file.
+> **To settle 28e:** in Shizuku mode, confirm the lock-screen/USB warning no longer appears.
+
+
 > "Audio is recorded with a popping sound which happens when audio is present from their side
 > and/or my side. Silence doesn't have it keep happening; likely an active distortion based on
 > the original waveform." … "I tried pairing through Shizuku and had clean audio."
@@ -178,7 +198,19 @@ The handoff path deliberately decoupled ring consumption from downstream for exa
 (the choppiness)"*). The direct path never got that treatment. Fixing 28a will reduce the stalls
 that cause this, but will not eliminate it.
 
-### 28c — AAC selection kills the next recording (MEDIUM; mechanism unproven, silence proven)
+### 28c — AAC selection kills the next recording — 🧪 FIXED THE SILENCE, not the cause
+
+**Fixed in `e04d595`.** We still cannot say which AAC setting his device refuses — that needs his
+phone. What is fixed is that the failure is no longer invisible: `CaptureStartCheck` asks
+`isRecording()` three seconds after dispatch, and a live daemon with no capture now raises a
+notification and an explicit log line naming the likely cause.
+
+The design is mostly about *not* crying wolf, since a false "your codec is broken" on an ordinary
+call would be worse than the silence it replaces. A call that ended first reads as STOPPED; an
+unreachable daemon reads as UNKNOWN and defers to the existing daemon-death message; only a
+reachable daemon with no capture is reported.
+
+The two candidate causes below remain unproven and are still worth checking when we can.
 
 > "changing from Opus (my preference) to AAC failed to record the next call"
 
@@ -207,7 +239,15 @@ Two candidate triggers, neither confirmed:
   *different* codec. Samsung ships several AAC encoders and one Opus encoder, so this mismatch
   can only bite AAC.
 
-### 28d — Shizuku loses speaker labels (NOT A BUG — explain and close)
+### 28d — Shizuku loses speaker labels — ✅ RESOLVED, no code, reply only
+
+Verified as expected behaviour, not a regression. Nothing to fix; it needs a sentence in the issue.
+
+**Draft reply:** *"That one is expected rather than broken. Shizuku can't host the microphone capture
+directly, so it records through a different path that hands us audio already encoded. Speaker labels
+are worked out from the raw two-channel audio before it's mixed down, and on that path we never see
+it — so there's nothing to derive them from. It's also why you get mic on the left and the other
+party on the right there, which the normal path doesn't do."*
 
 Verified as expected behaviour. Shizuku cannot host an `AudioRecord` (`HandoffPolicy.kt:40`), so it
 uses scrcpy, which hands us **already-encoded stereo**. `RecorderSession` therefore never sees PCM,
@@ -223,7 +263,17 @@ whereas every path we encode is forced to mono (`DirectAudioRecorderSession.kt:2
 mic-L/far-R, speaker attribution is exact rather than inferred. Worth a look for the diarization
 backlog — but note the standing "MUST-NOT-UNDO mono-encode rule" before touching it.
 
-### 28e — Shizuku USB-mode nag loop (LOW severity, clean logical gap — found independently)
+### 28e — Shizuku USB-mode nag loop — 🧪 FIXED in `1c37f1f`
+
+**Fixed by resolving the cached value to UNKNOWN in Shizuku mode**, rather than by adding a rule.
+UNKNOWN already means "we cannot see this" everywhere else in that file, and `noticeFor` already
+handles it: silent while the recorder is up, an honest "could not check" when it is not. Standalone
+mode is untouched and still warns.
+
+⚠️ The premise flagged below — whether the screen-lock risk is even real under Shizuku — is **still
+unverified**, and this fix deliberately does not depend on it. The argument stands either way: the
+app refuses to read the setting and refuses to change it in that mode, so warning from a stale value
+the user cannot correct in-app is indefensible regardless of the underlying risk.
 
 > "With Shizuku mode I get a constant warning that lock screen recording may not work because USB
 > is set to file transfer… if I change it to charge only it stops Shizuku"
