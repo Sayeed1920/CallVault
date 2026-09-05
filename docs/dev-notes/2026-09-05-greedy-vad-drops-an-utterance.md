@@ -88,14 +88,71 @@ Ground truth is the same command with `-bs 5` and no `--vad`.
 looks like "the model returned nothing". Three runs were misread that way before it was spotted. Write
 the flags inline, or use `${=VAD}`.
 
+## This is the same subsystem as issue #25
+
+Not a coincidence, and worth stating plainly: **#25 and this are two faces of one design.**
+whisper.cpp's VAD does not trim silence, it **rebuilds the audio buffer** from the kept speech.
+
+- **#25 is the timestamp consequence.** The mapping back to real time bridges each pause with a
+  hardcoded 100 ms, so text after a pause is stamped at the instant the previous speaker stopped —
+  measured 12.3 s early on the reporter's call.
+- **This is the content consequence.** With the pauses gone, two near-identical sentences sit
+  back-to-back and the greedy decoder collapses the near-repeat.
+
+Both appear in tonight's own recordings. The 20:40 cell file produced **one** segment stamped
+`3.76 → 12.91` whose text is only the *second* utterance — words spoken at 9.4 s, stamped from 3.76 s,
+≈5.6 s early. That is #25's signature and this note's symptom in a single line of output. The 21:04
+VoIP call logged `VAD kept 4 speech stretches` → `Produced 1 segments`, over audio whose real speech
+comes in six stretches separated by pauses of up to 2.6 s.
+
+They are still **two fixes**: clamping segment starts (#25 fix direction 1) corrects timestamps and
+would not bring back a lost utterance.
+
+## 🚨 Retracted: do NOT decode each VAD segment separately
+
+An earlier version of this note proposed exactly that as the leading candidate. **It is the
+measured-worst architecture and the research note already says so**
+(`2026-08-26-transcription-quality-research.md`, and [[transcription-quality-ceiling]]): below ~1 s of
+speech, **81% of Whisper outputs are a single memorised word**. Chunk the *decode*, never the
+transcription. The proposal is withdrawn.
+
+## The bigger lever here is the MODEL, and it is already measured
+
+The app logged `Transcribing with 6 threads, lang=he, beam=1 ctx=-1 vad=on` on
+**`large-v3-turbo-q8_0`** — its best tier, and the app ships no Hebrew-adapted option at all
+(`TranscriptionModel` offers `small-q5_1`, `large-v3-turbo-q5_0`, `large-v3-turbo-q8_0`).
+
+The research note left one action open: *"the official ivrit ggml is Apache-2.0 and ungated — quantise
+it ourselves to q8_0 → ~874 MB, same footprint as the shipping tier… but ivrit is trained on ~4,700 h
+of Knesset plenum, so it is domain-adapted away from phone calls. **Measure first.**"* **This is that
+measurement**, on four real calls, both models quantised to q8_0 so size and quantisation are held
+equal (833 MB each), decoded with the app's exact settings. Ground truth is known: the maintainer said
+"OnePlus 12" and "OnePlus 9".
+
+| call | `large-v3-turbo-q8_0` (ships) | `ivrit-large-v3-turbo-q8_0` |
+|---|---|---|
+| 20:40 cell | **word salad** — "זה בהתבתל שתם א" plus a stray Cyrillic token | both utterances, second number wrong |
+| 20:41 VoIP | both utterances, first number wrong ("OnePlus 10") | **both correct** |
+| 21:03 cell | both utterances, first number wrong ("1 + 10") | **both correct** |
+| 21:04 VoIP | one utterance lost | first utterance mangled, second correct |
+
+Roughly 3 of 8 utterances right for the shipping model against 5–6 of 8 for ivrit — and the shipping
+model's failure on the quietest call is total, not marginal. One thing the shipping model does
+**better**: it writes "OnePlus" and "WhatsApp" in Latin as product names, where ivrit renders the same
+audio as arithmetic ("1+9").
+
+⚠️ **This does not clear the change.** Four short test calls, all repeating a near-identical phrase —
+the worst material for this pipeline, per the section above — and a Hebrew test can only falsify, never
+confirm ([[hebrew-cannot-clear-a-quality-change]]). What it establishes is that ivrit is **not**
+disqualified by the Knesset-domain worry, which is what "measure first" was asking. A real corpus of
+Hebrew calls is still the bar before shipping it as a narrow he-only override — never a catalogue,
+which the research note found is not populatable.
+
 ## Left open, deliberately
 
-A fix needs a corpus, not this pair of calls — the same standard `DecodeSettings` already sets for
-beam. Candidates, in the order they look promising:
-
-1. **Decode each VAD segment separately** instead of letting whisper concatenate them, so two sentences
-   can never be packed against each other. Closest to the actual mechanism.
-2. **`maxTextCtx = 0`** (no rolling conditioning). Recovered the words on the 19:46 file and split the
-   VoIP one correctly, but did not save the 20:40 file — so it is a partial mitigation at best.
-3. Beam-5 **only when VAD is off**, which is the one quadrant the earlier 2×2 found safe. Costs 17% more
+1. **A Hebrew-adapted model as a narrow override**, per above. Biggest measured lever for this user.
+2. **`maxTextCtx = 0`** (no rolling conditioning), which the research note already lists as a verified
+   defect. Recovered the words on the 19:46 file and split the VoIP one correctly, but did not save the
+   20:40 file — a partial mitigation.
+3. Beam-5 **only when VAD is off**, the one quadrant the earlier 2×2 found safe. Costs ~17% more
    wall-clock and gives up VAD's larger gain.
