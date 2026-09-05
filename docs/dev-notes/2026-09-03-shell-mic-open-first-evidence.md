@@ -1,3 +1,12 @@
+> # ⚠️ SUPERSEDED — read `2026-09-05-stuck-mic-case-file.md` instead
+>
+> This file grew by accretion over a week and its sections are in the order they were written, not
+> the order they make sense in. Several early conclusions in it were later disproven **within this
+> same file**, so reading it top-down will mislead you.
+>
+> It is kept for its working — the AOSP tracing, the app-op analysis, the timestamp arithmetic — and
+> everything still true in it has been carried into the case file above.
+
 # Shell mic open: the bug is real, our evidence was not
 
 **Status: 🎯 ROOT CAUSE CONFIRMED 2026-09-05 — see "Report (30)" below, which supersedes the
