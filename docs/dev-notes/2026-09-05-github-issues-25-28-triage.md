@@ -706,7 +706,11 @@ These matter more than any individual fix.
 - **Decide whether #27f** (a merge in flight dies on rotation) gets its own issue. Not fixed here.
 - **Falsify or confirm #26b's trigger** by logging `availableProcessors()` per run.
 - **Establish whether the screen-lock risk is real under Shizuku** before silencing that warning (#28e).
-- **Check upstream whisper.cpp** for a VAD-mapping fix before patching the submodule (#25).
+- ~~**Check upstream whisper.cpp** for a VAD-mapping fix~~ — **done 2026-09-05: there isn't one.**
+  We are pinned at `371b5a75` (v1.9.3) and `origin/master` is 77 commits ahead; none of its changes to
+  `src/whisper.cpp` touch the VAD mapping (mel initialisation, null guards, a VitisAI plugin, an
+  OpenVINO path). The one commit matching "vad" adds a nullptr check to a test. **We write this fix
+  ourselves.** Re-fetch before implementing, in case these refs are stale.
 - **Decide the intended rotation behaviour for audio** (#27c).
 
 ## Replying to the reporter
