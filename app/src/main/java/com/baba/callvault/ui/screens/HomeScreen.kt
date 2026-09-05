@@ -24,8 +24,12 @@ import com.baba.callvault.system.openWirelessDebugging
 import com.baba.callvault.data.recordings.DeleteScope
 import com.baba.callvault.data.recordings.RecordingSelection
 import com.baba.callvault.system.openKofi
+import com.baba.callvault.ui.common.DeleteScopeStateSaver
 import com.baba.callvault.ui.common.M3DropdownField
 import com.baba.callvault.ui.common.OptionItem
+import com.baba.callvault.ui.common.TranscribeRequest
+import com.baba.callvault.ui.common.TranscribeRequestStateSaver
+import com.baba.callvault.ui.common.UriSetStateSaver
 import com.baba.callvault.ui.common.formatByteSize
 import com.baba.callvault.ui.common.SupportDialog
 import com.baba.callvault.system.shareRecordings
@@ -223,13 +227,15 @@ fun HomeScreen(
     // Two separate flags, not one: the chooser is opened by the user tapping Support, the appeal
     // arrives on its own after a release note. Sharing a flag would let dismissing one suppress the
     // other in the same session.
-    var showSupport by remember { mutableStateOf(false) }
-    var showSupportAppeal by remember { mutableStateOf(false) }
+    var showSupport by rememberSaveable { mutableStateOf(false) }
+    var showSupportAppeal by rememberSaveable { mutableStateOf(false) }
 
     // Multi-selection, keyed by each row's primary Uri. Empty means normal browsing; the moment it
     // holds anything the screen is in selection mode, so there is no second flag to keep in step.
-    var selection by remember { mutableStateOf<Set<Uri>>(emptySet()) }
-    var showBulkDelete by remember { mutableStateOf(false) }
+    var selection by rememberSaveable(stateSaver = UriSetStateSaver) {
+        mutableStateOf<Set<Uri>>(emptySet())
+    }
+    var showBulkDelete by rememberSaveable { mutableStateOf(false) }
 
     // Transcript state for the rows currently listed — scoped to those names rather than the whole
     // table, because Home lists years of calls and only a handful of icons are ever on screen.
@@ -239,10 +245,10 @@ fun HomeScreen(
     }.collectAsState(initial = emptyMap())
 
     /** Which recording's transcript is open, or null. */
-    var transcriptFor by remember { mutableStateOf<String?>(null) }
+    var transcriptFor by rememberSaveable { mutableStateOf<String?>(null) }
 
     /** Which recording's transcript is awaiting a delete confirmation, or null. */
-    var deleteTranscriptFor by remember { mutableStateOf<String?>(null) }
+    var deleteTranscriptFor by rememberSaveable { mutableStateOf<String?>(null) }
 
     /**
      * Which recording is open on the playback screen, or null for the list.
@@ -259,6 +265,12 @@ fun HomeScreen(
     // (`if (playbackFor == null)` below), taking any state remembered inside it — so someone who
     // scrolled to the hundredth call and opened it came back to the top of the list.
     val listState = rememberLazyListState()
+    // DELIBERATELY NOT saveable, unlike the rest of this block. A merge runs in `mergeScope`, a
+    // rememberCoroutineScope, so rotation already cancels it half-done — that is a real bug, and a
+    // bigger one than #27, but its fix is to hoist the merge into the ViewModel, not to restore its
+    // dialog. Restoring these would put a merge dialog back on screen for an operation that no
+    // longer exists, and offer to re-run it over recordings that may already be partly merged.
+    // Leaving them to reset is the honest behaviour until the merge itself outlives the Activity.
     var mergeFor by remember { mutableStateOf<RecordingItem?>(null) }
     var unMergeFor by remember { mutableStateOf<RecordingItem?>(null) }
     var unMergeLabels by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -267,10 +279,10 @@ fun HomeScreen(
     // Which recordings were made by merging, fetched once for the whole list rather than per row.
     var mergedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     /** The recording whose delete is awaiting confirmation, raised from the playback screen. */
-    var confirmDeleteFor by remember { mutableStateOf<String?>(null) }
+    var confirmDeleteFor by rememberSaveable { mutableStateOf<String?>(null) }
 
     /** Whether the search-across-transcripts sheet is open. */
-    var showTranscriptSearch by remember { mutableStateOf(false) }
+    var showTranscriptSearch by rememberSaveable { mutableStateOf(false) }
 
     /** What transcription is doing right now, for the pill beside the title. Hidden when idle. */
     val transcribing by rememberTranscribingPillState()
@@ -279,7 +291,7 @@ fun HomeScreen(
     // long enough to read as a hang, which is the complaint this answers. The clock fills the gaps
     // between its anchors; see TranscriptionProgress for what is and is not invented.
     val transcribingShown = rememberTranscribingDisplay(transcribing, uiState.recordings)
-    var showTranscribingSheet by remember { mutableStateOf(false) }
+    var showTranscribingSheet by rememberSaveable { mutableStateOf(false) }
 
     val transcriptScope = rememberCoroutineScope()
     val mergeScope = rememberCoroutineScope()
@@ -287,18 +299,20 @@ fun HomeScreen(
     LaunchedEffect(uiState.recordings.size) { mergedCounts = viewModel.mergedCounts() }
 
     /** Raised when transcription is asked for but the model it needs is not installed. */
-    var showModelMissing by remember { mutableStateOf(false) }
+    var showModelMissing by rememberSaveable { mutableStateOf(false) }
     // Non-null while refusing to transcribe a recording that is too long; holds its length in minutes
     // so the dialog can say how long it actually was rather than only quoting the limit.
-    var tooLongMinutes by remember { mutableStateOf<Int?>(null) }
+    var tooLongMinutes by rememberSaveable { mutableStateOf<Int?>(null) }
 
     /** The recording awaiting a "this will take N minutes" confirmation, with the language picked for
      *  it (null = use the setting), or null when nothing is waiting. */
-    var confirmTranscribe by remember { mutableStateOf<Triple<String, Long?, String?>?>(null) }
+    var confirmTranscribe by rememberSaveable(stateSaver = TranscribeRequestStateSaver) {
+        mutableStateOf<TranscribeRequest?>(null)
+    }
 
     /** The recording awaiting a "which language?" answer, or null. Only ever set when the user has
      *  turned that ask on; see AppPreferences.getTranscriptionAskLanguage. */
-    var askLanguageFor by remember { mutableStateOf<String?>(null) }
+    var askLanguageFor by rememberSaveable { mutableStateOf<String?>(null) }
 
     /** Enqueues without asking. retry() clears the row and enqueues; clearing nothing is a no-op, so
      *  it serves a first transcription, a retry and "transcribe again" alike — and the queue skips
@@ -1956,7 +1970,9 @@ private fun BulkDeleteDialog(
     //
     // Defaults to both copies, matching what deleting a single row has always done for a recording
     // held in two places. Nothing is destroyed until Delete is pressed either way.
-    var scope by remember { mutableStateOf(DeleteScope.BOTH) }
+    var scope by rememberSaveable(stateSaver = DeleteScopeStateSaver) {
+        mutableStateOf(DeleteScope.BOTH)
+    }
 
     // Each option carries what it would actually do — "Device only (2 of 3)" — so the consequence
     // is visible while choosing rather than discovered afterwards from a recording that survived.
@@ -2131,6 +2147,11 @@ private fun RecordingRow(
     transcriptPercent: Int = 0
 ) {
     // The pending delete target drives the confirm dialog: null = closed.
+    //
+    // Left as a plain remember on purpose, where the screen-level state above is saveable. This is a
+    // confirmation for a destructive act, and it holds a Uri for THIS row; a rotation that dismissed
+    // it has destroyed nothing, whereas restoring one bound to a row the refreshed list no longer
+    // contains would leave a Delete button pointed at something the user can no longer see.
     var deleteTarget by remember { mutableStateOf<DeleteTarget?>(null) }
     var expanded by remember { mutableStateOf(false) }
 
