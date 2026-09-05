@@ -316,6 +316,8 @@
     <string name="settings_usb_debugging_on_hint">O CallVault pode manter a Depuração sem fio desligada. Não desative esta opção — isso deixaria o app sem nenhuma forma de acesso, e a Depuração sem fio voltaria a ser ativada.</string>
     <string name="settings_usb_debugging_recommended">Sem esta opção, a Depuração sem fio precisa ficar ativada. Ativando-a, o CallVault pode desligá-la.</string>
     <string name="settings_usb_default_applying">Aplicando…</string>
+    <string name="settings_usb_default_shizuku_hint">Não altere isto enquanto usar o Shizuku. Alterar reinicia o serviço de depuração do Android, e o Shizuku para junto — você teria que iniciar o Shizuku de novo antes que a próxima chamada pudesse ser gravada.</string>
+    <string name="settings_usb_default_busy">Não alterado: há uma gravação em andamento. Alterar isto reinicia o serviço de depuração do Android, o que encerraria a gravação.</string>
     <string name="settings_usb_default_hint">"Somente carregar" mantém a gravação ativa se você bloquear a tela durante uma chamada. Os outros modos permitem que o USB transfira dados, mas podem interromper uma gravação quando você bloqueia o celular.</string>
     <string name="settings_usb_default_label">USB ao desbloquear a tela</string>
     <string name="settings_vibration_enabled">Vibrar ao iniciar/parar</string>

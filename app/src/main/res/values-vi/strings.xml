@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault có thể giữ Gỡ lỗi không dây ở trạng thái tắt. Đừng tắt lại tùy chọn này — khi đó sẽ không còn đường truy cập nào, nên Gỡ lỗi không dây sẽ bật trở lại.</string>
     <string name="settings_usb_debugging_recommended">Nếu không có tùy chọn này, Gỡ lỗi không dây phải luôn bật. Bật tùy chọn này thì CallVault có thể tắt nó.</string>
     <string name="settings_usb_default_applying">Đang áp dụng…</string>
+    <string name="settings_usb_default_shizuku_hint">Đừng thay đổi mục này khi bạn đang dùng Shizuku. Thay đổi sẽ khởi động lại dịch vụ gỡ lỗi của Android, và Shizuku dừng theo — bạn sẽ phải khởi động lại Shizuku trước khi cuộc gọi tiếp theo có thể được ghi âm.</string>
+    <string name="settings_usb_default_busy">Chưa thay đổi: đang có một bản ghi. Thay đổi mục này sẽ khởi động lại dịch vụ gỡ lỗi của Android, và bản ghi sẽ kết thúc.</string>
     <string name="settings_usb_default_hint">"Chỉ sạc" giữ cho bản ghi tiếp tục nếu bạn khóa màn hình khi đang gọi. Các chế độ khác cho phép truyền dữ liệu qua USB nhưng có thể làm gián đoạn bản ghi khi bạn khóa máy.</string>
     <string name="settings_usb_default_label">USB khi mở khóa màn hình</string>
     <string name="settings_vibration_enabled">Rung khi bắt đầu/dừng</string>

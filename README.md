@@ -129,6 +129,12 @@ Then open it and follow the setup wizard: accept the disclaimer, grant permissio
 If a recording stops when you lock the screen, set **Default USB configuration** to **Charging only**. CallVault offers this during setup and from Settings.
 
 > [!WARNING]
+> **Not while you are using Shizuku, and not during a call.** Changing the Default USB configuration
+> restarts Android's debugging service. Shizuku's server is hosted by it and stops too, so you would
+> have to start Shizuku again before anything could be recorded — and doing it mid-call ends the
+> recording in progress. CallVault now declines the change while a recording is live.
+
+> [!WARNING]
 > Keep the pairing: uninstalling CallVault wipes it and there is no way to restore it — you pair again from scratch.
 
 ### On OPPO, OnePlus and Realme phones

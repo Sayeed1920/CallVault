@@ -42,6 +42,7 @@ import com.baba.callvault.integrations.adb.AdbShell
 import com.baba.callvault.ui.common.PlaybackJump
 import com.baba.callvault.integrations.adb.UsbDefaultConfig
 import com.baba.callvault.integrations.adb.UsbDefaultMode
+import com.baba.callvault.integrations.adb.UsbSetResult
 import com.baba.callvault.system.updates.UpdateInstallWorker
 import com.baba.callvault.system.updates.UpdateScheduler
 import androidx.work.WorkManager
@@ -198,6 +199,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val usbScreenLockRisk: Boolean = false,
         /** True while the one-tap "set USB to Charging only" fix is running. */
         val usbFixInProgress: Boolean = false,
+        /** The one-tap USB fix was declined because a recording is live — see [setUsbChargingOnly]. */
+        val usbFixBlockedByRecording: Boolean = false,
         /** Uris of recordings currently being deleted — drives an inline spinner on their row. */
         val deletingUris: Set<Uri> = emptySet(),
         /** What real calls have proved about this setup — drives the status card's second line. */
@@ -414,11 +417,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun setUsbChargingOnly() {
         if (_uiState.value.usbFixInProgress) return
-        _uiState.update { it.copy(usbFixInProgress = true) }
+        _uiState.update { it.copy(usbFixInProgress = true, usbFixBlockedByRecording = false) }
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { UsbDefaultConfig.setViaShell(appContext, UsbDefaultMode.CHARGING) }
+            val result = withContext(Dispatchers.IO) {
+                UsbDefaultConfig.setViaShell(appContext, UsbDefaultMode.CHARGING)
+            }
             _uiState.update {
-                it.copy(usbFixInProgress = false, usbScreenLockRisk = UsbDefaultConfig.isScreenLockRisk(appContext))
+                it.copy(
+                    usbFixInProgress = false,
+                    // Applying it restarts adbd, which would end a recording in progress. Saying so
+                    // beats a tap that visibly does nothing — the card would otherwise just stay put.
+                    usbFixBlockedByRecording = result == UsbSetResult.BUSY_RECORDING,
+                    usbScreenLockRisk = UsbDefaultConfig.isScreenLockRisk(appContext),
+                )
             }
         }
     }

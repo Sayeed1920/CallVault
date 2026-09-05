@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault 可以让无线调试保持关闭。请不要把这一项再关掉 — 那样就没有任何接入方式了，无线调试会重新开启。</string>
     <string name="settings_usb_debugging_recommended">没有这一项，无线调试就必须保持开启。开启它后，CallVault 就能将无线调试关闭。</string>
     <string name="settings_usb_default_applying">正在应用…</string>
+    <string name="settings_usb_default_shizuku_hint">使用 Shizuku 期间请勿更改此项。更改会重启 Android 的调试服务，Shizuku 也会随之停止——在下一通电话能被录音之前，你需要重新启动 Shizuku。</string>
+    <string name="settings_usb_default_busy">未更改：正在录音。更改此项会重启 Android 的调试服务，从而中断当前录音。</string>
     <string name="settings_usb_default_hint">“仅充电”可在通话中锁屏时保持录音不中断。其他模式允许 USB 传输数据，但在锁定手机时可能中断录音。</string>
     <string name="settings_usb_default_label">解锁时的 USB 模式</string>
     <string name="settings_vibration_enabled">开始/停止录音时震动</string>

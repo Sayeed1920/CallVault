@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault può tenere disattivato il debug wireless. Non disattivare questa opzione: non resterebbe alcuna via di accesso, quindi il debug wireless verrebbe riattivato.</string>
     <string name="settings_usb_debugging_recommended">Senza questo, il debug wireless deve restare attivo. Attivandolo, CallVault può disattivarlo.</string>
     <string name="settings_usb_default_applying">Applicazione…</string>
+    <string name="settings_usb_default_shizuku_hint">Non modificare questa impostazione mentre usi Shizuku. Modificarla riavvia il servizio di debug di Android e Shizuku si arresta con esso: dovresti riavviare Shizuku prima che la prossima chiamata possa essere registrata.</string>
+    <string name="settings_usb_default_busy">Non modificato: è in corso una registrazione. Modificare questa impostazione riavvia il servizio di debug di Android, il che terminerebbe la registrazione.</string>
     <string name="settings_usb_default_hint">"Solo ricarica" mantiene attiva la registrazione se blocchi lo schermo durante una chiamata. Le altre modalità consentono il trasferimento dati via USB ma possono interrompere una registrazione al blocco.</string>
     <string name="settings_usb_default_label">USB allo sblocco</string>
     <string name="settings_vibration_enabled">Vibra all\'avvio/arresto</string>

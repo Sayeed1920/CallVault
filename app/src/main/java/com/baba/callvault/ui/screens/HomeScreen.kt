@@ -637,6 +637,7 @@ fun HomeScreen(
                 item {
                     UsbReliabilityAdvisoryCard(
                         fixing = uiState.usbFixInProgress,
+                        blockedByRecording = uiState.usbFixBlockedByRecording,
                         onFix = { viewModel.setUsbChargingOnly() },
                     )
                 }
@@ -1236,7 +1237,7 @@ private fun UpdatedBannerCard(version: String, onDismiss: () -> Unit) {
  * replaces the action while that runs.
  */
 @Composable
-private fun UsbReliabilityAdvisoryCard(fixing: Boolean, onFix: () -> Unit) {
+private fun UsbReliabilityAdvisoryCard(fixing: Boolean, blockedByRecording: Boolean, onFix: () -> Unit) {
     val accent = LocalCvBrand.current.warning
     val tinted = accent.copy(alpha = 0.10f).compositeOver(MaterialTheme.colorScheme.surface)
     CvCard(
@@ -1261,7 +1262,10 @@ private fun UsbReliabilityAdvisoryCard(fixing: Boolean, onFix: () -> Unit) {
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = stringResource(R.string.home_usb_advisory_text),
+                    text = stringResource(
+                        if (blockedByRecording) R.string.settings_usb_default_busy
+                        else R.string.home_usb_advisory_text
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

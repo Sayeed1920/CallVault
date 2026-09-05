@@ -88,6 +88,7 @@ import com.baba.callvault.data.ModeCapability
 import com.baba.callvault.integrations.adb.AdbShell
 import com.baba.callvault.integrations.adb.UsbDefaultConfig
 import com.baba.callvault.integrations.adb.UsbDefaultMode
+import com.baba.callvault.integrations.adb.UsbSetResult
 import com.baba.callvault.data.RetentionPeriod
 import com.baba.callvault.integrations.scrcpy.AUDIO_BIT_RATE_OPTIONS
 import com.baba.callvault.data.SyncScheduleMode
@@ -2269,6 +2270,8 @@ private fun UsbDefaultConfigRow() {
     val scope = rememberCoroutineScope()
     var mode by remember { mutableStateOf(UsbDefaultConfig.cached(context)) }
     var applying by remember { mutableStateOf(false) }
+    var refusedWhileRecording by remember { mutableStateOf(false) }
+    val privilegedMode = remember { AppPreferences(context).getPrivilegedMode() }
 
     // The nudge is pure embedded-ADB machinery — reading it needs our shell, and applying it needs the
     // shell privilege. Greyed in Shizuku mode for the same reason the offline toggle is: it would look
@@ -2284,9 +2287,13 @@ private fun UsbDefaultConfigRow() {
     }
 
     val recommendedLabel = stringResource(R.string.general_recommended)
+    // Nothing is "recommended" here in Shizuku mode. Changing the Default USB Configuration restarts
+    // adbd, and Shizuku's server — a shell-uid process hosted by it — dies with it. Measured on the OP9,
+    // 2026-09-05: one change, adbd came back with a new pid, shizuku_server was gone and stayed gone.
+    // Issue #28's reporter hit exactly this and read our label as advice. See [UsbDefaultConfigRow].
     val options = UsbDefaultConfig.SELECTABLE.map { m ->
         val base = stringResource(usbModeLabelRes(m))
-        OptionItem(m.name, if (m == UsbDefaultConfig.RECOMMENDED) "$base ($recommendedLabel)" else base)
+        OptionItem(m.name, if (supported && m == UsbDefaultConfig.RECOMMENDED) "$base ($recommendedLabel)" else base)
     }
     // When the current value is UNKNOWN (never read), don't force a wrong selection — show recommended.
     val selected = options.find { it.key == mode.name } ?: options.first()
@@ -2302,8 +2309,9 @@ private fun UsbDefaultConfigRow() {
                 if (target == mode || applying) return@M3DropdownField
                 applying = true
                 scope.launch {
-                    val ok = withContext(Dispatchers.IO) { UsbDefaultConfig.setViaShell(context, target) }
-                    if (ok) mode = target
+                    val result = withContext(Dispatchers.IO) { UsbDefaultConfig.setViaShell(context, target) }
+                    refusedWhileRecording = result == UsbSetResult.BUSY_RECORDING
+                    if (result == UsbSetResult.APPLIED) mode = target
                     applying = false
                 }
             },
@@ -2323,10 +2331,18 @@ private fun UsbDefaultConfigRow() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        } else if (refusedWhileRecording) {
+            HintText(stringResource(R.string.settings_usb_default_busy))
         } else {
             HintText(
-                unavailableReason(ModeCapability.WIRELESS_DEBUGGING_CONTROL)
-                    ?: stringResource(R.string.settings_usb_default_hint)
+                when {
+                    // The Shizuku answer is not "you cannot change this here" but "do not change this
+                    // at all, including from system Settings" — which is what the reporter did.
+                    !supported && privilegedMode.needsShizuku ->
+                        stringResource(R.string.settings_usb_default_shizuku_hint)
+                    else -> unavailableReason(ModeCapability.WIRELESS_DEBUGGING_CONTROL)
+                        ?: stringResource(R.string.settings_usb_default_hint)
+                }
             )
         }
     }

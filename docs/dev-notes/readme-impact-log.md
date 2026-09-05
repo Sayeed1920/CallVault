@@ -179,6 +179,26 @@ are, but the bullet is already dense and those are the sort of specifics that ag
 
 📷 **Screenshots unaffected** — merging is reached from a row's ⋮ menu, so no pictured screen changed.
 
+## 2026-09-05 — the USB advice was incomplete, and the README was edited directly
+
+**Written into the README already** (not pending), because the existing line was actively harmful to
+one class of user: the Charging-only advice at `README.md:129` now carries a warning that changing the
+Default USB configuration stops Shizuku, and must not be done during a call.
+
+**Why it was not just a wording tidy.** Measured on the OP9 (ColorOS 14) on 2026-09-05: one change to
+the USB configuration restarted `adbd` — new pid — and `shizuku_server` died with it and did not come
+back. A plain detached shell script survived the same event, so this is specific to how Shizuku's
+server is hosted, not a blanket kill. Issue #28's reporter described exactly this and our README, our
+Settings picker and our one-tap fix all recommended it anyway.
+
+⚠️ **Not claimed:** that Samsung/One UI behaves identically. The mechanism is measured on ColorOS and
+reported by a Samsung user; the README words it as what the change does (restarts the debugging
+service), which holds either way.
+
+📷 **Screenshots:** the Settings USB row gained a Shizuku-specific hint and no longer labels "Charging
+only" as recommended in Shizuku mode. If a Settings screenshot is ever added, it must not be taken in
+Shizuku mode.
+
 ## Review checklist before publishing
 
 1. Re-read this file top to bottom; fold in every ✅ row.

@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault может держать беспроводную отладку отключённой. Не выключайте этот параметр — тогда не останется способа подключиться, и беспроводная отладка снова включится.</string>
     <string name="settings_usb_debugging_recommended">Без этого беспроводная отладка должна оставаться включённой. Если включить этот параметр, CallVault сможет её отключить.</string>
     <string name="settings_usb_default_applying">Применение…</string>
+    <string name="settings_usb_default_shizuku_hint">Не меняйте этот параметр, пока пользуетесь Shizuku. Изменение перезапускает службу отладки Android, и Shizuku останавливается вместе с ней — придётся снова запустить Shizuku, прежде чем следующий звонок можно будет записать.</string>
+    <string name="settings_usb_default_busy">Не изменено: идёт запись. Изменение перезапускает службу отладки Android, что прервёт запись.</string>
     <string name="settings_usb_default_hint">«Только зарядка» сохраняет запись, если вы блокируете экран во время звонка. Другие режимы позволяют передавать данные по USB, но могут прервать запись при блокировке телефона.</string>
     <string name="settings_usb_default_label">USB при разблокировке</string>
     <string name="settings_vibration_enabled">Вибрация при запуске/остановке</string>

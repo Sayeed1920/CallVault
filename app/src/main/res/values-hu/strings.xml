@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">A CallVault kikapcsolva tudja tartani a vezeték nélküli hibakeresést. Ne kapcsolja vissza ezt — akkor nem maradna hozzáférés, így a vezeték nélküli hibakeresés újra bekapcsol.</string>
     <string name="settings_usb_debugging_recommended">Enélkül a vezeték nélküli hibakeresésnek bekapcsolva kell maradnia. Ha ezt bekapcsolja, a CallVault ki tudja kapcsolni.</string>
     <string name="settings_usb_default_applying">Alkalmazás…</string>
+    <string name="settings_usb_default_shizuku_hint">Ne módosítsa ezt, amíg Shizukut használ. A módosítás újraindítja az Android hibakeresési szolgáltatását, és a Shizuku is leáll vele — újra el kellene indítania a Shizukut, mielőtt a következő hívás rögzíthető lenne.</string>
+    <string name="settings_usb_default_busy">Nem módosult: felvétel van folyamatban. A módosítás újraindítja az Android hibakeresési szolgáltatását, ami leállítaná a felvételt.</string>
     <string name="settings_usb_default_hint">A „Csak töltés“ életben tartja a rögzítést, ha hívás közben zárolod a képernyőt. A többi mód engedi az USB-adatátvitelt, de megszakíthatja a rögzítést a telefon zárolásakor.</string>
     <string name="settings_usb_default_label">USB a képernyő feloldásakor</string>
     <string name="settings_vibration_enabled">Rezgés a felvétel elindításakor/leállításakor</string>

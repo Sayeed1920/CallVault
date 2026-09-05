@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault może utrzymywać debugowanie bezprzewodowe wyłączone. Nie wyłączaj tej opcji z powrotem — nie zostałaby żadna droga dostępu, więc debugowanie bezprzewodowe zostałoby ponownie włączone.</string>
     <string name="settings_usb_debugging_recommended">Bez tego debugowanie bezprzewodowe musi pozostać włączone. Włączenie tej opcji pozwoli CallVault je wyłączyć.</string>
     <string name="settings_usb_default_applying">Stosowanie…</string>
+    <string name="settings_usb_default_shizuku_hint">Nie zmieniaj tego, gdy korzystasz z Shizuku. Zmiana restartuje usługę debugowania Androida, a Shizuku zatrzymuje się razem z nią — trzeba by uruchomić Shizuku ponownie, zanim kolejna rozmowa mogłaby zostać nagrana.</string>
+    <string name="settings_usb_default_busy">Nie zmieniono: trwa nagrywanie. Zmiana tego ustawienia restartuje usługę debugowania Androida, co zakończyłoby nagranie.</string>
     <string name="settings_usb_default_hint">„Tylko ładowanie“ utrzymuje nagrywanie, gdy zablokujesz ekran podczas rozmowy. Inne tryby pozwalają na przesyłanie danych przez USB, ale mogą przerwać nagrywanie po zablokowaniu telefonu.</string>
     <string name="settings_usb_default_label">USB po odblokowaniu</string>
     <string name="settings_vibration_enabled">Wibracja przy rozpoczęciu/zakończeniu</string>

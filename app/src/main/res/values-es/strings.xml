@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault puede mantener desactivada la depuración inalámbrica. No vuelvas a desactivar esta opción: dejaría a la app sin ninguna vía de acceso, así que la depuración inalámbrica se activaría de nuevo.</string>
     <string name="settings_usb_debugging_recommended">Sin esto, la depuración inalámbrica tiene que seguir activada. Si lo activas, CallVault podrá desactivarla.</string>
     <string name="settings_usb_default_applying">Aplicando…</string>
+    <string name="settings_usb_default_shizuku_hint">No cambies esto mientras uses Shizuku. Cambiarlo reinicia el servicio de depuración de Android y Shizuku se detiene con él: tendrías que volver a iniciar Shizuku antes de poder grabar la siguiente llamada.</string>
+    <string name="settings_usb_default_busy">No se cambió: hay una grabación en curso. Cambiar esto reinicia el servicio de depuración de Android, lo que terminaría la grabación.</string>
     <string name="settings_usb_default_hint">"Solo carga" mantiene la grabación activa si bloqueas la pantalla durante una llamada. Los otros modos permiten transferir datos por USB, pero pueden interrumpir una grabación al bloquear el teléfono.</string>
     <string name="settings_usb_default_label">USB al desbloquear</string>
     <string name="settings_vibration_enabled">Vibrar al iniciar/detener</string>

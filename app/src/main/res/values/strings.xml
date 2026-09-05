@@ -238,6 +238,8 @@
     <string name="settings_usb_default_label">USB when screen unlocks</string>
     <string name="settings_usb_default_hint">"Charging only" keeps recording alive if you lock the screen during a call. Other modes let USB transfer data but can interrupt a recording when you lock the phone.</string>
     <string name="settings_usb_default_applying">Applying…</string>
+    <string name="settings_usb_default_shizuku_hint">Leave this alone while you use Shizuku. Changing it restarts Android\'s debugging service, and Shizuku stops with it — you would have to start Shizuku again before the next call could be recorded.</string>
+    <string name="settings_usb_default_busy">Not changed: a recording is in progress. Changing this restarts Android\'s debugging service, which would end the recording.</string>
     <string name="usb_mode_charging">Charging only (no data)</string>
     <string name="usb_mode_debugging_only">Debugging only</string>
     <string name="usb_mode_file_transfer">File transfer</string>

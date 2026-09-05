@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault peut laisser le débogage sans fil désactivé. Ne le redésactivez pas — il ne resterait alors aucun moyen d\'accès, et le débogage sans fil serait réactivé.</string>
     <string name="settings_usb_debugging_recommended">Sans cela, le débogage sans fil doit rester activé. En l\'activant, CallVault pourra le désactiver.</string>
     <string name="settings_usb_default_applying">Application…</string>
+    <string name="settings_usb_default_shizuku_hint">Ne modifiez pas ce réglage tant que vous utilisez Shizuku. Le modifier redémarre le service de débogage d\'Android, et Shizuku s\'arrête avec lui — il faudrait relancer Shizuku avant que le prochain appel puisse être enregistré.</string>
+    <string name="settings_usb_default_busy">Non modifié : un enregistrement est en cours. Modifier ce réglage redémarre le service de débogage d\'Android, ce qui mettrait fin à l\'enregistrement.</string>
     <string name="settings_usb_default_hint">« Charge uniquement » maintient l\'enregistrement actif si tu verrouilles l\'écran pendant un appel. Les autres modes permettent le transfert de données en USB mais peuvent interrompre un enregistrement au verrouillage.</string>
     <string name="settings_usb_default_label">USB au déverrouillage</string>
     <string name="settings_vibration_enabled">Vibration au démarrage/arrêt</string>

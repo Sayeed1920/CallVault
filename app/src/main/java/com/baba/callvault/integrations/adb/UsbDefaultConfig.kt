@@ -11,6 +11,7 @@ package com.baba.callvault.integrations.adb
 import android.content.Context
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.data.PrivilegedMode
+import com.baba.callvault.server.RecorderConnection
 import com.baba.callvault.utils.AppLogger
 
 /**
@@ -50,6 +51,23 @@ enum class UsbDefaultMode(
     DEBUGGING_ONLY("adb"),
     /** Couldn't read / unrecognised value. */
     UNKNOWN(""),
+}
+
+/**
+ * What happened to a request to change the Default USB Configuration.
+ *
+ * More than a boolean because the two failures need different words in front of the user: one is
+ * "this mode cannot do that", the other is "not now, you are on a call".
+ */
+enum class UsbSetResult {
+    /** The command was delivered to the device. */
+    APPLIED,
+
+    /** Refused: a recording is live, and applying this would restart adbd and end it. */
+    BUSY_RECORDING,
+
+    /** Refused: there is no embedded ADB shell to apply it through (Shizuku mode), or the mode is UNKNOWN. */
+    UNAVAILABLE,
 }
 
 /** What, if anything, the user should be told about the current Default USB Configuration. */
@@ -255,22 +273,39 @@ object UsbDefaultConfig {
      * picks a data mode again — harmless in normal wireless/loopback use, but it means a cable plugged
      * into a PC defaults to charging. Call OFF the main thread.
      */
-    fun setViaShell(context: Context, mode: UsbDefaultMode): Boolean {
-        if (mode == UsbDefaultMode.UNKNOWN) return false
+    fun setViaShell(context: Context, mode: UsbDefaultMode): UsbSetResult {
+        if (mode == UsbDefaultMode.UNKNOWN) return UsbSetResult.UNAVAILABLE
         // Refused rather than merely skipped: [runShell] would drop the command anyway, but the cache
         // write below would still record an intent the device never received — and a wrong cache here
         // is what the picker shows back to the user. See [isShellUsable] for why nothing runs.
         if (!isShellUsable(privilegedMode(context))) {
             AppLogger.i(TAG, "Shizuku mode: not setting the Default USB Configuration — no embedded ADB")
-            return false
+            return UsbSetResult.UNAVAILABLE
+        }
+        // NEVER during a recording. Applying this renegotiates the USB gadget, which restarts adbd and
+        // kills the shell-uid daemon holding the capture — measured on the OP9 on 2026-09-05, where one
+        // change gave adbd a new pid and killed the shell-uid process hosted by the old one. Off a call
+        // that costs a few seconds of reconnect; during one it ends the recording, and this setting
+        // exists to PREVENT recordings being lost.
+        if (isRecordingLive()) {
+            AppLogger.w(TAG, "Not setting the Default USB Configuration: a recording is live and this restarts adbd")
+            return UsbSetResult.BUSY_RECORDING
         }
         // `svc` applies the change ON-DEVICE even when its (empty) response stream closes early, so the
         // stream result cannot be trusted either way. Fire it and record the intent.
         runShell(context, "svc usb setScreenUnlockedFunctions ${mode.svcArg}".trimEnd(), ensure = true)
         AppPreferences(context).setUsbDefaultMode(mode.name)
         AppLogger.i(TAG, "Set Default USB Configuration to $mode")
-        return true
+        return UsbSetResult.APPLIED
     }
+
+    /**
+     * Whether the daemon says it is recording right now. A daemon we cannot reach answers "no": it is
+     * not recording anything either, and a setting the user asked for should not be refused on the
+     * strength of a question we could not ask.
+     */
+    private fun isRecordingLive(): Boolean =
+        runCatching { RecorderConnection.service?.isRecording == true }.getOrDefault(false)
 
     // There used to be a confirming read-back here. It was removed on 2026-08-04 because it could not
     // succeed and cost the user a long spinner for nothing:

@@ -313,6 +313,8 @@
     <string name="settings_usb_debugging_on_hint">CallVault kann das drahtlose Debugging abgeschaltet lassen. Schalten Sie dies nicht wieder aus — dann gäbe es keinen Zugang mehr, und das drahtlose Debugging wird wieder aktiviert.</string>
     <string name="settings_usb_debugging_recommended">Ohne dies muss das drahtlose Debugging aktiviert bleiben. Wenn Sie dies aktivieren, kann CallVault es abschalten.</string>
     <string name="settings_usb_default_applying">Wird angewendet…</string>
+    <string name="settings_usb_default_shizuku_hint">Ändern Sie dies nicht, solange Sie Shizuku verwenden. Eine Änderung startet Androids Debugging-Dienst neu, und Shizuku wird dabei beendet — Sie müssten Shizuku erneut starten, bevor der nächste Anruf aufgezeichnet werden kann.</string>
+    <string name="settings_usb_default_busy">Nicht geändert: Eine Aufnahme läuft. Diese Änderung startet Androids Debugging-Dienst neu und würde die Aufnahme beenden.</string>
     <string name="settings_usb_default_hint">„Nur Laden“ hält die Aufnahme am Leben, wenn du während eines Anrufs den Bildschirm sperrst. Andere Modi erlauben Datenübertragung per USB, können aber eine Aufnahme beim Sperren unterbrechen.</string>
     <string name="settings_usb_default_label">USB beim Entsperren</string>
     <string name="settings_vibration_enabled">Vibriere bei Start/Stopp</string>
