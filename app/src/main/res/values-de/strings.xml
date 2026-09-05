@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">Änderung nicht möglich — CallVault benötigt die Berechtigung, die es während der Einrichtung erhält.</string>
     <string name="settings_usb_debugging_label">USB-Debugging</string>
     <string name="settings_usb_debugging_on_hint">CallVault kann das drahtlose Debugging abgeschaltet lassen. Schalten Sie dies nicht wieder aus — dann gäbe es keinen Zugang mehr, und das drahtlose Debugging wird wieder aktiviert.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Lassen Sie das USB-Debugging aktiviert, solange Sie Shizuku verwenden. Shizukus Dienst wird über Androids Debugging-Dienst gestartet und endet mit ihm — CallVault benötigt diesen Schalter im Shizuku-Modus nicht.</string>
     <string name="settings_usb_debugging_recommended">Ohne dies muss das drahtlose Debugging aktiviert bleiben. Wenn Sie dies aktivieren, kann CallVault es abschalten.</string>
     <string name="settings_usb_default_applying">Wird angewendet…</string>
     <string name="settings_usb_default_shizuku_hint">Ändern Sie dies nicht, solange Sie Shizuku verwenden. Eine Änderung startet Androids Debugging-Dienst neu, und Shizuku wird dabei beendet — Sie müssten Shizuku erneut starten, bevor der nächste Anruf aufgezeichnet werden kann.</string>

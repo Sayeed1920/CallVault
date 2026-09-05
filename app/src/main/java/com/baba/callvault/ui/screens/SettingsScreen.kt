@@ -2234,12 +2234,19 @@ private fun UsbDebuggingToggle() {
     val context = LocalContext.current
     var enabled by remember { mutableStateOf(AdbShell.isUsbDebuggingEnabled(context)) }
     var failed by remember { mutableStateOf(false) }
+    // Shizuku's server is a shell-uid process hosted by adbd, so turning USB debugging off takes it
+    // down with adbd — the same mechanism measured for the Default USB Configuration on 2026-09-05
+    // (issue #28g). This row also recommends turning it ON, which is advice for the embedded-ADB
+    // backend and means nothing to a Shizuku user. Locked, with the reason, rather than hidden: it
+    // still reports the true state, and a control that quietly vanishes teaches nothing.
+    val usesEmbeddedAdb = remember { !AppPreferences(context).getPrivilegedMode().needsShizuku }
 
     SettingsToggleRow(
         icon = Icons.Filled.Usb,
         label = stringResource(R.string.settings_usb_debugging_label),
         description = stringResource(R.string.settings_usb_debugging_description),
         checked = enabled,
+        enabled = usesEmbeddedAdb,
         onCheckedChange = { turnOn ->
             val ok = runCatching {
                 Settings.Global.putInt(context.contentResolver, "adb_enabled", if (turnOn) 1 else 0)
@@ -2249,6 +2256,7 @@ private fun UsbDebuggingToggle() {
         },
     )
     when {
+        !usesEmbeddedAdb -> SettingsHint(stringResource(R.string.settings_usb_debugging_shizuku_hint))
         failed -> SettingsHint(stringResource(R.string.settings_usb_debugging_failed))
         enabled -> SettingsHint(stringResource(R.string.settings_usb_debugging_on_hint))
         else -> SettingsHint(stringResource(R.string.settings_usb_debugging_recommended))

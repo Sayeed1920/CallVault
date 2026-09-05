@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">无法更改 — CallVault 需要它在设置过程中获得的权限。</string>
     <string name="settings_usb_debugging_label">USB 调试</string>
     <string name="settings_usb_debugging_on_hint">CallVault 可以让无线调试保持关闭。请不要把这一项再关掉 — 那样就没有任何接入方式了，无线调试会重新开启。</string>
+    <string name="settings_usb_debugging_shizuku_hint">使用 Shizuku 期间请保持 USB 调试开启。Shizuku 的服务通过 Android 的调试服务启动，并随之停止——Shizuku 模式下 CallVault 不需要这个开关。</string>
     <string name="settings_usb_debugging_recommended">没有这一项，无线调试就必须保持开启。开启它后，CallVault 就能将无线调试关闭。</string>
     <string name="settings_usb_default_applying">正在应用…</string>
     <string name="settings_usb_default_shizuku_hint">使用 Shizuku 期间请勿更改此项。更改会重启 Android 的调试服务，Shizuku 也会随之停止——在下一通电话能被录音之前，你需要重新启动 Shizuku。</string>

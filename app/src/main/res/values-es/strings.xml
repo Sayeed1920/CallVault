@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">No se pudo cambiar: CallVault necesita el permiso que obtiene durante la configuración.</string>
     <string name="settings_usb_debugging_label">Depuración por USB</string>
     <string name="settings_usb_debugging_on_hint">CallVault puede mantener desactivada la depuración inalámbrica. No vuelvas a desactivar esta opción: dejaría a la app sin ninguna vía de acceso, así que la depuración inalámbrica se activaría de nuevo.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Deja la depuración USB activada mientras uses Shizuku. El servicio de Shizuku se inicia a través del servicio de depuración de Android y se detiene con él: CallVault no necesita este interruptor en modo Shizuku.</string>
     <string name="settings_usb_debugging_recommended">Sin esto, la depuración inalámbrica tiene que seguir activada. Si lo activas, CallVault podrá desactivarla.</string>
     <string name="settings_usb_default_applying">Aplicando…</string>
     <string name="settings_usb_default_shizuku_hint">No cambies esto mientras uses Shizuku. Cambiarlo reinicia el servicio de depuración de Android y Shizuku se detiene con él: tendrías que volver a iniciar Shizuku antes de poder grabar la siguiente llamada.</string>

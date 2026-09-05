@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">Không thể thay đổi — CallVault cần quyền mà nó nhận được trong quá trình thiết lập.</string>
     <string name="settings_usb_debugging_label">Gỡ lỗi USB</string>
     <string name="settings_usb_debugging_on_hint">CallVault có thể giữ Gỡ lỗi không dây ở trạng thái tắt. Đừng tắt lại tùy chọn này — khi đó sẽ không còn đường truy cập nào, nên Gỡ lỗi không dây sẽ bật trở lại.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Hãy để bật gỡ lỗi USB khi bạn dùng Shizuku. Dịch vụ của Shizuku được khởi động qua dịch vụ gỡ lỗi của Android và dừng cùng với nó — CallVault không cần công tắc này ở chế độ Shizuku.</string>
     <string name="settings_usb_debugging_recommended">Nếu không có tùy chọn này, Gỡ lỗi không dây phải luôn bật. Bật tùy chọn này thì CallVault có thể tắt nó.</string>
     <string name="settings_usb_default_applying">Đang áp dụng…</string>
     <string name="settings_usb_default_shizuku_hint">Đừng thay đổi mục này khi bạn đang dùng Shizuku. Thay đổi sẽ khởi động lại dịch vụ gỡ lỗi của Android, và Shizuku dừng theo — bạn sẽ phải khởi động lại Shizuku trước khi cuộc gọi tiếp theo có thể được ghi âm.</string>

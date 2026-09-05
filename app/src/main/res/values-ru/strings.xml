@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">Не удалось изменить — CallVault нужно разрешение, которое он получает во время настройки.</string>
     <string name="settings_usb_debugging_label">Отладка по USB</string>
     <string name="settings_usb_debugging_on_hint">CallVault может держать беспроводную отладку отключённой. Не выключайте этот параметр — тогда не останется способа подключиться, и беспроводная отладка снова включится.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Оставьте отладку по USB включённой, пока пользуетесь Shizuku. Служба Shizuku запускается через службу отладки Android и останавливается вместе с ней — в режиме Shizuku CallVault этот переключатель не нужен.</string>
     <string name="settings_usb_debugging_recommended">Без этого беспроводная отладка должна оставаться включённой. Если включить этот параметр, CallVault сможет её отключить.</string>
     <string name="settings_usb_default_applying">Применение…</string>
     <string name="settings_usb_default_shizuku_hint">Не меняйте этот параметр, пока пользуетесь Shizuku. Изменение перезапускает службу отладки Android, и Shizuku останавливается вместе с ней — придётся снова запустить Shizuku, прежде чем следующий звонок можно будет записать.</string>

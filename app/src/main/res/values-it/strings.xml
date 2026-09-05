@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">Non è stato possibile modificarlo: CallVault ha bisogno dell\'autorizzazione che ottiene durante la configurazione.</string>
     <string name="settings_usb_debugging_label">Debug USB</string>
     <string name="settings_usb_debugging_on_hint">CallVault può tenere disattivato il debug wireless. Non disattivare questa opzione: non resterebbe alcuna via di accesso, quindi il debug wireless verrebbe riattivato.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Lascia attivo il debug USB mentre usi Shizuku. Il servizio di Shizuku viene avviato tramite il servizio di debug di Android e si arresta con esso: CallVault non ha bisogno di questo interruttore in modalità Shizuku.</string>
     <string name="settings_usb_debugging_recommended">Senza questo, il debug wireless deve restare attivo. Attivandolo, CallVault può disattivarlo.</string>
     <string name="settings_usb_default_applying">Applicazione…</string>
     <string name="settings_usb_default_shizuku_hint">Non modificare questa impostazione mentre usi Shizuku. Modificarla riavvia il servizio di debug di Android e Shizuku si arresta con esso: dovresti riavviare Shizuku prima che la prossima chiamata possa essere registrata.</string>

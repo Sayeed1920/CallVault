@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">Modification impossible — CallVault a besoin de l\'autorisation qu\'il obtient pendant la configuration.</string>
     <string name="settings_usb_debugging_label">Débogage USB</string>
     <string name="settings_usb_debugging_on_hint">CallVault peut laisser le débogage sans fil désactivé. Ne le redésactivez pas — il ne resterait alors aucun moyen d\'accès, et le débogage sans fil serait réactivé.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Laissez le débogage USB activé tant que vous utilisez Shizuku. Le service de Shizuku est lancé via le service de débogage d\'Android et s\'arrête avec lui — CallVault n\'a pas besoin de ce réglage en mode Shizuku.</string>
     <string name="settings_usb_debugging_recommended">Sans cela, le débogage sans fil doit rester activé. En l\'activant, CallVault pourra le désactiver.</string>
     <string name="settings_usb_default_applying">Application…</string>
     <string name="settings_usb_default_shizuku_hint">Ne modifiez pas ce réglage tant que vous utilisez Shizuku. Le modifier redémarre le service de débogage d\'Android, et Shizuku s\'arrête avec lui — il faudrait relancer Shizuku avant que le prochain appel puisse être enregistré.</string>

@@ -197,6 +197,7 @@
     <string name="settings_usb_debugging_description">Recommended. Lets CallVault switch Wireless debugging off. No cable needed, and unlike Wireless debugging it opens no network port.</string>
     <string name="settings_usb_debugging_recommended">Wireless debugging has to stay on without this. Turning this on lets CallVault switch it off.</string>
     <string name="settings_usb_debugging_on_hint">CallVault can keep Wireless debugging off. Don\'t turn this back off — that would leave no way in, so Wireless debugging comes back on.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Leave USB debugging on while you use Shizuku. Shizuku\'s service is started over Android\'s debugging service and stops when it does — CallVault does not need this switch in Shizuku mode.</string>
     <string name="settings_usb_debugging_failed">Couldn\'t change it — CallVault needs the permission it gets during setup.</string>
     <string name="notif_info_channel">CallVault notices</string>
     <string name="notif_wd_reverted_title">Wireless debugging switched back off</string>

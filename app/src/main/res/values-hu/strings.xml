@@ -311,6 +311,7 @@
     <string name="settings_usb_debugging_failed">Nem sikerült módosítani — a CallVaultnak szüksége van a beállítás során kapott engedélyre.</string>
     <string name="settings_usb_debugging_label">USB hibakeresés</string>
     <string name="settings_usb_debugging_on_hint">A CallVault kikapcsolva tudja tartani a vezeték nélküli hibakeresést. Ne kapcsolja vissza ezt — akkor nem maradna hozzáférés, így a vezeték nélküli hibakeresés újra bekapcsol.</string>
+    <string name="settings_usb_debugging_shizuku_hint">Hagyja bekapcsolva az USB-hibakeresést, amíg Shizukut használ. A Shizuku szolgáltatása az Android hibakeresési szolgáltatásán keresztül indul, és azzal együtt le is áll — a CallVaultnak Shizuku módban nincs szüksége erre a kapcsolóra.</string>
     <string name="settings_usb_debugging_recommended">Enélkül a vezeték nélküli hibakeresésnek bekapcsolva kell maradnia. Ha ezt bekapcsolja, a CallVault ki tudja kapcsolni.</string>
     <string name="settings_usb_default_applying">Alkalmazás…</string>
     <string name="settings_usb_default_shizuku_hint">Ne módosítsa ezt, amíg Shizukut használ. A módosítás újraindítja az Android hibakeresési szolgáltatását, és a Shizuku is leáll vele — újra el kellene indítania a Shizukut, mielőtt a következő hívás rögzíthető lenne.</string>
