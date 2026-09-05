@@ -22,6 +22,8 @@ import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.services.recording.DaemonKeepAliveService
 import com.baba.callvault.system.AppLock
 import com.baba.callvault.ui.screens.AppLockScreen
+import com.baba.callvault.ui.screens.AppLockUi
+import com.baba.callvault.ui.screens.appLockUi
 
 /**
  * MainActivity is the single Android Activity entry point for CallVault.
@@ -45,6 +47,16 @@ class MainActivity : AppCompatActivity() {
     /** Guards against a second prompt while one is already on screen, for the same reason. */
     private var isPrompting = false
 
+    /**
+     * Whether a prompt has come back without authenticating, so the manual way back in is worth
+     * offering. Observable, because the window is drawn from it.
+     *
+     * Starts false on every fresh visit, including after a rotation: the lock card is a recovery
+     * route, not a greeting, and showing it before the prompt has even been asked for is what made
+     * it flash on open.
+     */
+    private var promptDismissed by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Carry an unlock across an Activity recreation — see [onSaveInstanceState] for why this is
@@ -53,12 +65,14 @@ class MainActivity : AppCompatActivity() {
         isUnlocked = savedInstanceState?.getBoolean(KEY_IS_UNLOCKED) == true
         enableEdgeToEdge()
         setContent {
-            if (isUnlocked || !AppLock.isEnabled(this)) {
-                AppNavigationScreen()
-            } else {
+            when (appLockUi(AppLock.isEnabled(this), isUnlocked, promptDismissed)) {
+                AppLockUi.APP -> AppNavigationScreen()
+                // Background only. The prompt is coming or already up, so there is nothing to act on
+                // — drawing the door here is what flashed an "Unlock" card on every open.
+                AppLockUi.WAITING -> AppLockScreen(onUnlock = ::promptForUnlock, showDoor = false)
                 // A door rather than a blank screen: the prompt can be dismissed, and someone who
                 // dismissed it by accident needs a way back in that is not "kill the app".
-                AppLockScreen(onUnlock = ::promptForUnlock)
+                AppLockUi.DOOR -> AppLockScreen(onUnlock = ::promptForUnlock, showDoor = true)
             }
         }
     }
@@ -101,7 +115,12 @@ class MainActivity : AppCompatActivity() {
         // Re-lock on the way out, so returning from the recents list asks again — but a rotation is
         // not a way out. Without this guard the recreated Activity's onStart would fire a second
         // biometric prompt before the restored flag above could be of any use.
-        if (AppLock.isEnabled(this) && !isChangingConfigurations) isUnlocked = false
+        if (AppLock.isEnabled(this) && !isChangingConfigurations) {
+            isUnlocked = false
+            // Cleared with it, so the next visit opens quiet and asks, rather than opening onto a
+            // stale door left over from a prompt dismissed last time.
+            promptDismissed = false
+        }
     }
 
     /**
@@ -122,6 +141,9 @@ class MainActivity : AppCompatActivity() {
     private fun promptForUnlock() {
         if (isPrompting) return
         isPrompting = true
+        // Asking again hides the door for as long as the prompt is up, so tapping Unlock does not
+        // leave the button sitting behind the system sheet.
+        promptDismissed = false
 
         val prompt = BiometricPrompt(
             this,
@@ -137,6 +159,10 @@ class MainActivity : AppCompatActivity() {
                     // lock screen stays, with its own button, so a mis-tap is recoverable without
                     // this having to tell the two apart.
                     isPrompting = false
+                    // This is the ONLY thing that raises the door. Reaching here means the user is
+                    // looking at a locked app with no prompt on it, which is the one moment the
+                    // button is the difference between getting back in and force-stopping.
+                    promptDismissed = true
                 }
 
                 override fun onAuthenticationFailed() {

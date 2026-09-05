@@ -33,11 +33,19 @@ import com.baba.callvault.ui.theme.CallVaultTheme
  *
  * The button matters more than it looks. The biometric prompt can be dismissed with a tap outside it,
  * and without a way to ask again the only route back in would be to force-stop the app.
+ *
+ * @param showDoor whether to draw the wording and the button at all. False while the system prompt is
+ *   on its way or on screen: there is nothing for the user to do then, and drawing it anyway flashed
+ *   an "Unlock" card on every single open. See [appLockUi], which decides this.
  */
 @Composable
-fun AppLockScreen(onUnlock: () -> Unit) {
+fun AppLockScreen(onUnlock: () -> Unit, showDoor: Boolean = true) {
     CallVaultTheme {
+        // The Surface is drawn in both states, and that is the point: the background is identical
+        // whether or not the door is on it, so a dismissed prompt reveals the button without the
+        // screen appearing to change underneath it.
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            if (!showDoor) return@Surface
             Column(
                 modifier = Modifier.fillMaxSize().padding(32.dp),
                 verticalArrangement = Arrangement.Center,
