@@ -843,3 +843,35 @@ We asked the tester to tell us what happened six times because we could not make
 Both bugs found today were reproducible on our own hardware once we tried: this one by matching his
 permission state, and the re-arm bug by exercising the rebuild path at all — it failed 100% of the
 time and never needed his phone. **Reproduce before shipping another build to a user.**
+
+## ❌ Audio route changes do NOT cause the teardown — tested 2026-09-05, do not re-propose
+
+The obvious theory for `CBLK_INVALID` is a mid-call audio route change, since that is what usually
+makes AudioFlinger rebuild a patch. **Tested directly on the OP12 and disproven.**
+
+The maintainer said first that they switch outputs constantly and have never seen a problem, which
+was the right instinct. The measured test, from a host-side logcat capture (not the device ring,
+which is flooded on this ROM):
+
+| moment | time | offset from capture start |
+|---|---|---|
+| capture started | 14:45:39.049 | — |
+| switched to **speaker** | 14:45:41.098 | **+2.0 s** |
+| back to earpiece | 14:45:48.715 | +9.7 s |
+| further switches | to 14:46:16 | — |
+
+His failure fired at **+1.28 s**, so a genuine route change landed within a second of the same
+window. Result: `recording complete: 37.1s encoded of 37.1s captured`, no invalidation, clean
+release. **Route changes are not the trigger.**
+
+What that leaves: something specific to his device, ROM or network, or to the exact timing of capture
+setup there. We have **not** reproduced the invalidation on our hardware and should not pretend a new
+theory is better than the last one without testing it.
+
+### The way to validate recovery without reproducing the cause
+
+We control the recovery, not the teardown. A developer-only trigger that forces the drain to exit
+once as `INVALIDATED` would exercise the rebuild path end to end on our own phone — proving the
+machinery works before a user ever sees it. That is what should have existed before the first re-arm
+build went out: the lost-rendezvous bug failed 100% of the time and needed no special hardware, only
+for someone to run the path once.
