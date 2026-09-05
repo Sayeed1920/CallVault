@@ -20,7 +20,7 @@ localises the crackling defect to one file. Worth saying so when we reply.
 | # | Title | Root cause | Verified? | Severity | State on HEAD |
 |---|---|---|---|---|---|
 | 28 | Crackling in audio | Default carrier path **silently drops a 21 ms PCM chunk** whenever the encoder is busy; the fix already exists in the sibling encoder and was never back-ported | ✅ in code | **Critical** — corrupts the core artefact | Still present |
-| 26 | Transcription estimates wildly off | Believability clamp is defeated by `fallback = measured`; one absurd sample is stored permanently | ✅ in code | High — visible nonsense | Still present |
+| 26 | Transcription estimates wildly off | Believability clamp is defeated by `fallback = measured`; one absurd sample is stored permanently | ✅ in code | High — visible nonsense | 🧪 **FIXED on `fix/transcription-estimates-issue-26`** — awaiting an on-device run |
 | 25 | Wrong timestamps on long pauses | whisper.cpp's VAD maps **any** pause onto a hardcoded 100 ms bridge; post-pause starts interpolate into the silence | ✅ in code | Medium | Still present |
 | 27 | Rotation closes entry + scrolls to top | Activity is recreated; `playbackFor` is `remember`, not `rememberSaveable` | ✅ in code | Medium — daily annoyance | ✅ **VERIFIED on device 2026-09-05** (`fix/rotation-state-issue-27`); one follow-up fix 🧪 |
 
@@ -228,6 +228,38 @@ be before we silence the warning rather than merely re-scoping it.
 
 ## Issue #26 — transcription time estimates are too far off
 
+> ### 🧪 VERIFYING — fixed 2026-09-05 on branch `fix/transcription-estimates-issue-26`
+>
+> Four commits, branched off the verified #27 work (both touch `HomeScreen`, so stacking them beat
+> rebasing later). One concern each, so any can be reverted alone:
+>
+> | commit | covers | change |
+> |---|---|---|
+> | `c01817c` | 26a | call site passes the model's published figure; `blend` now also refuses an unbelievable *fallback* |
+> | `751d1cd` | 26f | elapsed measured on `SystemClock.elapsedRealtime` |
+> | `f09412a` | 26b, 26c | two-term cost model, measured setup, real thread count, new preference prefix |
+> | `f9d680e` | UX | "The first one may take a while" until the phone has measured a run |
+>
+> 1158 unit tests pass (was 1151). Assembles clean.
+>
+> **📐 CALCULATED — what the estimate now says** (turbo-q8_0 seed, before any measurement):
+>
+> | call length | now | before |
+> |---|---|---|
+> | 10 s | 37 s | 11 s (real cost ≈ 40 s) |
+> | 2 min | 2 min 16 s | 2 min 12 s |
+> | 5 min | 5 min 34 s | 5 min 30 s |
+>
+> Long calls barely move, which is the point — they were never the broken case. Short ones stop
+> being fiction, and the absurd-value path is gone entirely.
+>
+> **What is NOT established:** no run has been timed on a real phone since the change. **To settle
+> it:** transcribe something on a phone that has never transcribed with the current model — the
+> confirmation should say "the first one may take a while" — then transcribe a second recording and
+> check the quoted figure is in the right neighbourhood of what it actually takes. A short clip
+> (~10 s) and a longer call (~2 min) should now agree about how fast the phone is; that agreement is
+> the thing the fix is really about.
+
 > "times of < 10 seconds to hours estimated… for recordings in the range of 10 seconds to 2
 > minutes; all calls have transcribed within minutes"
 
@@ -321,16 +353,29 @@ but the dialog estimates only the tapped file. Storage is **one** `Double` per m
 beyond the defeated range check. With VAD on, whisper processes only kept speech while `measure`
 divides by full container duration, adding variance the other way.
 
-### Fix order for #26
+### What was done, and two things deliberately not
 
-1. `TranscriptionRunner.kt:202` — pass the model's published `realTimeFactor` as `fallback`.
-   **One word; closes the "hours" magnitude on its own.**
-2. Refuse to learn from runs under ~60 s of audio.
-3. Move the wipe so it cannot null `stored` on the same run that then writes unclamped.
-4. `TranscriptionRunner.kt:147,178` — `SystemClock.elapsedRealtime()` instead of
-   `System.currentTimeMillis()` (a clock change currently lands in the learned factor; the rest of
-   the codebase already uses monotonic time for durations).
-5. Model `loadMs + rtf × audioMs` and learn both terms — the real fix.
+Done, in the four commits above. One design note worth keeping: the plan said "refuse to learn from
+runs under ~60 s of audio", and that turned out to be both unnecessary and worse than the
+alternative. whisper pads anything under 30 s up to 30 s and does a full window of work regardless,
+so dividing by `max(audio, 30s)` makes a short clip a **valid** sample rather than one to discard.
+The arbitrary threshold disappeared and every run now teaches the estimate something.
+
+The stored figures moved to new preference prefixes (`transcription_rate_v2_`,
+`transcription_load_v2_`) rather than being migrated. What is stored changed meaning — work time over
+billable audio, with the load charged separately — and on an affected phone the old value is absurd
+and would take about thirteen runs to average away. A new prefix retires those quietly with no
+migration code, which is why an already-affected user is fixed by updating rather than by waiting.
+
+**Deliberately not done:**
+
+- **Queue position is still ignored.** `TranscriptionScheduler` chains work one run at a time, but
+  the dialog estimates only the tapped recording — tap three and each is promised its own duration
+  while the third waits for all three. Real, but unreported, and it needs the dialog to know about
+  the queue rather than only about the file. Its own change.
+- **The estimate is not mentioned in the in-app "What's new" card.** The card stays headline-led on
+  merging, which is how 2.3.0 already treats its other fixes; the changelog carries the detail. A
+  sentence is easy to add if wanted.
 
 ---
 

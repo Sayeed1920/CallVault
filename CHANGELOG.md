@@ -38,6 +38,21 @@ All notable changes to CallVault are documented here. The format is based on
   catalogue once, so a recording could sit there looking device-only for as long as the app stayed
   open.
 
+- **Transcription no longer says a two-minute call will take three hours.** The estimate is learned
+  from finished runs, and a check meant to reject an impossible reading let it through on any phone
+  that had not measured one yet — so a single bad reading became that phone's permanent opinion of
+  itself and was quoted back for the next dozen runs.
+
+  The way a run was modelled was wrong underneath that, too. It was treated as purely proportional to
+  the length of the call, when a run also loads an 874 MB model before it looks at any audio, and
+  whisper does a full 30 seconds of work on anything shorter than 30 seconds. A ten-second clip
+  therefore measured as a phone six times slower than it is. Both parts are now measured separately,
+  so a short clip and a long call agree about how fast the phone is.
+
+  Until a phone has timed one run, the confirmation now says the first one may take a while rather
+  than quoting a figure measured on somebody else's hardware. Estimates already stored are discarded
+  once, because they were measuring a different thing; the next run replaces them.
+
 - **Turning the phone no longer throws away what you were doing.** Rotating closed the recording you
   had open and dropped you back at the top of the list — reported by someone who rotates deliberately,
   to read a longer transcript and get a wider waveform. The same thing quietly cleared a multi-selection
