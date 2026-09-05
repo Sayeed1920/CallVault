@@ -386,44 +386,55 @@ be before we silence the warning rather than merely re-scoping it.
 
 ---
 
-### 28g — The Shizuku / USB advice is HARMFUL, and only its symptom was fixed
+### 28g — The Shizuku / USB advice was harmful — ✅ MEASURED, then fixed (2026-09-05 evening)
 
-**🚨 Re-opened 2026-09-05 after the maintainer pushed back. `1c37f1f` fixed the nuisance and left the
-real problem standing.**
+**Fixed in `39136e2`, branch `fix/issue-28g-usb-advice`.** `1c37f1f` had silenced the nag and left the
+advice standing everywhere else.
 
-The reporter wrote three things; the earlier reading took only the first:
+The reporter wrote three things; the first reading took only the first:
 
 > "With Shizuku mode I get a constant warning that lock screen recording may not work because USB is
 > set to file transfer instead of charge only **and if I change it to charge only it stops Shizuku**
 > and after restarting Shizuku USB is switched to debugging"
 
-1. A constant warning — **fixed** in `1c37f1f`.
-2. **Setting charge-only stops Shizuku — NOT addressed.**
-3. Restarting Shizuku flips USB to "debugging" — not addressed; likely Android's own behaviour.
+#### The mechanism is no longer reasoned — it was measured on the OP9 (ColorOS 14, 2026-09-05)
 
-**Why (2) makes our advice dangerous.** Non-root Shizuku's server is a shell-uid process started over
-ADB. Choosing "Charging only" severs USB data and with it the USB transport; if that was adbd's last
-transport, adbd stops and takes its shell-uid children with it. That is the same mechanism this
-project already recorded for its **own** daemon.
+`svc usb setFunctions` / `setScreenUnlockedFunctions` was used to change the USB configuration, with
+`shizuku_server` (pid 12409) and `adbd` (pid 5672) watched across it:
 
-So in Shizuku mode CallVault recommends a setting that **breaks the user's setup**. Suppressing the
-warning was the right call for a better reason than was given at the time — but it is only one of
-four places the advice appears:
+- **adbd restarted** — it came back as pid 18888.
+- **`shizuku_server` was gone**, and did not come back.
+- A plain detached shell script (`setsid`, ppid 1, shell uid) launched beforehand **survived the same
+  event and ran to completion**, so this is not a blanket kill of shell-uid processes; it is specific
+  to how Shizuku's server is hosted.
 
-| where | state |
-|---|---|
-| Home screen warning | ✅ suppressed in Shizuku mode (`1c37f1f`) |
-| `UsbDefaultConfigRow` in Settings | ❌ **shown unconditionally**, labels "Charging only" as *recommended* |
-| `setUsbChargingOnly()` fix-it action | ❌ **silently does nothing** in Shizuku mode — `setViaShell` refuses and only logs |
-| `README.md:129` | ❌ recommends Charging only with **no Shizuku caveat** |
+**It is the renegotiation that does it, not the destination.** The change measured here was *to* a data
+mode, not to charge-only. So every option in our picker is equally unsafe in Shizuku mode — the advice
+was worse than "wrong recommendation", it was "do not touch this control at all".
 
-**Proposed, not done:** in Shizuku mode either hide the USB picker or replace its recommendation with
-a warning that charge-only can stop Shizuku; make the fix-it action say why it declined rather than
-no-op; and add the caveat to the README beside the existing advice.
+⚠️ Measured on ColorOS, and reported by a Samsung user. One UI is not separately confirmed; the
+user-facing wording says what the change *does* (restarts the debugging service), which holds either
+way.
 
-⚠️ The mechanism above is **reasoned, not verified.** Before writing that warning, confirm on a device
-that charge-only really does stop Shizuku. The claim originates with the reporter; our own
-adbd-transport note makes it plausible, not proven.
+#### What changed
+
+| where | before | now |
+|---|---|---|
+| Home screen warning | ✅ suppressed in Shizuku mode (`1c37f1f`) | unchanged |
+| Settings picker | greyed, but still labelled "Charging only (recommended)" | no recommendation in Shizuku mode, and a hint saying what changing it would cost |
+| `setUsbChargingOnly()` fix-it | silently no-ops | unreachable in Shizuku mode anyway; now also refuses **during a recording**, and says so |
+| Settings picker, any mode | applied mid-call, killing the recording | refused while a recording is live, in both callers |
+| `README.md:129` | recommended Charging only, no caveat | carries the Shizuku and mid-call warning |
+
+**The mid-call refusal is new, and was found by this test rather than reported.** Applying a USB change
+restarts adbd, which kills the shell-uid daemon holding the capture. A setting whose entire purpose is
+to stop recordings being lost was able to end one in progress.
+
+#### Side effect worth knowing
+
+The test **stopped Shizuku on the OP9** and it could not be restarted from the host: there is no
+`start.sh` in its external files directory, and invoking `moe.shizuku.server.Starter` over `app_process`
+aborts. It needs a tap in the Shizuku app. Budget for that before running this experiment again.
 
 ## Issue #26 — transcription time estimates are too far off
 
