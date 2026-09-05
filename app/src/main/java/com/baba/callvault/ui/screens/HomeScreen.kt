@@ -100,6 +100,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -243,8 +244,17 @@ fun HomeScreen(
     /** Which recording's transcript is awaiting a delete confirmation, or null. */
     var deleteTranscriptFor by remember { mutableStateOf<String?>(null) }
 
-    /** Which recording is open on the playback screen, or null for the list. */
-    var playbackFor by remember { mutableStateOf<String?>(null) }
+    /**
+     * Which recording is open on the playback screen, or null for the list.
+     *
+     * Saveable, not remembered. Rotation recreates the Activity, and a plain `remember` came back as
+     * null — which closed whatever the user was listening to and dropped them at the top of the list
+     * (issue #27). It also broke an invariant: leaving this screen by hand goes through
+     * `closePlayback`, which stops the audio, whereas rotation only reset the field, so playback
+     * carried on with nothing on screen owning it. Restoring the name fixes both — the screen comes
+     * back, and the audio it belongs to is on it again.
+     */
+    var playbackFor by rememberSaveable { mutableStateOf<String?>(null) }
     // Hoisted deliberately. The whole list leaves composition while a recording is open
     // (`if (playbackFor == null)` below), taking any state remembered inside it — so someone who
     // scrolled to the hundredth call and opened it came back to the top of the list.
