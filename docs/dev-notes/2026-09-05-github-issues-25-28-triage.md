@@ -214,48 +214,75 @@ implementations and no mechanism existed to notice the other two. Compare the me
 *"three capture paths: handoff, direct, voip — anything touching captured audio must be added to
 all three or it silently never runs."* This is that failure mode, realised, on the default path.
 
-### 28b — `AudioRecord` ring overrun — ⏸️ PARKED 2026-09-05, with a plan
+### 28b — `AudioRecord` ring overrun — 🧪 VERIFYING (fixed and measured, 2026-09-05 evening)
 
-**Not fixed, never observed, reproducible whenever we choose to.**
+**Both halves of the plan are done: the loss is counted, AND the loop that caused it is decoupled.**
+Branch `fix/issue-28b-overrun` (`1f54eda`, `f8445df`), off `fix/issue-28-crackling`.
 
-**🚨 The realisation that changes how 28a should be read, found while explaining this on 2026-09-05:**
+**🚨 The realisation that changes how 28a should be read** (found while explaining this on 2026-09-05):
 an overrun produces **the same chunk-aligned splice signature as 28a**. Each `record.read` returns a
 whole 4096-byte chunk, so audio lost *between* two reads still leaves the join exactly on a chunk
-boundary.
+boundary. The reporter's recording **cannot distinguish 28a from 28b**, and until his next report we
+must NOT assume 28a fixed him. That is what the counter is for.
 
-So the reporter's recording **cannot distinguish 28a from 28b**. The statistical evidence
-(p = 5.4 × 10⁻¹⁵ at 1024) proves *chunk-sized audio loss*, not specifically the encoder-drop we fixed.
-**Do not assume 28a fixed him.** The two differ in how much is lost per event — 28a loses exactly
-21.3 ms, an overrun loses whatever accumulated — but that is invisible once the ends are joined.
+#### What was measured, on the OP9, one variable changed
 
-Note also that 28a's fix adds slight pressure here: retrying costs time, and time is what makes the
-loop late. Bounded to three attempts, so it should be negligible, but it is not nothing.
+A 500 ms stall was injected every 25 chunks — the same forcing technique that proved 28a, because our
+own phones win this race every time:
 
-**The plan, when we come back:**
+| the same stall, injected | audio lost |
+|---|---|
+| on the **read** side (i.e. the old single-threaded loop) | **3 460 ms**, 15 events |
+| on the **encode** side, behind the new queue | **0 ms** — backlog peaked at 49 chunks and drained |
 
-1. **Counter first, not the rebuild.** Overruns are detectable without Android telling us anything:
-   compare frames read against elapsed monotonic time. A 30-second recording holding 28 seconds of
-   frames lost two seconds. Device-independent, and the same mechanism the test needs.
-2. **Prove the counter** the way 28a was proven — inject a stall (~200 ms every N chunks), one call,
-   confirm it is caught. Then remove the injection.
-3. **Ship the counter alone.** His next report then says whether overruns happen on his phone, which
-   finally distinguishes 28a from 28b on the hardware that actually has the problem.
-4. **Only then consider the rebuild:** decouple reading from encoding with a queue, so a slow encoder
-   or file write cannot make the loop late. The handoff path already works this way, which is why it
-   is not exposed to this.
+A control run with no stall at all reported nothing, so the counter does not cry wolf.
+
+#### The measurement had to be the clock, and that is a finding
+
+The first build asked the hardware where it was, via `AudioRecord.getTimestamp` — the obvious choice,
+and **it is blind to this exact failure.** In the run where the clock saw 3.46 s missing,
+`framePosition` stayed within a few hundred frames of what we had read, and twice went *negative*. It
+reports frames delivered to the client, not frames the hardware produced, so it only moves when we
+read. A ledger built on it reports a clean run through a catastrophic one. `RingOverrunLedger`'s class
+comment says so; do not reintroduce it.
+
+#### Two things the emulator taught, both worth not rediscovering
+
+- **The emulator cannot reproduce a ring overrun.** Its audio input produces on demand: a 200 ms stall
+  every 50 chunks lost precisely nothing, and frames read tracked the clock exactly. Real hardware is
+  required for anything about capture timing.
+- **`connectedAndroidTest -PisolateTestApp` cannot drive the daemon.** The daemon delivers its binder to
+  the hardcoded authority `com.baba.callvault.recorder`, which under isolation belongs to the *other*
+  (release) install — so `RecorderDaemonRoundTripTest` fails with "never delivered its binder" on any
+  phone that has the release app on it. The proof drives `DirectAudioRecorderSession` directly instead,
+  from a probe run over `app_process` as shell.
+
+#### Where the count surfaces
+
+Not only in the daemon's log, which reaches a bug report **only** through logcat and therefore only if
+the reporter had debug logging on *before* the call — the opposite of what a report about a past call
+can offer. It travels the way speaker turns already do: session → daemon cache at stop →
+`captureDiagnostics()` over the binder → the **app's own** log. Verified at the session level on the
+OP9: `captureDiagnostics='overrunMs=3440 overruns=15'`.
+
+#### What is still open
+
+- **A real two-sided call on the OP12** — nothing here has been through a carrier call yet. The
+  decoupling moves speaker detection and the downmix onto the encode thread, so speaker labels and the
+  channel map are the things to listen for, along with the front of the recording.
+- **His next report** is what finally separates 28a from 28b on the hardware that has the problem.
 
 #### The original finding, for reference
 
-`DirectAudioRecorderSession.kt:253` sizes the ring at `minBuf * BUFFER_FACTOR` (`BUFFER_FACTOR = 4`),
-≈ **80 ms** at 48 kHz stereo. `captureLoop` runs read → speaker detection → downmix →
-`queueInputBuffer` → `drainEncoder` → `mux.writeSampleData` (an actual file write) **all on one
-thread**. Any stall in that chain longer than the ring overruns the `AudioRecord`, which discards
-frames silently — the same splice-pop from the other end of the pipe. Nothing counts or logs it.
+`DirectAudioRecorderSession.kt:253` sized the ring at `minBuf * BUFFER_FACTOR` (`BUFFER_FACTOR = 4`) —
+measured at **7 680 frames (160 ms)** on the OP9 — while `captureLoop` ran read → speaker detection →
+downmix → `queueInputBuffer` → `drainEncoder` → `mux.writeSampleData` (an actual file write) **all on
+one thread**. Any stall in that chain longer than the ring overran the `AudioRecord`, which discards
+frames silently. Nothing counted or logged it.
 
 The handoff path deliberately decoupled ring consumption from downstream for exactly this reason
 (`audiohandoff.cpp:279-284`, *"DECOUPLE ring consumption from downstream … periodic micro-gaps
-(the choppiness)"*). The direct path never got that treatment. Fixing 28a will reduce the stalls
-that cause this, but will not eliminate it.
+(the choppiness)"*). The direct path has that treatment now.
 
 ### 28c — AAC selection kills the next recording — 🧪 FIXED THE SILENCE, not the cause
 
