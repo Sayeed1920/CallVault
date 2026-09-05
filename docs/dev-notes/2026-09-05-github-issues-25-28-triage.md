@@ -284,46 +284,44 @@ The handoff path deliberately decoupled ring consumption from downstream for exa
 (`audiohandoff.cpp:279-284`, *"DECOUPLE ring consumption from downstream … periodic micro-gaps
 (the choppiness)"*). The direct path has that treatment now.
 
-### 28c — AAC selection kills the next recording — 🧪 FIXED THE SILENCE, not the cause
+### 28c — AAC selection kills the next recording — 🧪 VERIFYING (both suspects fixed, 2026-09-05 evening)
 
-**Fixed in `e04d595`.** We still cannot say which AAC setting his device refuses — that needs his
-phone. What is fixed is that the failure is no longer invisible: `CaptureStartCheck` asks
-`isRecording()` three seconds after dispatch, and a live daemon with no capture now raises a
-notification and an explicit log line naming the likely cause.
-
-The design is mostly about *not* crying wolf, since a false "your codec is broken" on an ordinary
-call would be worse than the silence it replaces. A call that ended first reads as STOPPED; an
-unreachable daemon reads as UNKNOWN and defers to the existing daemon-death message; only a
-reachable daemon with no capture is reported.
-
-The two candidate causes below remain unproven and are still worth checking when we can.
+**Fixed in `e04d595` (the silence) and `fe78b95` (the causes), branch `fix/issue-28c-aac`.** We still
+cannot say which AAC setting *his* device refuses — that needs his phone — but all three ways this
+could happen are closed, and none of them needed it.
 
 > "changing from Opus (my preference) to AAC failed to record the next call"
 
-The **actionable finding is not which AAC setting fails — it is that no failure can be seen at all.**
+**⚠️ One claim in the earlier version of this note was wrong, and is corrected here.** It said a stored
+bit rate could never fall back to a codec's default, so switching Opus→AAC always kept 24 kbps. The
+Settings screen never had that bug: `setAudioCodec` already adopted the new codec's recommended rate.
+**The onboarding wizard did not** — `WizardViewModel.setAudioCodec` wrote the codec and nothing else, so
+a codec chosen there kept the previous codec's rate. Two paths, two behaviours, and the wizard's is the
+one that hands AAC 24 kbps. The rule now lives in one place (`AppPreferences.chooseAudioCodec`) and both
+call it. Re-picking the codec already in use no longer overwrites a rate the user deliberately set,
+which the Settings path used to do.
 
-`RecorderServiceImpl.kt:96` — `startRecording(...)` returns `void` (`IRecorderService.aidl:38`),
-and all real work is posted to a worker **after** the binder call returns (`:125-135`). A throw
-inside `startWithFallback` is caught and logged *in the daemon's process*, which has no context
-to write a log file. The app has already returned `true`, and arms only `livenessWatch`
-(`AudioRecordingEngine.kt:201-216`), which calls `pingBinder()` — "is the daemon process alive",
-never "did capture actually start". `isRecording()` exists in the AIDL (`:44`) and is never polled.
+**The encoder we measured was not necessarily the encoder that ran.** `EncoderLimits` took the *first*
+codec advertising the MIME type, while `DirectAudioRecorderSession` created its codec with
+`createEncoderByType`, which makes its own choice — and one that takes the sample rate and channel count
+into account, which first-in-list never did. On a device shipping several AAC encoders (Samsung does;
+it ships exactly one Opus encoder, which is why this could only ever bite AAC) the clamp was computed
+from the wrong ranges. Both now resolve the same encoder for the same format, and the codec is created
+**by name**, so what was measured is what runs.
 
-**So any codec-specific setup failure produces no file, no error, and nothing in the exportable
-log.** This is the same class of blindness that cost five rounds of log-gathering on the stuck-mic
-investigation, and it is worth fixing on its own merits.
+**A refused `configure()` used to end the call.** The direct path threw, and the scrcpy fallback then
+ran with the same rejected settings — nothing recorded, which is exactly the report. It now retries once
+at the codec's own recommended rate before giving up, turning "nothing was recorded" into "recorded, at
+a rate you did not pick", and saying so in the log. No clamp can replace this: an encoder can advertise
+a range that includes a rate and still decline it.
 
-Two candidate triggers, neither confirmed:
-- **Bit-rate carry-over.** `AudioRecordingEngine.kt:258`:
-  `preferences.getAudioBitRate().takeIf { it > 0 } ?: codecEnum.defaultBitRate`. Once a bit rate
-  has ever been set, `ScrcpyAudioCodec.AAC.defaultBitRate = 32000` can never apply. Switching
-  Opus→AAC keeps **24 kbps**, and AAC-LC at 48 kHz mono / 24 kbps is where hardware encoders
-  start refusing `configure()`. The reporter states they were on 24 kbps.
-- **Wrong encoder inspected.** `EncoderLimits.supportsFormat`/`resolveBitRate`
-  (`EncoderLimits.kt:62`, `:96`) pick `codecInfos.firstOrNull { it.isEncoder && … }`, but
-  `MediaCodec.createEncoderByType(mime)` (`DirectAudioRecorderSession.kt:107`) may instantiate a
-  *different* codec. Samsung ships several AAC encoders and one Opus encoder, so this mismatch
-  can only bite AAC.
+Checked on the OP9 (2026-09-05): opus@24k, aac@24k and aac@32k all record, and the resolved encoder is
+logged each time (`c2.android.aac.encoder`, `c2.android.opus.encoder`). That is a no-regression check,
+not a reproduction — this phone never refused AAC in the first place.
+
+**Still open:** which setting his Samsung actually refuses. `CaptureStartCheck` (`e04d595`) is what will
+tell us: a live daemon with no capture three seconds after dispatch now raises a notification and an
+explicit log line naming the likely cause, instead of a silent empty file.
 
 ### 28d — Shizuku loses speaker labels — ✅ RESOLVED, no code, reply only
 
