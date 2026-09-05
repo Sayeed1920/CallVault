@@ -113,16 +113,7 @@ internal class DirectAudioRecorderSession(
         // which is a full-length recording that plays silent. Also logs the encoder and its limits,
         // so a future bug report can answer in one line what issue #18 never could.
         val effectiveBitRate = EncoderLimits.resolveBitRate(mime, bitRate, SAMPLE_RATE, ENCODE_CHANNELS)
-        val format = MediaFormat.createAudioFormat(mime, SAMPLE_RATE, ENCODE_CHANNELS).apply {
-            setInteger(MediaFormat.KEY_BIT_RATE, effectiveBitRate)
-            if (mime == MediaFormat.MIMETYPE_AUDIO_AAC) {
-                setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
-            }
-            setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, MAX_INPUT_SIZE)
-        }
-        val enc = MediaCodec.createEncoderByType(mime).apply {
-            configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-        }
+        val enc = openEncoder(mime, effectiveBitRate)
         encoder = enc
 
         // Create the muxer LAST — the risky AudioRecord/encoder setup above has succeeded, so if we get
@@ -152,6 +143,63 @@ internal class DirectAudioRecorderSession(
             .apply { isDaemon = true; name = "direct-capture-read" }
             .also { it.start() }
     }
+
+    /**
+     * Creates the encoder and configures it, retrying once at the codec's own recommended bit rate.
+     *
+     * **Why the retry (issue #28c).** "Changing from Opus to AAC failed to record the next call." A
+     * `configure()` that a device refuses used to end the attempt: the direct path threw, the scrcpy
+     * fallback ran with the same rejected settings, and the call recorded nothing at all. AAC-LC at
+     * 48 kHz mono is refused by some hardware encoders at the low rates that suit Opus, and no clamp can
+     * prevent it — the encoder advertises a range that includes the rate and then declines it anyway.
+     *
+     * Retrying at the codec's own recommended rate turns "nothing was recorded" into "recorded, at a
+     * rate you did not pick", which is the better failure by a wide margin, and it says so in the log.
+     *
+     * The codec is created BY NAME, so the encoder that runs is the one whose limits were read — see
+     * [EncoderLimits.encoderNameFor].
+     */
+    private fun openEncoder(mime: String, requestedBitRate: Int): MediaCodec {
+        val encoderName = EncoderLimits.encoderNameFor(mime, SAMPLE_RATE, ENCODE_CHANNELS)
+        val rates = listOf(requestedBitRate, codec.defaultBitRate).distinct()
+        var lastFailure: Throwable? = null
+
+        for ((attempt, rate) in rates.withIndex()) {
+            val created = runCatching {
+                val c = if (encoderName != null) MediaCodec.createByCodecName(encoderName)
+                        else MediaCodec.createEncoderByType(mime)
+                runCatching { c.configure(formatFor(mime, rate), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE) }
+                    .onFailure { runCatching { c.release() } } // a refused configure leaves it unusable
+                    .getOrThrow()
+                c
+            }
+            created.getOrNull()?.let { codecInstance ->
+                if (attempt > 0) {
+                    AppLogger.w(
+                        TAG,
+                        "Encoder ${encoderName ?: mime} refused $requestedBitRate bps; recording at " +
+                            "$rate bps (${codec.cliKey}'s recommended rate) instead",
+                    )
+                }
+                return codecInstance
+            }
+            lastFailure = created.exceptionOrNull()
+            AppLogger.w(TAG, "Encoder ${encoderName ?: mime} would not configure at $rate bps: ${lastFailure?.message}")
+        }
+        throw IllegalStateException(
+            "No encoder for $mime would configure at ${rates.joinToString(" or ")} bps",
+            lastFailure,
+        )
+    }
+
+    private fun formatFor(mime: String, bitRate: Int): MediaFormat =
+        MediaFormat.createAudioFormat(mime, SAMPLE_RATE, ENCODE_CHANNELS).apply {
+            setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
+            if (mime == MediaFormat.MIMETYPE_AUDIO_AAC) {
+                setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
+            }
+            setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, MAX_INPUT_SIZE)
+        }
 
     /**
      * Empties the `AudioRecord` ring and does nothing else — issue #28b.

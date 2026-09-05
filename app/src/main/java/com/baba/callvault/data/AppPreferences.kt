@@ -1234,6 +1234,25 @@ class AppPreferences(context: Context) {
     /** Sets the configured audio bitrate. */
     fun setAudioBitRate(bitRate: Int) = setInt(Key.AUDIO_BITRATE, bitRate)
 
+    /**
+     * Chooses the audio codec and brings a workable bit rate with it — issue #28c.
+     *
+     * **Why this is not just [setAudioCodec].** A bit rate that suits one codec need not suit another:
+     * Opus is fine at 24 kbps, while AAC-LC at 48 kHz mono / 24 kbps is where hardware encoders start
+     * refusing to configure, and a refused `configure()` used to mean a call that recorded nothing at
+     * all. Settings adopted the new codec's recommended rate; the onboarding wizard did not, so a codec
+     * chosen there kept the previous codec's rate. Both call this now.
+     *
+     * Only a real CHANGE of codec moves the rate — re-picking what is already selected leaves a rate the
+     * user deliberately chose exactly where it is. An unrecognised key changes nothing at all.
+     */
+    fun chooseAudioCodec(codecKey: String) {
+        val codec = runCatching { ScrcpyAudioCodec.fromKey(codecKey) }.getOrNull() ?: return
+        if (getAudioCodec() == codec.cliKey) return
+        setAudioCodec(codec.cliKey)
+        setAudioBitRate(codec.defaultBitRate)
+    }
+
     // -------- File Naming --------
 
     /** Gets the user configured file name template. */

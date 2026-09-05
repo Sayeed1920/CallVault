@@ -288,11 +288,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      * @param codec The codec key string.
      */
     override fun setAudioCodec(codec: String) {
-        preferences.setAudioCodec(codec)
-        ScrcpyAudioCodec.fromKey(codec).let {
-            // Automatically adjust the bitrate to recommended value when codec changes
-            preferences.setAudioBitRate(it.defaultBitRate)
-        }
+        // One rule, in AppPreferences, so the wizard cannot disagree with this screen — issue #28c.
+        preferences.chooseAudioCodec(codec)
         refresh()
     }
 

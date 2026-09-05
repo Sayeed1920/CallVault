@@ -8,7 +8,9 @@
 
 package com.baba.callvault.server
 
+import android.media.MediaCodecInfo
 import android.media.MediaCodecList
+import android.media.MediaFormat
 import com.baba.callvault.utils.AppLogger
 
 /**
@@ -58,9 +60,7 @@ internal object EncoderLimits {
      */
     fun resolveBitRate(mime: String, requested: Int, sampleRate: Int, channels: Int): Int {
         val caps = runCatching {
-            MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
-                .firstOrNull { it.isEncoder && it.supportedTypes.any { t -> t.equals(mime, ignoreCase = true) } }
-                ?.let { it.name to it.getCapabilitiesForType(mime).audioCapabilities }
+            infoFor(mime, sampleRate, channels)?.let { it.name to it.getCapabilitiesForType(mime).audioCapabilities }
         }.getOrNull()
 
         if (caps?.second == null) {
@@ -92,9 +92,37 @@ internal object EncoderLimits {
 
     /** True when the encoder for [mime] advertises this sample rate and channel count. */
     fun supportsFormat(mime: String, sampleRate: Int, channels: Int): Boolean = runCatching {
-        val audio = MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
-            .firstOrNull { it.isEncoder && it.supportedTypes.any { t -> t.equals(mime, ignoreCase = true) } }
-            ?.getCapabilitiesForType(mime)?.audioCapabilities ?: return true
+        val audio = infoFor(mime, sampleRate, channels)?.getCapabilitiesForType(mime)?.audioCapabilities ?: return true
         audio.isSampleRateSupported(sampleRate) && channels <= audio.maxInputChannelCount
     }.getOrDefault(true)
+
+    /**
+     * The name of the encoder the platform will actually instantiate for this format, or null when it
+     * will not name one. Pass it to `MediaCodec.createByCodecName` so the codec that runs is the codec
+     * whose limits were read.
+     *
+     * **Why this exists (issue #28c).** Everything here used to take the FIRST encoder in the list that
+     * advertised the MIME type, while the recording created its codec with `createEncoderByType`, which
+     * makes its own choice — and one that considers the sample rate and channel count, which the
+     * first-in-list never did. On a device shipping several encoders for one MIME (Samsung ships more
+     * than one AAC encoder, and exactly one Opus encoder, which is why this could only ever bite AAC)
+     * the limits belonged to a codec that was not the one running. The clamp was then computed against
+     * the wrong ranges, and a bit rate the real encoder refuses could sail through unchanged.
+     */
+    fun encoderNameFor(mime: String, sampleRate: Int, channels: Int): String? =
+        runCatching { infoFor(mime, sampleRate, channels)?.name }.getOrNull()
+
+    /**
+     * The encoder the platform picks for this exact format, falling back to the first that advertises
+     * the MIME type when it names none — which is what this file did for every device before.
+     */
+    private fun infoFor(mime: String, sampleRate: Int, channels: Int): MediaCodecInfo? {
+        val list = MediaCodecList(MediaCodecList.REGULAR_CODECS)
+        val chosen = runCatching {
+            list.findEncoderForFormat(MediaFormat.createAudioFormat(mime, sampleRate, channels))
+        }.getOrNull()
+        val infos = list.codecInfos
+        return infos.firstOrNull { it.name == chosen }
+            ?: infos.firstOrNull { it.isEncoder && it.supportedTypes.any { t -> t.equals(mime, ignoreCase = true) } }
+    }
 }

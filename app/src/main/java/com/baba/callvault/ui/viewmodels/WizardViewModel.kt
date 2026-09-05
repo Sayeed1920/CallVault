@@ -115,7 +115,9 @@ class WizardViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Persists the audio codec CLI key (e.g. "opus", "aac"). */
     fun setAudioCodec(codec: String) {
-        preferences.setAudioCodec(codec)
+        // Adopts the codec's recommended bit rate, exactly as the Settings screen does. It used not
+        // to, so a codec chosen here kept the previous one's rate — issue #28c.
+        preferences.chooseAudioCodec(codec)
         bump()
     }
 
