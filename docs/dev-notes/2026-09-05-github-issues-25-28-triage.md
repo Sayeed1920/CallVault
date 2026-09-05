@@ -1,6 +1,26 @@
 # GitHub issues #25–#28 — code triage
 
 **Date:** 2026-09-05
+> ## ⏸️ ON HOLD as of 2026-09-05
+>
+> All four issues are parked to make room for the stuck-mic work, which now has a confirmed root
+> cause (see `2026-09-03-shell-mic-open-first-evidence.md`). Nothing here is abandoned and nothing is
+> half-finished: #27 and #26 are complete on their branches, #25 and #28 are diagnosed but untouched.
+>
+> | issue | state when parked | what unblocks it |
+> |---|---|---|
+> | #27 | ✅ fixed, verified on device | nothing — ready to merge |
+> | #26 | 🧪 fixed, **waiting on real-world ETA numbers** | the maintainer transcribing a short clip and a long call on `2.3.0-est26` and reporting quoted vs actual |
+> | #28 | diagnosed only, no code | a decision on the bounded-retry fix (see 28a) |
+> | #25 | diagnosed only, no code | a check of upstream whisper.cpp, then a session of its own |
+>
+> **The one open loop to remember:** #26's fix is unverified in the real world. The arithmetic is
+> checked and 1158 tests pass, but no run has been timed on a phone since the change. Until those
+> numbers come back it stays 🧪, however good the reasoning looks.
+>
+> Neither branch is merged. `fix/transcription-estimates-issue-26` is stacked on
+> `fix/rotation-state-issue-27`, which is stacked on `8e3059e`.
+
 **Status:** every finding below was read out of the source and independently re-checked. The
 document began as pure triage with no code changed; **#27 and #26 have since been fixed** and carry
 their own status blocks in their sections — trust those over this header, and over the "Suggested

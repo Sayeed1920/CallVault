@@ -1,13 +1,19 @@
 # Shell mic open: the bug is real, our evidence was not
 
-**Status: 🧪 OPEN — the bug is REAL and CONFIRMED. What was disproven is only our *evidence* for it.**
+**Status: 🎯 ROOT CAUSE CONFIRMED 2026-09-05 — see "Report (30)" below, which supersedes the
+uncertainty in the rest of this document.**
 
-**🚨 Read this before anything else. The microphone has been CONFIRMED ON by the maintainer.** This
-document does not say the problem is imaginary; it says the diagnostic we built to find it reports
-something unrelated, and that we therefore currently have **no working evidence at all**. Those are
-different claims, and an earlier revision of this file wrongly conflated them into "false positive".
+`CBLK_INVALID` is no longer an inference. The tester's report (30), taken on `2.3.0-rearm1`, contains
+AudioFlinger tearing the record track down 1.28 s into a call, in our own log, in words. Every
+question this document was written to answer is answered there.
 
-Something is holding `OP_RECORD_AUDIO`. We cannot presently see what.
+Two things changed with it:
+
+- **The mic-leak half looks fixed.** Every capture in report (30) opens and releases cleanly — eight
+  of eight, each ending "no capture left open in this process". Needs a *system* report (app-ops) to
+  confirm the green dot itself, since a debug report cannot see app-ops.
+- **The re-arm fix does not work, and cannot**, as written. It has a lost-rendezvous bug of our own
+  making. Details below.
 
 Date: 2026-09-03. Supersedes the first version of this document, which concluded the opposite.
 
@@ -656,3 +662,129 @@ registers a dynamic policy. The one directly relevant thread is
 [scrcpy #4380](https://github.com/Genymobile/scrcpy/issues/4380), the origin of our
 `ROUTE_FLAG_LOOP_BACK_RENDER` + `createAudioRecordSink()` recipe; nobody there raises the indicator or
 policy teardown either.
+
+---
+
+# 🎯 Report (30), 2026-09-05 — `2.3.0-rearm1` (20313). Root cause confirmed; the fix has its own bug
+
+Source: `~/Downloads/callvault_debug_report (30).txt`, 392 lines, generated 2026-09-05 12:50.
+Same device as before: OnePlus **CPH2653** (OnePlus 13 EEA), Android 16, ROM
+`CPH2653_16.0.10.501(EX01)`. STANDALONE, resilient recording **on**, VoIP on.
+Includes the daemon's own 79 lines merged by timestamp — the diagnostics work end to end.
+
+## 1. `CBLK_INVALID` is confirmed, in words, in our own log
+
+```
+11:04:54.512 [I] drain segment: streamed=241920B elapsed=1279ms dropped=0frames/0overruns
+11:04:54.513 [E] handoff drain ended EARLY after 48000Hz capture:
+                 TRACK INVALIDATED by AudioFlinger (CBLK_INVALID) — capture torn down mid-call
+```
+
+This was previously established only by elimination. It is now observed. **Do not re-open that
+question.** Note `dropped=0 frames / 0 overruns` — we were keeping up perfectly; the platform simply
+took the track away 1.28 s in.
+
+The completeness check also fired exactly as designed:
+
+```
+11:05:18.050 [E] RECORDING IS SHORT: only 1,3s of audio for a 24,8s capture (5%).
+                 The rest of the call is NOT in the file — see the drain/encode lines above for why.
+```
+
+A 25-second call produced a **2051-byte** file. Two later calls on the same build drained normally
+(76 s and 504 s, both ending "stop requested (normal end of recording)"), so this remains
+**intermittent**, as it always has been.
+
+## 2. The re-arm fired correctly, built a healthy capture, and then threw it away
+
+The recovery worked right up to the last step:
+
+```
+11:04:54.513 [W] rebuilding the capture, attempt 1/3 (call is still up)
+11:04:54.944 [I] capture#3 released ... (still live: 0)          <- clean release of the dead track
+11:04:55.007 [I] capture#4 opened  ... (now live: 1)             <- NEW CAPTURE CREATED FINE
+11:04:55.009 [I] extracted IAudioRecord ping=true — delivering to app
+11:04:59.013 [E] re-armed handoff arrived but nothing was waiting for it — closing it
+11:05:03.018 [E] no re-armed capture arrived within 4000ms
+11:05:03.019 [E] capture rebuild failed — the recording ends here
+```
+
+We created a working replacement capture and closed it 4 seconds later for want of a receiver.
+
+## 3. Why — a lost rendezvous, structural, not a fluke
+
+`HandoffReceiver.rebuild()` (around line 415) does:
+
+```kotlin
+awaitingRearm = true
+if (!ask()) { ... }                                    // request the new capture — BLOCKS
+rearmed.poll(REARM_WAIT_MS, MILLISECONDS)              // only NOW start waiting
+```
+
+and the delivery side does:
+
+```kotlin
+rearmed.offer(Rearm(...), REARM_WAIT_MS, MILLISECONDS) // SynchronousQueue — needs a taker PRESENT
+```
+
+`rearmed` is a **`SynchronousQueue`**, which has no capacity: an `offer` only succeeds if a taker is
+*already waiting*. But the delivery happens **inside `ask()`** — the daemon calls back into the app
+before the request returns — so the taker cannot possibly be waiting yet. The thread that would take
+it is the one still blocked in `ask()`.
+
+The timestamps confirm this to the millisecond, and it is worth writing down because it is what turns
+a plausible story into a settled one:
+
+| moment | time | arithmetic |
+|---|---|---|
+| daemon begins delivering | 11:04:55.009 | — |
+| `offer` gives up | 11:04:59.013 | **55.013 + 4000 ms** — it waited its *entire* timeout |
+| `ask()` returns, `poll` starts | 11:04:59.018 | — |
+| `poll` gives up | 11:05:03.018 | **59.018 + 4000 ms** — it too waited its entire timeout |
+
+Both sides burned a full 4-second timeout **in sequence, never overlapping**. That is not a narrow
+race that sometimes loses; the two windows are consecutive by construction, so **the re-arm can never
+succeed on this path.** It also explains the otherwise-suspicious "4-second binder delivery": the
+daemon's delivery call was slow because *our own `offer` was blocking it* for its full timeout.
+
+Cost to the user: 8.5 s of dead time, a discarded healthy capture, and the recording ends anyway.
+
+## 4. The fix (not yet written)
+
+Stop requiring a rendezvous. The delivery must be able to *deposit* the capture with nobody waiting:
+
+- Replace `SynchronousQueue` with a one-slot buffering queue (`ArrayBlockingQueue(1)`), so `offer`
+  succeeds immediately and `poll` finds it already there when `ask()` returns.
+- Drain and close any stale contents of the slot **before** calling `ask()`, so a late delivery from a
+  previous attempt cannot be mistaken for this one's.
+- On give-up, drain the slot and close whatever is in it, or the fd leaks.
+- The `offer` should then be untimed (it cannot block), which also stops us holding a daemon binder
+  thread for 4 seconds.
+
+⚠️ **Do not simply raise `REARM_WAIT_MS`.** The windows are sequential, so a longer timeout makes the
+failure slower, not less likely.
+
+## 5. What this says about the microphone itself
+
+**No capture leaked anywhere in this report.** Captures #1–#8, across carrier calls and VoIP calls,
+each log an open, a release, and "no capture left open in this process". The failed call included:
+
+```
+11:05:18.058 [I] IAudioRecord.stop accepted from the app (delivered=true)
+11:05:18.104 [I] capture#4 released ... (still live: 0)
+11:05:18.104 [I] after releasing the handoff capture: no capture left open in this process
+```
+
+So the `IAudioRecord.stop()`-before-release fix (`a5efcd8`) is doing its job on this device, and the
+app process is not holding a recorder open after a call.
+
+**This is not yet proof the green dot is gone.** A debug report cannot see app-ops; only the *system*
+report can, and none was attached this time. Ask for a system report taken **while the dot is
+showing**. If the dot still appears with a clean capture ledger, the holder is outside our app
+process and the next place to look is the daemon's own `AudioRecord`, not the app's.
+
+## 6. Config worth noting
+
+`WRITE_SECURE_SETTINGS: false` on this device, with USB debugging on and Wireless debugging off.
+Not implicated in this failure — the daemon was connected and recording — but it is the grant that
+install-over drops, and it is worth telling the tester to re-arm it.
