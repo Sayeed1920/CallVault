@@ -363,6 +363,18 @@ open class RecorderServiceImpl(private val apkPath: String) : IRecorderService.S
 
     override fun drainDiagnostics(): Array<String> = AppLogger.drainRing().toTypedArray()
 
+    /**
+     * Runs one named diagnostic dump as the shell user.
+     *
+     * The whitelist lives in [DiagnosticDumps], on this side of the binder, so the app can only ask
+     * for a dump by name and never say what should run. See that class for why the app stopped
+     * collecting these over its own ADB shell.
+     */
+    override fun diagnosticDump(key: String?, arg: String?): String? {
+        if (key == null) return null
+        return DiagnosticDumps.run(key, arg)
+    }
+
     override fun killStaleRecorders() {
         // Kills EVERY other CallVault recorder process, of either kind, leaving only this one.
         //

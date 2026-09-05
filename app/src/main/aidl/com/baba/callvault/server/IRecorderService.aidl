@@ -252,4 +252,21 @@ interface IRecorderService {
      * continue into the SAME file once the phone call is over.
      */
     void setVoipSuspended(boolean suspended);
+
+    /**
+     * Runs one of a fixed set of diagnostic dumps as the shell user and returns its output.
+     *
+     * This is how the system half of a debug report is collected. It used to be gathered by the app
+     * opening its own ADB shell — seven round-trips, each able to reconnect, behind a 45-second
+     * budget — which silently produced half a report on any phone whose transport was unhealthy.
+     * The daemon is already the shell user and already reachable over this binder, so it needs no
+     * Wireless Debugging, no WRITE_SECURE_SETTINGS and no transport at all.
+     *
+     * {@code key} NAMES a dump; it is never a command. The daemon holds the whitelist, so nothing
+     * that reaches this binder can choose what runs. {@code arg} is used only by the logcat-size
+     * restore and is refused unless it is a plain buffer size.
+     *
+     * @return the dump's output, or null if the key is unknown or the dump failed.
+     */
+    String diagnosticDump(String key, String arg);
 }

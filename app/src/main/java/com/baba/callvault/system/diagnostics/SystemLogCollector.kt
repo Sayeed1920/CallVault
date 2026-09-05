@@ -11,6 +11,7 @@ package com.baba.callvault.system.diagnostics
 import android.content.Context
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.integrations.adb.AdbShell
+import com.baba.callvault.server.RecorderConnection
 import com.baba.callvault.utils.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,7 +58,7 @@ object SystemLogCollector {
     suspend fun onLoggingEnabled(context: Context) = withContext(Dispatchers.IO) {
         val prefs = AppPreferences(context)
         if (prefs.getLogcatRingPreviousKib() == null) {
-            val current = LogcatRing.parseMainSizeKib(runShell(context, "logcat -g"))
+            val current = LogcatRing.parseMainSizeKib(dump(context, "logcat_size", "logcat -g"))
             if (current == null) {
                 // Unreadable. Grow anyway — a bigger ring is the point — but record nothing, so the
                 // restore path leaves the buffer alone rather than shrinking it to a guess.
@@ -67,7 +68,7 @@ object SystemLogCollector {
                 AppLogger.i(TAG, "Logcat ring was ${current} KiB; growing to ${LogcatRing.TARGET_SIZE}")
             }
         }
-        runShell(context, LogcatRing.growCommand(), expectOutput = false)
+        dump(context, "logcat_grow", LogcatRing.growCommand(), expectOutput = false)
         Unit
     }
 
@@ -79,7 +80,7 @@ object SystemLogCollector {
             AppLogger.i(TAG, "No recorded logcat ring size; leaving the buffer as it is")
             return@withContext
         }
-        runShell(context, LogcatRing.restoreCommand(previous), expectOutput = false)
+        dump(context, "logcat_restore", LogcatRing.restoreCommand(previous), arg = "${previous}K", expectOutput = false)
         prefs.setLogcatRingPreviousKib(null)
         AppLogger.i(TAG, "Logcat ring restored to ${previous} KiB")
     }
@@ -91,7 +92,7 @@ object SystemLogCollector {
      * share sheet can read from.
      */
     suspend fun buildReport(context: Context): File? = withContext(Dispatchers.IO) {
-        val raw = runShell(context, "logcat -b main -b system -d -v threadtime")
+        val raw = dump(context, "logcat_dump", "logcat -b main -b system -d -v threadtime")
         if (raw.isNullOrBlank()) {
             AppLogger.w(TAG, "No logcat output; the system report will not be attached")
             return@withContext null
@@ -108,7 +109,7 @@ object SystemLogCollector {
         // because it answers a question logcat cannot: a capture leaked by a process that has since
         // died, or by a leftover scrcpy server, leaves no log line anywhere — but it is still listed
         // here, and it is still lighting the green dot on the user's screen.
-        val micActivity = RecordActivityReport.render(runShell(context, "dumpsys audio"))
+        val micActivity = RecordActivityReport.render(dump(context, "dumpsys_audio", "dumpsys audio"))
 
         // The app-op that actually drives the green dot. Collected because the section above CANNOT
         // answer the question it looks like it answers: its ring log cannot pair system-only sources
@@ -125,13 +126,13 @@ object SystemLogCollector {
         // directly, and the parser would credit the microphone to it. Falls back to the raw dump if
         // the device's grep does not take the expression, so a picky ROM loses speed, not the section.
         val micOps = MicOpReport.render(
-            runShell(context, MIC_OPS_COMMAND) ?: runShell(context, "dumpsys appops")
+            dump(context, "appops_mic", MIC_OPS_COMMAND) ?: dump(context, "appops_all", "dumpsys appops")
         )
 
         // How many privileged recorders are alive. Paired with the section above on purpose: an open
         // capture plus more than one recorder process names an orphan that outlived its replacement,
         // which is the one arrangement neither the app's log nor the live daemon's ledger can show.
-        val recorders = RecorderProcessReport.render(runShell(context, "ps -A -o USER,PID,ARGS"))
+        val recorders = RecorderProcessReport.render(dump(context, "processes", "ps -A -o USER,PID,ARGS"))
 
         val dir = File(context.cacheDir, "logs").apply { mkdirs() }
         val out = File(dir, REPORT_NAME)
@@ -177,6 +178,41 @@ object SystemLogCollector {
      * bit us on the first device test — `logcat -G 8M` took effect and `logcat -g` returned nothing,
      * so the ring grew with no recorded size to restore it to.
      */
+    /**
+     * One diagnostic dump, preferring the daemon and falling back to the app's own ADB shell.
+     *
+     * **The daemon first, and this is the fix for a real failure.** Collecting these over ADB means
+     * seven round-trips, each able to force a reconnect, behind the share screen's 45-second budget.
+     * On a phone whose transport is unhealthy that budget runs out and the user silently receives
+     * half a report — which cost a tester six rounds of pointless back-and-forth before we
+     * reproduced it on our own OP12 by revoking WRITE_SECURE_SETTINGS.
+     *
+     * The daemon is already the shell user and already connected over binder, so it needs no
+     * Wireless Debugging, no WRITE_SECURE_SETTINGS, no transport and no retries. It also works in
+     * Shizuku mode, where the ADB path below deliberately refuses to run at all.
+     *
+     * @param key names a dump; the whitelist that turns it into a command lives in the daemon.
+     * @param fallbackCommand the same dump as a shell command, for when no daemon is connected.
+     */
+    private fun dump(
+        context: Context,
+        key: String,
+        fallbackCommand: String,
+        arg: String? = null,
+        expectOutput: Boolean = true,
+    ): String? {
+        RecorderConnection.service?.let { service ->
+            val out = runCatching { service.diagnosticDump(key, arg) }
+                .onFailure { AppLogger.d(TAG, "daemon dump '$key' failed: ${it.message}") }
+                .getOrNull()
+            // Empty is a real answer for the commands that print nothing on success, so only fall
+            // back when the daemon gave us nothing at all.
+            if (out != null && (!expectOutput || out.isNotBlank())) return out
+            AppLogger.d(TAG, "daemon dump '$key' gave nothing; falling back to the ADB shell")
+        }
+        return runShell(context, fallbackCommand, expectOutput)
+    }
+
     private fun runShell(context: Context, command: String, expectOutput: Boolean = true): String? {
         // Shizuku mode has no embedded ADB connection, and driving one anyway does real damage: this
         // collector is the reason toggling the debug-logging setting switched **Wireless debugging on**
