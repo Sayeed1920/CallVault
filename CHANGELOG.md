@@ -29,6 +29,30 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **The crackling in call recordings is fixed, and both causes of it are.** On phones that could not
+  quite keep up, the recorder threw away a 21-millisecond fragment of the call and joined the audio
+  either side of it — silence sounded fine, but a cut through the middle of a word became a click.
+  Reported by someone who noticed it only when there was speech. Fragments are no longer dropped, and
+  the part of the recorder that reads the microphone now runs on its own, so nothing else being slow
+  can starve it. If a phone still loses audio, the recording says how much rather than hiding it.
+
+- **Switching the recording format to AAC no longer costs you the next call.** Choosing a format in
+  the setup wizard kept the previous format's bit rate, which some phones' encoders refuse outright —
+  and a refusal meant a call that recorded nothing at all, silently. The format now brings a workable
+  bit rate with it wherever you choose it, and if a phone still refuses, the recorder tries again at
+  the rate that format is meant for instead of giving up.
+
+- **A recording that never starts now says so.** The recorder could accept a call, fail to open the
+  microphone, and leave you with nothing — no error, no file, nothing in the log. It now checks that
+  capture really began and tells you when it did not.
+
+- **CallVault no longer recommends a USB setting that stops Shizuku.** Changing the phone's Default
+  USB configuration restarts Android's debugging service, and Shizuku's server stops with it — so the
+  advice that makes recording more reliable for everyone else broke the setup of anyone using Shizuku,
+  as one of them reported. That advice, and the USB debugging switch beside it, are now explained
+  rather than recommended in Shizuku mode. The setting is also never changed during a call, where
+  applying it would have ended the recording in progress.
+
 - **The list keeps your place.** Scrolling a long way down, opening a recording and coming back put
   you at the top of the list again. A **Top** button also appears once you have scrolled far enough
   to want it.
