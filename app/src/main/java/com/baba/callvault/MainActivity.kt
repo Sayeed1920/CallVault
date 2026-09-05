@@ -47,6 +47,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Carry an unlock across an Activity recreation — see [onSaveInstanceState] for why this is
+        // only ever set for a configuration change. Read before setContent so the first composition
+        // draws the app rather than the lock screen and then swaps.
+        isUnlocked = savedInstanceState?.getBoolean(KEY_IS_UNLOCKED) == true
         enableEdgeToEdge()
         setContent {
             if (isUnlocked || !AppLock.isEnabled(this)) {
@@ -78,10 +82,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Carries the unlock across an Activity recreation, and ONLY across a recreation.
+     *
+     * Guarded on [isChangingConfigurations] deliberately. Rotating the phone is not leaving the app,
+     * and re-prompting for a fingerprint every time the phone turns in someone's hand is both
+     * useless as security and enough to make the lock not worth having. But this same bundle comes
+     * back after the process is killed and restored from recents, which very much IS leaving — so
+     * nothing is written in that case and [onCreate] reads false, leaving the app locked.
+     */
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (isChangingConfigurations) outState.putBoolean(KEY_IS_UNLOCKED, isUnlocked)
+    }
+
     override fun onStop() {
         super.onStop()
-        // Re-lock on the way out, so returning from the recents list asks again.
-        if (AppLock.isEnabled(this)) isUnlocked = false
+        // Re-lock on the way out, so returning from the recents list asks again — but a rotation is
+        // not a way out. Without this guard the recreated Activity's onStart would fire a second
+        // biometric prompt before the restored flag above could be of any use.
+        if (AppLock.isEnabled(this) && !isChangingConfigurations) isUnlocked = false
     }
 
     /**
@@ -132,5 +152,10 @@ class MainActivity : AppCompatActivity() {
                 .setAllowedAuthenticators(AppLock.allowedAuthenticators())
                 .build()
         )
+    }
+
+    private companion object {
+        /** Survives an Activity recreation only; never written when the process is going away. */
+        const val KEY_IS_UNLOCKED = "is_unlocked"
     }
 }
