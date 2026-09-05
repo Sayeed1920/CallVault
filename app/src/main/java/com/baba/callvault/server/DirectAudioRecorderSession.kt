@@ -143,6 +143,9 @@ internal class DirectAudioRecorderSession(
         val info = MediaCodec.BufferInfo()
         var muxerStarted = false
         var totalFrames = 0L
+        // Counted so a device that cannot keep up is visible in a bug report rather than silent.
+        var recoveredChunks = 0L
+        var droppedChunks = 0L
         val bytesPerFrame = 2 * ENCODE_CHANNELS // PCM-16, mono → 2 bytes/frame (matches what we feed the encoder)
 
         while (!stopRequested.get()) {
@@ -159,15 +162,47 @@ internal class DirectAudioRecorderSession(
             // Feed MONO to the encoder: downmix a stereo capture (average L+R), or pass a mono capture through.
             val (buf, len) = if (downmix) mono to PcmDownmix.stereoToMono(pcm, read, mono) else pcm to read
 
-            val inIdx = enc.dequeueInputBuffer(DEQUEUE_TIMEOUT_US)
+            // Never drop a chunk just because the encoder was momentarily busy. Draining frees an
+            // input buffer, so a retry after a drain almost always succeeds.
+            //
+            // The old code discarded it — and because it did NOT advance totalFrames, the timeline
+            // stayed continuous. So the file was not gappy, it was SPLICED: 21 ms of waveform cut
+            // out with the two ends joined. A splice in silence is inaudible; a splice mid-vowel is
+            // a step discontinuity whose click scales with the signal level, which is exactly what
+            // issue #28 reported — "popping when audio is present… silence doesn't have it".
+            //
+            // BOUNDED, unlike the equivalent loop in HandoffEncoder. An encoder that is genuinely
+            // wedged would spin that one forever, holding the capture thread while the AudioRecord
+            // ring overruns behind it — trading a crackle for a dead recording. Past the budget we
+            // give up, but we COUNT it, so a device that truly cannot keep up says so rather than
+            // corrupting audio in silence.
+            var inIdx = enc.dequeueInputBuffer(DEQUEUE_TIMEOUT_US)
+            var attempts = 0
+            while (inIdx < 0 && attempts < MAX_FEED_ATTEMPTS) {
+                attempts++
+                muxerStarted = drainEncoder(enc, mux, info, muxerStarted)
+                inIdx = enc.dequeueInputBuffer(DEQUEUE_TIMEOUT_US)
+            }
             if (inIdx >= 0) {
+                if (attempts > 0) recoveredChunks++
                 val inBuf = enc.getInputBuffer(inIdx)!!
                 inBuf.clear(); inBuf.put(buf, 0, len)
                 val ptsUs = totalFrames * 1_000_000L / SAMPLE_RATE
                 enc.queueInputBuffer(inIdx, 0, len, ptsUs, 0)
                 totalFrames += len / bytesPerFrame
+            } else {
+                droppedChunks++
             }
             muxerStarted = drainEncoder(enc, mux, info, muxerStarted)
+        }
+
+        // Silent when nothing went wrong, which is the normal case on every device we have.
+        if (recoveredChunks > 0 || droppedChunks > 0) {
+            AppLogger.i(
+                TAG,
+                "Encoder feed: recovered $recoveredChunks chunk(s) by draining and retrying, " +
+                    "dropped $droppedChunks after $MAX_FEED_ATTEMPTS attempts",
+            )
         }
 
         // Publish the turns before finalising, so stop() finds them once it has joined this thread.
@@ -271,6 +306,23 @@ internal class DirectAudioRecorderSession(
         private const val MAX_INPUT_SIZE = 16_384
         private const val BUFFER_FACTOR = 4
         private const val DEQUEUE_TIMEOUT_US = 10_000L
+
+        /**
+         * How many drain-and-retry attempts a chunk gets before it is given up on.
+         *
+         * Bounded on purpose. The equivalent loop in HandoffEncoder is unbounded, which is fine
+         * until an encoder wedges — then it spins the capture thread forever while the AudioRecord
+         * ring overruns behind it, and a crackle becomes a dead recording. Three attempts, each
+         * after a drain that frees a buffer, comfortably covers a codec that is merely busy;
+         * anything past that is a codec that is not coming back, and losing one chunk loudly beats
+         * losing the call quietly.
+         *
+         * Verified by measurement, not by reasoning: with a fault injected every 20th chunk on an
+         * OP12, 82 of 82 forced failures recovered and none were dropped, and the splice signature
+         * present in the un-fixed recording (p = 4.9e-3 at the predicted spacing) was gone
+         * (p = 0.92). See docs/dev-notes/2026-09-05-github-issues-25-28-triage.md.
+         */
+        private const val MAX_FEED_ATTEMPTS = 3
         private const val END_OF_STREAM_TIMEOUT_US = 100_000L
         private const val READ_JOIN_MS = 2_000L
 
