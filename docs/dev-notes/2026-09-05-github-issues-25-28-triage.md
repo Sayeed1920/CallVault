@@ -214,7 +214,37 @@ implementations and no mechanism existed to notice the other two. Compare the me
 *"three capture paths: handoff, direct, voip — anything touching captured audio must be added to
 all three or it silently never runs."* This is that failure mode, realised, on the default path.
 
-### 28b — `AudioRecord` ring overrun (MEDIUM, same symptom, second source)
+### 28b — `AudioRecord` ring overrun — ⏸️ PARKED 2026-09-05, with a plan
+
+**Not fixed, never observed, reproducible whenever we choose to.**
+
+**🚨 The realisation that changes how 28a should be read, found while explaining this on 2026-09-05:**
+an overrun produces **the same chunk-aligned splice signature as 28a**. Each `record.read` returns a
+whole 4096-byte chunk, so audio lost *between* two reads still leaves the join exactly on a chunk
+boundary.
+
+So the reporter's recording **cannot distinguish 28a from 28b**. The statistical evidence
+(p = 5.4 × 10⁻¹⁵ at 1024) proves *chunk-sized audio loss*, not specifically the encoder-drop we fixed.
+**Do not assume 28a fixed him.** The two differ in how much is lost per event — 28a loses exactly
+21.3 ms, an overrun loses whatever accumulated — but that is invisible once the ends are joined.
+
+Note also that 28a's fix adds slight pressure here: retrying costs time, and time is what makes the
+loop late. Bounded to three attempts, so it should be negligible, but it is not nothing.
+
+**The plan, when we come back:**
+
+1. **Counter first, not the rebuild.** Overruns are detectable without Android telling us anything:
+   compare frames read against elapsed monotonic time. A 30-second recording holding 28 seconds of
+   frames lost two seconds. Device-independent, and the same mechanism the test needs.
+2. **Prove the counter** the way 28a was proven — inject a stall (~200 ms every N chunks), one call,
+   confirm it is caught. Then remove the injection.
+3. **Ship the counter alone.** His next report then says whether overruns happen on his phone, which
+   finally distinguishes 28a from 28b on the hardware that actually has the problem.
+4. **Only then consider the rebuild:** decouple reading from encoding with a queue, so a slow encoder
+   or file write cannot make the loop late. The handoff path already works this way, which is why it
+   is not exposed to this.
+
+#### The original finding, for reference
 
 `DirectAudioRecorderSession.kt:253` sizes the ring at `minBuf * BUFFER_FACTOR` (`BUFFER_FACTOR = 4`),
 ≈ **80 ms** at 48 kHz stereo. `captureLoop` runs read → speaker detection → downmix →
@@ -330,6 +360,45 @@ shell-uid daemon. Whether a Shizuku-hosted recorder is immune has **not** been v
 be before we silence the warning rather than merely re-scoping it.
 
 ---
+
+### 28g — The Shizuku / USB advice is HARMFUL, and only its symptom was fixed
+
+**🚨 Re-opened 2026-09-05 after the maintainer pushed back. `1c37f1f` fixed the nuisance and left the
+real problem standing.**
+
+The reporter wrote three things; the earlier reading took only the first:
+
+> "With Shizuku mode I get a constant warning that lock screen recording may not work because USB is
+> set to file transfer instead of charge only **and if I change it to charge only it stops Shizuku**
+> and after restarting Shizuku USB is switched to debugging"
+
+1. A constant warning — **fixed** in `1c37f1f`.
+2. **Setting charge-only stops Shizuku — NOT addressed.**
+3. Restarting Shizuku flips USB to "debugging" — not addressed; likely Android's own behaviour.
+
+**Why (2) makes our advice dangerous.** Non-root Shizuku's server is a shell-uid process started over
+ADB. Choosing "Charging only" severs USB data and with it the USB transport; if that was adbd's last
+transport, adbd stops and takes its shell-uid children with it. That is the same mechanism this
+project already recorded for its **own** daemon.
+
+So in Shizuku mode CallVault recommends a setting that **breaks the user's setup**. Suppressing the
+warning was the right call for a better reason than was given at the time — but it is only one of
+four places the advice appears:
+
+| where | state |
+|---|---|
+| Home screen warning | ✅ suppressed in Shizuku mode (`1c37f1f`) |
+| `UsbDefaultConfigRow` in Settings | ❌ **shown unconditionally**, labels "Charging only" as *recommended* |
+| `setUsbChargingOnly()` fix-it action | ❌ **silently does nothing** in Shizuku mode — `setViaShell` refuses and only logs |
+| `README.md:129` | ❌ recommends Charging only with **no Shizuku caveat** |
+
+**Proposed, not done:** in Shizuku mode either hide the USB picker or replace its recommendation with
+a warning that charge-only can stop Shizuku; make the fix-it action say why it declined rather than
+no-op; and add the caveat to the README beside the existing advice.
+
+⚠️ The mechanism above is **reasoned, not verified.** Before writing that warning, confirm on a device
+that charge-only really does stop Shizuku. The claim originates with the reporter; our own
+adbd-transport note makes it plausible, not proven.
 
 ## Issue #26 — transcription time estimates are too far off
 
