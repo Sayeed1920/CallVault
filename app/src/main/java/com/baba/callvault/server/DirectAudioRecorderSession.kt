@@ -17,6 +17,7 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.media.MediaRecorder
 import android.os.ParcelFileDescriptor
+import android.os.Process
 import com.baba.callvault.integrations.scrcpy.ScrcpyAudioCodec
 import com.baba.callvault.integrations.scrcpy.ScrcpyAudioSource
 import com.baba.callvault.integrations.scrcpy.androidAudioSource
@@ -54,6 +55,13 @@ internal class DirectAudioRecorderSession(
     @Volatile private var encoder: MediaCodec? = null
     @Volatile private var muxer: MediaMuxer? = null
     @Volatile private var readThread: Thread? = null
+    @Volatile private var encodeThread: Thread? = null
+
+    /** Set once the reader has left its loop and closed the queue, so the encoder knows to finish. */
+    private val readerFinished = AtomicBoolean(false)
+
+    /** PCM in flight between the two threads. Created in [startInternal], once the ring size is known. */
+    @Volatile private var chunks: CaptureChunkQueue? = null
 
     /**
      * Speaker turns, published by the capture loop as it ends and read after [stop] joins it.
@@ -121,19 +129,88 @@ internal class DirectAudioRecorderSession(
         }
         AppLogger.i(TAG, "Direct capture started: source=${source.cliKey} codec=${codec.cliKey} captureCh=$captureChannels encodeCh=$ENCODE_CHANNELS rate=$SAMPLE_RATE")
 
-        readThread = Thread { runCatching { captureLoop(record, enc, mux, captureChannels) }
+        // Two threads, not one — see [CaptureChunkQueue]. The reader's only job is to keep the ring
+        // empty; everything that can stall (encode, mux, file write) happens behind the queue.
+        val queue = CaptureChunkQueue(READ_CHUNK_BYTES, QUEUE_CAPACITY_CHUNKS)
+        chunks = queue
+
+        encodeThread = Thread { runCatching { encodeLoop(queue, enc, mux, captureChannels) }
+            .onFailure { AppLogger.w(TAG, "Direct encode loop ended: ${it.message}") } }
+            .apply { isDaemon = true; name = "direct-capture-encode" }
+            .also { it.start() }
+
+        readThread = Thread { runCatching { readLoop(record, queue, captureChannels) }
             .onFailure { AppLogger.w(TAG, "Direct capture loop ended: ${it.message}") } }
-            .apply { isDaemon = true; name = "direct-capture" }
+            .apply { isDaemon = true; name = "direct-capture-read" }
             .also { it.start() }
     }
 
     /**
-     * Reads PCM from [record], feeds it to [enc], and muxes the encoded output into [mux] until [stop]
-     * signals EOS. Standard synchronous MediaCodec drive: queue input with a monotonic sample-count PTS,
-     * drain output, add the track on INFO_OUTPUT_FORMAT_CHANGED (its format carries the Opus/AAC CSD).
+     * Empties the `AudioRecord` ring and does nothing else — issue #28b.
+     *
+     * **This loop must never wait.** The ring holds ~80 ms; anything it waits for is audio Android
+     * discards silently. So a chunk is read, handed to [queue], and the loop comes straight back. All
+     * the work that can stall — speaker detection, downmix, encode, mux, file write — happens on the
+     * encoder thread behind the queue. The native handoff path has worked this way for years
+     * (`audiohandoff.cpp`, *"DECOUPLE ring consumption from downstream"*); the direct path did not, and
+     * a stall anywhere in its chain came out as the same chunk-aligned splice as issue #28a.
+     *
+     * Losses that happen anyway are counted rather than silent: [RingOverrunLedger] compares frames the
+     * hardware produced against frames we read, so the reporter's next debug report can finally say
+     * whether his phone overruns the ring or not.
      */
-    private fun captureLoop(record: AudioRecord, enc: MediaCodec, mux: MediaMuxer, captureChannels: Int) {
+    private fun readLoop(record: AudioRecord, queue: CaptureChunkQueue, captureChannels: Int) {
+        // The audio thread priority the platform reserves for exactly this: a loop that must not be late.
+        runCatching { Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO) }
+
         val pcm = ByteArray(READ_CHUNK_BYTES)
+        val captureBytesPerFrame = 2 * captureChannels
+        // We always trail the hardware by up to the ring's own occupancy; only a deficit LARGER than the
+        // ring means frames fell out of it. The floor keeps an unusually small ring from crying wolf.
+        val ringFrames = runCatching { record.bufferSizeInFrames }.getOrDefault(0)
+        val ledger = RingOverrunLedger(SAMPLE_RATE, maxOf(ringFrames, MIN_TOLERANCE_FRAMES))
+        val startNanos = System.nanoTime()
+        var framesRead = 0L
+        var sinceSample = 0
+
+        while (!stopRequested.get()) {
+            val read = record.read(pcm, 0, pcm.size)
+            if (read <= 0) continue
+            framesRead += read / captureBytesPerFrame
+            queue.offer(pcm, read) // counted inside; never blocks
+
+            if (++sinceSample < LEDGER_SAMPLE_CHUNKS) continue
+            sinceSample = 0
+            if (ledger.sample(framesRead, System.nanoTime() - startNanos)) {
+                AppLogger.w(TAG, "Capture fell behind: ${ledger.lostMillis} ms of audio lost so far to ring overrun")
+            }
+        }
+
+        readerFinished.set(true)
+        queue.close()
+
+        // Silent when the device kept up, which is the normal case on every phone we have.
+        ledger.summary()?.let { AppLogger.w(TAG, it) }
+        if (queue.droppedChunks > 0) {
+            AppLogger.w(
+                TAG,
+                "Encoder backlog: ${queue.droppedChunks} chunk(s) dropped because the encode thread " +
+                    "stayed more than $QUEUE_CAPACITY_CHUNKS chunks behind (peak depth ${queue.peakDepth})",
+            )
+        } else if (queue.peakDepth > QUEUE_DEPTH_WORTH_REPORTING) {
+            AppLogger.i(TAG, "Encoder backlog peaked at ${queue.peakDepth} chunk(s) — nothing lost")
+        }
+    }
+
+    /**
+     * Takes PCM from [queue], feeds it to [enc], and muxes the encoded output into [mux] until the reader
+     * has finished and the queue is drained. Standard synchronous MediaCodec drive: queue input with a
+     * monotonic sample-count PTS, drain output, add the track on INFO_OUTPUT_FORMAT_CHANGED (its format
+     * carries the Opus/AAC CSD).
+     *
+     * Everything here may stall without costing audio — that is the whole point of the queue in front.
+     */
+    private fun encodeLoop(queue: CaptureChunkQueue, enc: MediaCodec, mux: MediaMuxer, captureChannels: Int) {
         val mono = ByteArray(READ_CHUNK_BYTES / 2)   // downmix target (half the samples of stereo input)
         val downmix = captureChannels == 2
         // Speaker turns come free from the stereo buffer we already hold: the two directions are on
@@ -148,9 +225,14 @@ internal class DirectAudioRecorderSession(
         var droppedChunks = 0L
         val bytesPerFrame = 2 * ENCODE_CHANNELS // PCM-16, mono → 2 bytes/frame (matches what we feed the encoder)
 
-        while (!stopRequested.get()) {
-            val read = record.read(pcm, 0, pcm.size)
-            if (read <= 0) continue
+        while (true) {
+            val chunk = queue.take(TAKE_TIMEOUT_MS)
+            if (chunk == null) {
+                if (readerFinished.get()) break // reader gone and nothing left in the queue
+                continue
+            }
+            val pcm = chunk.bytes
+            val read = chunk.length
 
             // Read the channels BEFORE the downmix averages them away. Guarded: a recording that works
             // is worth more than a label, so a fault here must cost the turns and nothing else.
@@ -172,10 +254,9 @@ internal class DirectAudioRecorderSession(
             // issue #28 reported — "popping when audio is present… silence doesn't have it".
             //
             // BOUNDED, unlike the equivalent loop in HandoffEncoder. An encoder that is genuinely
-            // wedged would spin that one forever, holding the capture thread while the AudioRecord
-            // ring overruns behind it — trading a crackle for a dead recording. Past the budget we
-            // give up, but we COUNT it, so a device that truly cannot keep up says so rather than
-            // corrupting audio in silence.
+            // wedged would spin that one forever; here that no longer starves the ring (the reader
+            // is on its own thread), but it would still back the queue up until chunks are dropped.
+            // Past the budget we give up, but we COUNT it.
             var inIdx = enc.dequeueInputBuffer(DEQUEUE_TIMEOUT_US)
             var attempts = 0
             while (inIdx < 0 && attempts < MAX_FEED_ATTEMPTS) {
@@ -193,6 +274,7 @@ internal class DirectAudioRecorderSession(
             } else {
                 droppedChunks++
             }
+            queue.recycle(chunk)
             muxerStarted = drainEncoder(enc, mux, info, muxerStarted)
         }
 
@@ -252,10 +334,32 @@ internal class DirectAudioRecorderSession(
     override fun stop() {
         AppLogger.i(TAG, "Stopping direct capture session")
         stopRequested.set(true)
-        // Let the capture loop notice the stop flag, flush EOS, and finalise the muxer.
+        // The reader leaves its loop on the flag and closes the queue, which is what tells the encoder
+        // nothing more is coming.
         runCatching { readThread?.join(READ_JOIN_MS) }
+        // Releasing the record also unblocks a read wedged in the HAL, which is the only way the reader
+        // can miss the flag.
         runCatching { audioRecord?.stop() }
         runCatching { audioRecord?.release() }
+        // Belt and braces for exactly that case: close the queue ourselves, so the encoder is never left
+        // waiting for a chunk that is not coming.
+        readerFinished.set(true)
+        runCatching { chunks?.close() }
+
+        // The encoder now finishes the backlog, writes EOS and finalises the track. Joining it before
+        // touching the encoder, the muxer or the fd is not optional: releasing any of them under a live
+        // writer crashes the daemon, which loses the whole recording rather than the tail of it.
+        runCatching { encodeThread?.join(ENCODE_JOIN_MS) }
+        if (encodeThread?.isAlive == true) {
+            AppLogger.e(
+                TAG,
+                "Encode thread still running after $ENCODE_JOIN_MS ms — leaving the encoder, muxer and " +
+                    "fd to the process. The file may lack its trailer, but the daemon survives to record " +
+                    "the next call.",
+            )
+            return
+        }
+
         runCatching { encoder?.stop() }
         runCatching { encoder?.release() }
         // Muxer LAST among writers — stop() writes the container trailer (without it the file won't play).
@@ -325,6 +429,43 @@ internal class DirectAudioRecorderSession(
         private const val MAX_FEED_ATTEMPTS = 3
         private const val END_OF_STREAM_TIMEOUT_US = 100_000L
         private const val READ_JOIN_MS = 2_000L
+
+        /**
+         * How long [stop] waits for the encoder to finish the backlog and finalise the container.
+         *
+         * Generous on purpose: at this point the reader has stopped, so the only work left is encoding
+         * whatever is queued, and encoding runs far faster than real time. Anything past this is an
+         * encoder that has wedged, and then the daemon matters more than the tail of one file.
+         */
+        private const val ENCODE_JOIN_MS = 5_000L
+
+        /**
+         * Chunks the reader may run ahead of the encoder — ~5 seconds at 21.3 ms a chunk, under 1 MB.
+         *
+         * It only has to cover a transient: a stall this long is not an encoder hiccup, it is an encoder
+         * that has stopped. Beyond it chunks are dropped and counted, which is the same loss the ring
+         * overrun used to cause but visible in the log instead of silent.
+         */
+        private const val QUEUE_CAPACITY_CHUNKS = 240
+
+        /** ~1 s of backlog: healthy runs sit at 0–1, so anything near this is worth saying out loud. */
+        private const val QUEUE_DEPTH_WORTH_REPORTING = 48
+
+        /** How long the encoder waits for a chunk before re-checking whether the reader has finished. */
+        private const val TAKE_TIMEOUT_MS = 100L
+
+        /** Overrun accounting runs every ~0.5 s; `getTimestamp` is cheap but not free. */
+        private const val LEDGER_SAMPLE_CHUNKS = 24
+
+        /**
+         * The smallest deficit that counts as loss (100 ms), whatever the ring size says.
+         *
+         * The ring is the honest tolerance — we legitimately trail the hardware by up to its occupancy —
+         * but a device reporting an unusually small one would otherwise turn ordinary scheduling jitter
+         * into a stream of overrun warnings.
+         */
+        private const val MIN_TOLERANCE_FRAMES = 4_800
+
 
         /**
          * True if the direct pipeline can handle this [source]+[codec] on THIS device: the source must be
