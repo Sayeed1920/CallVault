@@ -131,4 +131,56 @@ class UsbDefaultConfigTest {
     fun `drives the embedded shell in standalone mode, where it is ours to drive`() {
         assertTrue(UsbDefaultConfig.isShellUsable(PrivilegedMode.STANDALONE))
     }
+
+    // ---- what the cached value means, per privileged mode ----
+
+    @Test
+    fun `a stored data mode is a risk in standalone mode`() {
+        assertEquals(
+            UsbDefaultMode.FILE_TRANSFER,
+            UsbDefaultConfig.resolveCached("FILE_TRANSFER", PrivilegedMode.STANDALONE),
+        )
+    }
+
+    @Test
+    fun `in Shizuku mode the stored value means nothing and resolves to unknown`() {
+        // The fix for issue #28's nag loop. In Shizuku mode setViaShell and readViaShell both refuse
+        // to run — there is no embedded ADB — so whatever is stored was written under a different
+        // mode and can never be refreshed or corrected. The app was still warning from it, about a
+        // setting its own picker declines to change. UNKNOWN is what "we cannot see it" already
+        // means everywhere else here, and noticeFor() already handles that case sensibly.
+        assertEquals(
+            UsbDefaultMode.UNKNOWN,
+            UsbDefaultConfig.resolveCached("FILE_TRANSFER", PrivilegedMode.SHIZUKU),
+        )
+        assertEquals(
+            UsbDefaultMode.UNKNOWN,
+            UsbDefaultConfig.resolveCached("CHARGING", PrivilegedMode.SHIZUKU),
+        )
+    }
+
+    @Test
+    fun `nothing stored is unknown in either mode`() {
+        assertEquals(UsbDefaultMode.UNKNOWN, UsbDefaultConfig.resolveCached(null, PrivilegedMode.STANDALONE))
+        assertEquals(UsbDefaultMode.UNKNOWN, UsbDefaultConfig.resolveCached(null, PrivilegedMode.SHIZUKU))
+    }
+
+    @Test
+    fun `an unrecognised stored value is unknown rather than a crash`() {
+        // A downgrade, or a renamed constant, must not throw on a screen that only wants advice.
+        assertEquals(UsbDefaultMode.UNKNOWN, UsbDefaultConfig.resolveCached("NO_SUCH_MODE", PrivilegedMode.STANDALONE))
+        assertEquals(UsbDefaultMode.UNKNOWN, UsbDefaultConfig.resolveCached("", PrivilegedMode.STANDALONE))
+    }
+
+    @Test
+    fun `resolving to unknown in Shizuku mode silences the screen-lock warning`() {
+        // The user-visible consequence, stated as a test so it cannot regress: UNKNOWN is not a risk,
+        // and noticeFor treats it as nothing to say while the recorder is up.
+        val shizuku = UsbDefaultConfig.resolveCached("FILE_TRANSFER", PrivilegedMode.SHIZUKU)
+        assertEquals(UsbNotice.NONE, UsbDefaultConfig.noticeFor(shizuku, recorderReady = true))
+
+        // ...while standalone still warns, which is the whole point of the warning existing.
+        val standalone = UsbDefaultConfig.resolveCached("FILE_TRANSFER", PrivilegedMode.STANDALONE)
+        assertEquals(UsbNotice.DATA_MODE_RISK, UsbDefaultConfig.noticeFor(standalone, recorderReady = true))
+    }
 }

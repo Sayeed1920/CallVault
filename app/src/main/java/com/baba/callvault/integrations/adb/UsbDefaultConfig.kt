@@ -185,8 +185,26 @@ object UsbDefaultConfig {
 
     /** The last successfully-read value (persisted), for UI shown while no shell is available. */
     fun cached(context: Context): UsbDefaultMode =
-        runCatching { UsbDefaultMode.valueOf(AppPreferences(context).getUsbDefaultMode() ?: "") }
-            .getOrDefault(UsbDefaultMode.UNKNOWN)
+        resolveCached(AppPreferences(context).getUsbDefaultMode(), privilegedMode(context))
+
+    /**
+     * What a [stored] mode name means, given the [mode] the app is running in.
+     *
+     * **Shizuku mode always resolves to [UsbDefaultMode.UNKNOWN], and that is the fix for a real
+     * complaint.** Both [readViaShell] and [setViaShell] refuse to run there — there is no embedded
+     * ADB — so anything stored was written under a different mode and can never be refreshed or
+     * corrected. The app nevertheless warned from it, about a setting its own picker declines to
+     * change, leaving the user told to fix something the app would not let them fix. Issue #28's
+     * reporter hit exactly that, and switching the setting by hand stopped Shizuku.
+     *
+     * UNKNOWN is not a new rule; it is what "we cannot see this" already means throughout this file,
+     * and [noticeFor] already treats it sensibly — silent while the recorder is up, and an honest
+     * "could not check" when it is not.
+     */
+    fun resolveCached(stored: String?, mode: PrivilegedMode): UsbDefaultMode {
+        if (!mode.needsAdbSetup) return UsbDefaultMode.UNKNOWN
+        return runCatching { UsbDefaultMode.valueOf(stored ?: "") }.getOrDefault(UsbDefaultMode.UNKNOWN)
+    }
 
     /**
      * True when the cached Default USB Configuration is a DATA mode (File transfer, etc.) — i.e. locking
