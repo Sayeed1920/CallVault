@@ -58,6 +58,16 @@ class AudioRecordingEngine {
         /** How often the daemon-mode liveness watch re-checks that the daemon's binder is alive. */
         private const val DAEMON_LIVENESS_POLL_MS = 2000L
 
+        /**
+         * How long to give a dispatched start before asking whether it actually began.
+         *
+         * Long enough that an ordinary start has finished — the daemon does the AudioRecord and
+         * encoder setup on a worker after the call returns — and short enough to be inside almost
+         * any real call. Too eager would report a slow start as a failure; too patient would miss
+         * the answer on short calls, which then read as STOPPED and stay quiet.
+         */
+        private const val CAPTURE_START_CHECK_MS = 3000L
+
         /** Capture rate for the resilient-recording (handoff) path — matches DirectAudioRecorderSession. */
         private const val HANDOFF_SAMPLE_RATE = 48000
     }
@@ -196,6 +206,47 @@ class AudioRecordingEngine {
      * [startPipeline] to surface an honest "this call is NOT being recorded" failure.
      */
     var onDaemonLostDuringRecording: (() -> Unit)? = null
+
+    /**
+     * Raised once when the daemon was asked to record, is alive, and never started a capture.
+     *
+     * Distinct from [onDaemonLostDuringRecording] because the cause and the remedy are different: the
+     * daemon is fine, the *capture* never began — a codec that would not configure, typically. That
+     * failure used to be completely silent (see [CaptureStartCheck]), which is why issue #28's
+     * reporter could only say "changing to AAC failed to record the next call" and we could not say
+     * why.
+     */
+    var onCaptureNeverStarted: (() -> Unit)? = null
+
+    /**
+     * One-shot, a beat after dispatch: did the capture the daemon accepted actually begin?
+     *
+     * `startRecording` returns void and does its work afterwards, so a start that throws inside the
+     * daemon is invisible at the call site. This asks the one question that settles it. Deliberately
+     * quiet unless the answer is unambiguous — see [CaptureStartCheck].
+     */
+    private val captureStartWatch = Runnable {
+        if (!daemonRecording) return@Runnable
+        val reachable = runCatching {
+            RecorderConnection.service?.asBinder()?.pingBinder() == true
+        }.getOrDefault(false)
+        val recording = runCatching { RecorderConnection.service?.isRecording() == true }.getOrDefault(false)
+        val verdict = CaptureStartCheck.verdict(
+            daemonReachable = reachable,
+            isRecording = recording,
+            stopRequested = !daemonRecording,
+        )
+        AppLogger.i(TAG, "Capture start check: $verdict (daemon reachable=$reachable, recording=$recording)")
+        if (verdict.isReportable) {
+            AppLogger.e(
+                TAG,
+                "The daemon is alive but never started a capture. The most likely cause is the " +
+                    "selected codec or bit rate refusing to configure on this device — nothing will " +
+                    "be recorded for this call.",
+            )
+            onCaptureNeverStarted?.invoke()
+        }
+    }
 
     private val livenessHandler = Handler(Looper.getMainLooper())
     private val livenessWatch = object : Runnable {
@@ -430,6 +481,10 @@ class AudioRecordingEngine {
             // A successful dispatch only proves the binder was alive at that instant — watch it so a
             // daemon that dies moments later surfaces as a failure instead of a silent empty file.
             livenessHandler.postDelayed(livenessWatch, DAEMON_LIVENESS_POLL_MS)
+            // And separately: did a capture actually BEGIN? The liveness watch above only asks
+            // whether the daemon is alive, and a daemon whose encoder refused to configure is very
+            // much alive while recording nothing at all.
+            livenessHandler.postDelayed(captureStartWatch, CAPTURE_START_CHECK_MS)
             true
         } catch (e: Exception) {
             AppLogger.w(TAG, "Daemon startRecording failed; will fall back to local path: ${e.message}", e)
@@ -547,6 +602,7 @@ class AudioRecordingEngine {
     fun release() {
         AppLogger.i(TAG, "Releasing session resources and recording pipeline...")
         livenessHandler.removeCallbacks(livenessWatch)
+        livenessHandler.removeCallbacks(captureStartWatch)
 
         if (handoffMode) {
             // Resilient-recording teardown: stop() flips the drain flag and BLOCKS until the app-side

@@ -141,6 +141,7 @@
     <string name="playback_speed">%1$s×</string>
     <string name="playback_title">Enregistrement</string>
     <string name="recording_error_daemon_died">Le démon d\'enregistrement s\'est arrêté — cet appel n\'est PAS enregistré. Vérifiez que les options pour les développeurs et le débogage sans fil sont activés.</string>
+    <string name="recording_error_capture_never_started">L\'enregistrement n\'a pas démarré — essayez un autre format audio dans les Réglages</string>
     <string name="recording_error_drive_copy_failed">Un enregistrement n\'a pas pu être copié dans votre dossier cloud. Il reste enregistré sur cet appareil — vérifiez le dossier dans les Paramètres.</string>
     <string name="recording_error_empty_file_shizuku">L\'enregistrement est vide : aucun son n\'a été capturé. Ouvrez Shizuku et vérifiez qu\'il fonctionne toujours ; il s\'arrête à chaque redémarrage du téléphone.</string>
     <string name="recording_error_empty_file">L\'enregistrement est vide — aucun audio n\'a été capturé car le démon d\'enregistrement n\'était pas actif. Vérifiez que les options pour les développeurs et le débogage sans fil sont activés.</string>

@@ -141,6 +141,7 @@
     <string name="playback_speed">%1$s×</string>
     <string name="playback_title">Bản ghi</string>
     <string name="recording_error_daemon_died">Trình nền ghi âm đã dừng — cuộc gọi này KHÔNG được ghi âm. Hãy kiểm tra xem Tùy chọn nhà phát triển và Gỡ lỗi không dây đã được bật chưa.</string>
+    <string name="recording_error_capture_never_started">Không bắt đầu ghi âm — hãy thử định dạng âm thanh khác trong Cài đặt</string>
     <string name="recording_error_drive_copy_failed">Không thể sao chép một bản ghi vào thư mục đám mây của bạn. Bản ghi vẫn được lưu trên thiết bị này — hãy kiểm tra thư mục trong Cài đặt.</string>
     <string name="recording_error_empty_file_shizuku">Bản ghi trống — không thu được âm thanh. Mở Shizuku và kiểm tra xem nó còn chạy không; nó dừng mỗi khi điện thoại khởi động lại.</string>
     <string name="recording_error_empty_file">Bản ghi trống — không có âm thanh nào được thu vì trình nền ghi âm không chạy. Hãy kiểm tra xem Tùy chọn nhà phát triển và Gỡ lỗi không dây đã được bật chưa.</string>

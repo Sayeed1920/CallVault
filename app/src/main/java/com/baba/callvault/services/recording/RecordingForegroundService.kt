@@ -398,6 +398,14 @@ class RecordingForegroundService : Service() {
             notificationHelper.showErrorNotification(getString(R.string.recording_error_daemon_died))
         }
 
+        // A live daemon that never started a capture — typically a codec or bit rate the device
+        // refuses. Silent until now: the app believed it was recording, and the user found out by
+        // there being no file. Not routed through daemonLossNotified, because the daemon is alive
+        // and the two messages say different things.
+        activeSession.onCaptureNeverStarted = {
+            notificationHelper.showErrorNotification(getString(R.string.recording_error_capture_never_started))
+        }
+
         try {
             // 2. Try to start the pipeline. Pass our stop flag so the (slow, daemon-cold-start) start
             //    aborts before touching the daemon if the call already ended — preventing a mic that

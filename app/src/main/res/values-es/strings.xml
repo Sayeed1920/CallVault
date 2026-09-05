@@ -141,6 +141,7 @@
     <string name="playback_speed">%1$s×</string>
     <string name="playback_title">Grabación</string>
     <string name="recording_error_daemon_died">El daemon de grabación se detuvo: esta llamada NO se está grabando. Comprueba que las opciones de desarrollador y la depuración inalámbrica estén activadas.</string>
+    <string name="recording_error_capture_never_started">La grabación no se inició: prueba otro formato de audio en Ajustes</string>
     <string name="recording_error_drive_copy_failed">No se pudo copiar una grabación a tu carpeta en la nube. Sigue guardada en este dispositivo: revisa la carpeta en Ajustes.</string>
     <string name="recording_error_empty_file_shizuku">La grabación está vacía: no se capturó audio. Abre Shizuku y comprueba que sigue en marcha; se detiene cada vez que se reinicia el teléfono.</string>
     <string name="recording_error_empty_file">La grabación está vacía: no se capturó audio porque el daemon de grabación no estaba en ejecución. Comprueba que las opciones de desarrollador y la depuración inalámbrica estén activadas.</string>
