@@ -45,7 +45,7 @@ localises the crackling defect to one file. Worth saying so when we reply.
 
 | # | Title | Root cause | Verified? | Severity | State on HEAD |
 |---|---|---|---|---|---|
-| 28 | Crackling in audio | Default carrier path **silently drops a 21 ms PCM chunk** whenever the encoder is busy; the fix already exists in the sibling encoder and was never back-ported | ✅ in code | **Critical** — corrupts the core artefact | Still present |
+| 28 | Crackling in audio | Default carrier path **silently drops a 21 ms PCM chunk** whenever the encoder is busy, splicing the waveform | ✅ **PROVEN by A/B on our own hardware** | **Critical** — corrupts the core artefact | 🧪 **28a FIXED** (`1499a33`); 28c/28d/28e done |
 | 26 | Transcription estimates wildly off | Believability clamp is defeated by `fallback = measured`; one absurd sample is stored permanently | ✅ in code | High — visible nonsense | ✅ **DONE — VERIFIED on device 2026-09-05** |
 | 25 | Wrong timestamps on long pauses | whisper.cpp's VAD maps **any** pause onto a hardcoded 100 ms bridge; post-pause starts interpolate into the silence | ✅ in code | Medium | Still present |
 | 27 | Rotation closes entry + scrolls to top | Activity is recreated; `playbackFor` is `remember`, not `rememberSaveable` | ✅ in code | Medium — daily annoyance | ✅ **VERIFIED on device 2026-09-05** (`fix/rotation-state-issue-27`); one follow-up fix 🧪 |
@@ -149,8 +149,37 @@ while (inIdx < 0) {
 only one of the three encoders that still drops — and it is the default carrier path.** The
 retry loop predates v2.2.0 (commit `7e5ccb8`) and was never back-ported.
 
-**Fix:** replace `if (inIdx >= 0)` with the `while (inIdx < 0) { drainEncoder(); retry }` loop.
-Low risk, high value. This is the first thing to do.
+**Fix:** drain and retry instead of dropping — but **BOUNDED**, not the unbounded loop
+`HandoffEncoder` uses. An encoder that is genuinely wedged would spin that one forever, holding the
+capture thread while the `AudioRecord` ring overruns behind it, trading a crackle for a dead
+recording. Three attempts, then drop *and count it*.
+
+### ✅ PROVEN BY CONTROLLED A/B ON OUR OWN HARDWARE (2026-09-05, `1499a33`)
+
+Our OP12 and OP9 win this race essentially always, so the bug cannot be observed here by waiting for
+it. It was made deterministic instead: a temporary injection forced the "no input buffer" branch
+every 20th chunk (scaffolding, reverted; not in the shipped commit). Two calls, same phone, same
+conditions, one variable changed.
+
+**A dry run first caught a mistake worth recording.** The first attempt injected into
+`DirectAudioRecorderSession` while the OP12 had *Resilient recording ON* — which routes through
+`HandoffEncoder` instead, so the injected fault never executed. The null result was nearly read as
+evidence. Confirm the path your device will actually take before trusting a reproduction; the log
+now prints a banner naming the path.
+
+With Resilient recording off, so the direct path really ran:
+
+| | injected | recovered | dropped | splices at the predicted 19456-sample spacing |
+|---|---|---|---|---|
+| **before** (bug) | 84 | — | **84** | **p = 4.9 × 10⁻³ — clustered** |
+| **after** (fix) | 82 | **82** | **0** | p = 0.92 — uniform, gone |
+
+The 19456 figure is a *prediction*, not a fitted parameter: dropping every 20th chunk leaves 19
+surviving chunks of 1024 frames between splices. Controls at 18432 and 20480 — one chunk either side
+— showed nothing (p = 0.76, p = 0.94), so the detector is not simply finding structure everywhere.
+
+**This also retro-validates the reporter's recording.** The same mechanism produces the same
+signature, so his p = 5.4 × 10⁻¹⁵ clustering at 1024 is chunk dropping, measured rather than argued.
 
 ### ✅ CONFIRMED FROM THE REPORTER'S OWN RECORDING (2026-09-05)
 
