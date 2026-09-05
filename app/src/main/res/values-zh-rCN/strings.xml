@@ -383,6 +383,7 @@
     <string name="transcribe_confirm_message">转写 %1$s 会占用手机并明显耗电。你可以随时停止。\n\n可在设置的“转写”中重新开启此提示。</string>
     <string name="transcribe_confirm_title">大约需要 %1$s</string>
     <string name="transcribe_confirm_title_unknown">要转写这通电话吗？</string>
+    <string name="transcribe_confirm_title_first_run">第一次可能需要一些时间</string>
     <string name="transcribe_estimate_hours">%1$d 小时 %2$d 分</string>
     <string name="transcribe_estimate_minutes">%1$d 分钟</string>
     <string name="transcribe_estimate_under_minute">一分钟</string>
