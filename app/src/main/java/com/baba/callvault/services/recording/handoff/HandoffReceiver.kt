@@ -63,8 +63,13 @@ object HandoffReceiver {
     /** Set while the supervisor is waiting for a re-armed delivery, so [onReceived] routes it. */
     @Volatile private var awaitingRearm = false
 
-    /** Where [onReceived] deposits a re-armed capture for the supervisor to pick up. */
-    private val rearmed = java.util.concurrent.SynchronousQueue<Rearm>()
+    /**
+     * Where [onReceived] parks a re-armed capture for the supervisor to pick up.
+     *
+     * A parking slot rather than a rendezvous: the daemon delivers the replacement capture *during*
+     * the call that asks for it, so the supervisor cannot yet be waiting. See [HandoffSlot].
+     */
+    private val rearmed = HandoffSlot<Rearm> { runCatching { it.cblk.close() } }
 
     private class Rearm(val binder: IBinder?, val cblk: ParcelFileDescriptor, val geometry: HandoffGeometry)
 
@@ -138,10 +143,16 @@ object HandoffReceiver {
                 runCatching { cblkFd?.close() }
                 return
             }
-            // offer(), not put(): if the supervisor has already given up waiting nobody will ever take
-            // this, and blocking a binder thread forever is worse than dropping a capture we cannot use.
-            if (!rearmed.offer(Rearm(binder, cblkFd, geo), REARM_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-                AppLogger.e(T, "re-armed handoff arrived but nothing was waiting for it — closing it")
+            // Parked, not handed over. This runs on a binder thread serving the daemon, during the
+            // very call the supervisor is still blocked in, so there is nobody to hand it to yet —
+            // and waiting for one held this thread for four seconds and then closed a healthy
+            // capture. Parking returns immediately and the supervisor collects it when it unblocks.
+            if (rearmed.put(Rearm(binder, cblkFd, geo))) {
+                AppLogger.i(T, "re-armed capture parked for the supervisor to collect")
+            } else {
+                // Only reachable if a previous attempt's capture is still parked, which `rebuild`
+                // clears before asking. Closing is ours to do: `put` leaves ownership with us.
+                AppLogger.e(T, "a re-armed capture is already waiting — closing this duplicate")
                 runCatching { cblkFd.close() }
             }
             return
@@ -417,6 +428,9 @@ object HandoffReceiver {
             AppLogger.e(T, "no rebuild path wired for this session")
             return null
         }
+        // Anything parked now belongs to an attempt that has already been abandoned. Collecting it
+        // would point the drain at shared memory whose track is gone, so it is closed before asking.
+        rearmed.clear()
         awaitingRearm = true
         return try {
             if (!runCatching { ask() }.onFailure { AppLogger.e(T, "rebuild request threw: ${it.message}") }
@@ -425,9 +439,16 @@ object HandoffReceiver {
                 AppLogger.e(T, "the daemon refused to re-arm the capture")
                 return null
             }
-            rearmed.poll(REARM_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            // Usually already parked by the time we get here, so this returns at once. The timeout
+            // only covers a daemon that answered the request but delivers late.
+            rearmed.takeWithin(REARM_WAIT_MS)
                 ?: run { AppLogger.e(T, "no re-armed capture arrived within ${REARM_WAIT_MS}ms"); null }
         } finally {
+            // Cleared BEFORE the flag, deliberately. A delivery landing in this window while the flag
+            // is still set merely parks and is closed by the next attempt's clear(); one landing after
+            // the flag is cleared would fall through to the ordinary path and could start a second
+            // capture against the same output. A stranded fd is the cheaper of the two failures.
+            rearmed.clear()
             awaitingRearm = false
         }
     }
