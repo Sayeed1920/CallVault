@@ -36,6 +36,14 @@ internal interface RecordingSession {
     fun speakerTurns(): String = ""
 
     /**
+     * A one-line summary of anything the capture lost or nearly lost, or `""` when it was clean.
+     *
+     * Read after [stop]. Empty is the normal answer; a path that cannot measure itself says so by
+     * saying nothing, which is why this is defaulted here.
+     */
+    fun captureDiagnostics(): String = ""
+
+    /**
      * What this call's ringback suggested about which channel is the far party, as a
      * [com.baba.callvault.data.ChannelMap] key. `"unknown"` unless a stereo capture heard ringback.
      *

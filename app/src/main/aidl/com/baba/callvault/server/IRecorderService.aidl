@@ -269,4 +269,15 @@ interface IRecorderService {
      * @return the dump's output, or null if the key is unknown or the dump failed.
      */
     String diagnosticDump(String key, String arg);
+
+    /**
+     * What the capture noticed about its own health during the recording that just ended, as a short
+     * one-line summary, or {@code ""} when nothing went wrong — which is the normal answer.
+     *
+     * Read after {@code stopRecording}, like {@code speakerTurns}. It exists because the daemon's own
+     * log reaches a bug report only through logcat, which only exists if the reporter happened to have
+     * debug logging on BEFORE the call. Issue #28b needs the opposite: a fact about a call that has
+     * already happened, in a report from someone who was not debugging at the time.
+     */
+    String captureDiagnostics();
 }

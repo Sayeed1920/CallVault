@@ -48,6 +48,13 @@ class RecorderTransactionCodesTest {
         assertEquals(first + 15, IRecorderService.Stub.TRANSACTION_grantRole)
         assertEquals(first + 16, IRecorderService.Stub.TRANSACTION_hostUid)
         assertEquals(first + 17, IRecorderService.Stub.TRANSACTION_killStaleRecorders)
+        assertEquals(first + 18, IRecorderService.Stub.TRANSACTION_setDiagnosticsEnabled)
+        assertEquals(first + 19, IRecorderService.Stub.TRANSACTION_drainDiagnostics)
+        assertEquals(first + 20, IRecorderService.Stub.TRANSACTION_setVoipPaused)
+        assertEquals(first + 21, IRecorderService.Stub.TRANSACTION_setVoipSuspended)
+        assertEquals(first + 22, IRecorderService.Stub.TRANSACTION_diagnosticDump)
+        // Appended for issue #28b's overrun counter.
+        assertEquals(first + 23, IRecorderService.Stub.TRANSACTION_captureDiagnostics)
     }
 
     @Test

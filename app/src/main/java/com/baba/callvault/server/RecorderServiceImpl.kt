@@ -54,6 +54,7 @@ open class RecorderServiceImpl(private val apkPath: String) : IRecorderService.S
      * [stopRecording] has already discarded the session.
      */
     @Volatile private var lastSpeakerTurns: String = ""
+    @Volatile private var lastCaptureDiagnostics: String = ""
 
     /** Last VoIP session, kept only so the app can ask afterwards whether the far party was audible. */
     @Volatile private var lastVoipSession: VoipCaptureSession? = null
@@ -158,6 +159,7 @@ open class RecorderServiceImpl(private val apkPath: String) : IRecorderService.S
                 AppLogger.w(TAG, "Could not read speaker turns: ${it.message}")
                 ""
             }
+            lastCaptureDiagnostics = runCatching { session?.captureDiagnostics().orEmpty() }.getOrElse { "" }
             session = null
             done.countDown()
         }
@@ -231,6 +233,8 @@ open class RecorderServiceImpl(private val apkPath: String) : IRecorderService.S
      * value is kept rather than asked of a session that no longer exists.
      */
     override fun speakerTurns(): String = lastSpeakerTurns
+
+    override fun captureDiagnostics(): String = lastCaptureDiagnostics
 
     override fun disarmVoipCapture() {
         AppLogger.i(TAG, "disarmVoipCapture requested")

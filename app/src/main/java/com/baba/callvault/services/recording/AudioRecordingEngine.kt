@@ -640,6 +640,14 @@ class AudioRecordingEngine {
             } else {
                 runCatching { daemon.stopRecording() }
                     .onFailure { AppLogger.w(TAG, "Daemon stopRecording failed during release: ${it.message}") }
+                // Ask what the capture noticed about itself, and write it to the APP's log — the
+                // daemon's own log reaches a report only via logcat, which exists only if debug
+                // logging was already on when the call happened (issue #28b). An older daemon has no
+                // such method, hence the guard; empty is the normal, healthy answer.
+                runCatching { daemon.captureDiagnostics() }
+                    .getOrNull()
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { AppLogger.w(TAG, "Capture health for the recording just ended: $it") }
             }
             runCatching { outputPfd?.close() }
             daemonRecording = false

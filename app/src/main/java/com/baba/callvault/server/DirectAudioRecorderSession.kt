@@ -73,6 +73,14 @@ internal class DirectAudioRecorderSession(
 
     override fun speakerTurns(): String = speakerTurnsEncoded
 
+    /**
+     * What the reader saw, published as it finishes so [stop] finds it — the same arrangement the
+     * speaker turns use, and for the same reason: after [stop] there is nothing left to ask.
+     */
+    @Volatile private var captureDiagnosticsLine: String = ""
+
+    override fun captureDiagnostics(): String = captureDiagnosticsLine
+
     override fun start() {
         try {
             startInternal()
@@ -188,6 +196,14 @@ internal class DirectAudioRecorderSession(
 
         readerFinished.set(true)
         queue.close()
+
+        // Published for the app to read after stop(), because the log below only survives in a bug
+        // report if the reporter had debug logging on before the call — see IRecorderService.
+        captureDiagnosticsLine = listOfNotNull(
+            ledger.summary()?.let { "overrunMs=${ledger.lostMillis} overruns=${ledger.overrunEvents}" },
+            "droppedChunks=${queue.droppedChunks}".takeIf { queue.droppedChunks > 0 },
+            "peakBacklog=${queue.peakDepth}".takeIf { queue.peakDepth > QUEUE_DEPTH_WORTH_REPORTING },
+        ).joinToString(" ")
 
         // Silent when the device kept up, which is the normal case on every phone we have.
         ledger.summary()?.let { AppLogger.w(TAG, it) }
