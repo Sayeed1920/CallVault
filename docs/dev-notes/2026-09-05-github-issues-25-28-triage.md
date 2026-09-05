@@ -1,9 +1,16 @@
 # GitHub issues #25–#28 — code triage
 
 **Date:** 2026-09-05
-**Status:** 🧪 VERIFYING — every finding below was read out of the source and independently
-re-checked, but **nothing here has been reproduced on a device and no fix has been written.**
-No code was changed in producing this document.
+**Status:** every finding below was read out of the source and independently re-checked. The
+document began as pure triage with no code changed; **#27 and #26 have since been fixed** and carry
+their own status blocks in their sections — trust those over this header, and over the "Suggested
+order of work" table near the end, which is a plan rather than a record.
+
+| issue | state |
+|---|---|
+| #27 | ✅ VERIFIED on device 2026-09-05, plus one follow-up fix still 🧪 |
+| #26 | 🧪 fixed on `fix/transcription-estimates-issue-26`, not yet run on a phone |
+| #25, #28 | diagnosed only — no code written |
 **Reported against:** v2.2.0 (the current public release, 2026-08-30).
 **HEAD at time of writing:** `8e3059e` on `fix/mic-diagnostics-appops`, 47 commits ahead of `v2.2.0`.
 **Reporter:** `mirror176`, Samsung Galaxy S20 FE 5G (SM-G781V), Android 13. All four filed 2026-09-04.
