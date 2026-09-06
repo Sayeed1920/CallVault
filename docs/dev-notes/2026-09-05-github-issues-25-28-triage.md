@@ -695,17 +695,54 @@ Concatenation is precisely what makes timestamps unrecoverable at pauses.
   and is invisible in a debug report. Wiring it to `AppLogger` would make this class of bug readable
   from a user report.
 
-### Fix directions (none implemented; needs a decision)
+### ✅ RESEARCHED 2026-09-06 — and the answer changes the fix
 
-1. **Cheapest:** clamp a segment start forward to the next VAD segment's original start whenever the
-   mapped start falls in a non-speech interval. `whisper_full_get_vad_segment_t0/t1`
-   (`whisper.cpp:8131-8155`) is already exposed and **currently unused by the app** — this can be a
-   post-pass in `TranscriptionEngine`, with no submodule patch.
-2. Make the injected silence proportional to the real gap so interpolation stops lying (submodule patch).
-3. Keep the true gap in a side table and snap post-pause starts to it (submodule patch).
+**Upstream knows, and has NOT fixed it at the segment level.** `ggml-org/whisper.cpp` issue **#3634**,
+*"whisper.cpp produces continuous timestamps and removes silence gaps, even when VAD segments already
+contain gaps"* — our symptom exactly, with a second reporter saying *"Same issue here, even big issue
+when vad is enabled"* and a cross-reference from *"wrong timing in subtitles"*. It was **closed by the
+stale bot on 2026-09-06**, not by a fix. (#3174 and #3584 are also closed without one; **#3754**, VAD
+wrecking token timestamps when audio opens with music, is still open — and is the same pairing that
+[[transcription-quality-ceiling]] measured with beam.)
 
-⚠️ **Open question not yet checked:** whether upstream whisper.cpp has since fixed this. Our
-submodule is pinned at `371b5a7` at both `v2.2.0` and HEAD. Worth checking before we write our own patch.
+**But upstream fixed the identical problem one level down, and we already ship that code.** PR **#3910**,
+*"whisper : map token timestamps to original time when VAD is enabled"*, merged **2026-07-01**; our pin
+`371b5a75` is **v1.9.3 of 2026-08-20**, so it is **in our tree today**. It added
+`whisper_full_get_token_t0/t1` and, the part that matters, `whisper_map_token_time_segment_aware()`
+(`src/whisper.cpp:8099`), which:
+
+- interpolates a time **inside** a speech stretch using that stretch's REAL duration — no 100 ms
+  bridge, no degenerate slope; and
+- **snaps a time that lands in removed silence to the nearer real boundary**
+  (`src/whisper.cpp:8121-8124`).
+
+That is fix direction 1, written and maintained upstream, with tests in `tests/test-vad-full.cpp`. The
+PR even says out loud that a token *"that falls in the silence removed between two segments is snapped
+to the nearest boundary, so it doesn't end up in the middle of a gap that isn't in the original audio."*
+
+🚨 **Process lesson worth keeping.** The earlier check — *"77 commits since our pin, none touch the VAD
+mapping"* — was true and still missed this, because the fix landed **before** the pin. Checking commits
+*after* a pin can only ever find what we have not got; it cannot tell you what you already have.
+
+### Fix directions, re-ranked by that research
+
+1. **RECOMMENDED — snap segment starts ourselves, using public API already in our tree.** For each
+   segment, if its start falls in a removed gap, move it forward to the next speech stretch's original
+   start. `whisper_full_get_vad_segment_t0/t1` return exactly `orig_start`/`orig_end`
+   (`src/whisper.cpp:8166-8178`, verified) and are still unused by us. No submodule patch, no decode
+   change, and it mirrors upstream's own rule for tokens. It is also literally what the reporter asked
+   for: *"blank space needs to be appended to end of last time instead of beginning of this one."*
+2. **Enable `params.token_timestamps` and take each segment's start/end from its first/last token**, via
+   upstream's mapping. Tempting, because the mapping is then maintained by upstream — but token times
+   are only computed when that flag is on (`src/whisper.cpp:7686`), it adds per-segment work, and
+   whisper's non-DTW token timing is a heuristic. More moving parts for the same answer.
+3. ~~Make the injected silence proportional to the real gap~~ / ~~keep the true gap in a side table~~ —
+   both submodule patches, both now unnecessary.
+
+**Cross-check against a proven implementation:** `faster-whisper` never interpolates across removed
+silence either. It carries a per-chunk `offset` through `collect_chunks` and adds it back, so a
+timestamp is reconstructed by addition against a real boundary. Upstream's token fix, faster-whisper,
+and the reporter all describe the same shape.
 
 ---
 
