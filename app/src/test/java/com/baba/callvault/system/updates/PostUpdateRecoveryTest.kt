@@ -59,6 +59,18 @@ class PostUpdateRecoveryTest {
     }
 
     @Test
+    fun `the keep-alive comes back too, because it is what detects app calls`() {
+        // The first version of this fix restored the daemon and not this, and the phone was left with
+        // no foreground service at all — so no VoIP detection and nothing keeping the daemon warm.
+        assertTrue(PostUpdateRecovery.plan(PrivilegedMode.STANDALONE, grantSurvived = true).restartKeepAlive)
+        assertTrue(PostUpdateRecovery.plan(PrivilegedMode.STANDALONE, grantSurvived = false).restartKeepAlive)
+        assertFalse(
+            "Shizuku owns the recorder there; the service stands down itself",
+            PostUpdateRecovery.plan(PrivilegedMode.SHIZUKU, grantSurvived = true).restartKeepAlive,
+        )
+    }
+
+    @Test
     fun `the recorder is brought back in every single case`() {
         // The one invariant worth stating on its own: whatever else is true, an app replace must never
         // leave the phone unable to record the next call.

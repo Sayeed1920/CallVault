@@ -15,6 +15,7 @@ import com.baba.callvault.BuildConfig
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.integrations.adb.AdbShell
 import com.baba.callvault.server.ShizukuBackend
+import com.baba.callvault.services.recording.DaemonKeepAliveService
 import com.baba.callvault.server.RecorderBackend
 import com.baba.callvault.server.RecorderServerLauncher
 import com.baba.callvault.utils.AppLogger
@@ -79,6 +80,15 @@ class UpdatePackageReplacedReceiver : BroadcastReceiver() {
         val grantSurvived = !mode.needsShizuku && AdbShell.hasWriteSecureSettings(context)
         val plan = PostUpdateRecovery.plan(mode, grantSurvived)
         AppLogger.i(TAG, "App replaced (mode=$mode, grant survived=$grantSurvived): $plan")
+
+        // FIRST, and on this thread: the keep-alive is a foreground service, and from Android 12 an app
+        // in the background may only start one inside a short exemption window — which MY_PACKAGE_REPLACED
+        // grants while the broadcast is being processed. Starting it after the daemon work below (which
+        // took ~6 s when measured) would fall outside that window and be refused.
+        if (plan.restartKeepAlive) {
+            runCatching { DaemonKeepAliveService.start(context) }
+                .onFailure { AppLogger.w(TAG, "Could not restart the keep-alive after the replace: ${it.message}") }
+        }
 
         Thread {
             // Shizuku's user service survives the replace holding a path to an APK that no longer

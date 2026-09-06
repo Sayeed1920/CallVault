@@ -34,11 +34,17 @@ internal object PostUpdateRecovery {
      * @param ensureRecorder bring the daemon and the keep-alive service back. **Always true.**
      * @param restartShizukuService tear down and restart the Shizuku user service, which survives a
      *   replace still holding the path of an APK that no longer exists.
+     * @param restartKeepAlive bring back the keep-alive foreground service, which the replace stopped.
+     *   It is not merely a watchdog: it **hosts app-call detection**, so leaving it down costs VoIP
+     *   recording entirely, and lets the daemon be reaped when the phone goes idle. Measured on the
+     *   OP12 on 2026-09-06: the first version of this fix restored the daemon and not this, and
+     *   `dumpsys activity services` showed no service at all afterwards.
      */
     data class Plan(
         val healGrant: Boolean,
         val ensureRecorder: Boolean,
         val restartShizukuService: Boolean,
+        val restartKeepAlive: Boolean,
     )
 
     fun plan(mode: PrivilegedMode, grantSurvived: Boolean): Plan = Plan(
@@ -47,5 +53,7 @@ internal object PostUpdateRecovery {
         // The one thing that is never conditional.
         ensureRecorder = true,
         restartShizukuService = mode.needsShizuku,
+        // Shizuku mode has nothing to keep alive — the service stands down there itself.
+        restartKeepAlive = !mode.needsShizuku,
     )
 }
