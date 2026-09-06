@@ -724,7 +724,7 @@ to the nearest boundary, so it doesn't end up in the middle of a gap that isn't 
 mapping"* — was true and still missed this, because the fix landed **before** the pin. Checking commits
 *after* a pin can only ever find what we have not got; it cannot tell you what you already have.
 
-### 🧪 FIXED 2026-09-06 — and the measurement moved the target twice
+### ✅ FIXED AND PROVEN ON A DEVICE 2026-09-06 — the measurement moved the target twice first
 
 Branch `fix/issue-25-vad-timestamps` (`570d58a`). `SpeechGapSnap` + JNI getters for the VAD stretches.
 
@@ -758,10 +758,27 @@ better than a few hundred milliseconds. A line that genuinely begins in the last
 and continues past a pause loses up to a second at its front — against lines no longer stamped a dozen
 seconds early.
 
-**Still to verify:** the reporter's file re-transcribed through the app itself, with the segment moving
-from ~76 s to ~88 s. The desktop harness that produced the table above is
-`scratchpad/t25.cpp` — a 40-line program linked against the vendored library, worth rebuilding rather
-than guessing next time.
+**✅ Verified end to end on the OP9** (`Issue25TimestampTest`, `99fef7d`): the reporter's own recording
+through the app's own `transcribeBuffer`, shipped `DecodeSettings`, `large-v3-turbo-q8_0`, VAD on:
+
+```
+66.85s -> 76.48s  "to finalize your record right now. Okay? Hold on…"
+88.53s -> 99.75s  "Thank you so much for connecting. My name is Adam…"   ← was 76.52s
+```
+
+**88.53 s is exactly where speech resumes.** The remaining unknown is only whether the reporter agrees
+on his own device.
+
+Two things that run taught, both worth keeping:
+
+- **ColorOS froze the instrumented app** in the background — RSS retained, zero CPU ticks, every thread
+  sleeping, no progress for eight minutes. `cmd deviceidle whitelist +<pkg>`, `RUN_ANY_IN_BACKGROUND`
+  and `svc power stayon usb` are what make a long instrumented test possible on the OP9.
+- **The first run failed against a working fix** because the selector matched "connecting" and an
+  earlier line says *"I'm connecting…"*. A loose match in a test is how a good fix gets reverted.
+
+The desktop harness that produced the table above is `scratchpad/t25.cpp` — a 40-line program linked
+against the vendored library, worth rebuilding rather than guessing next time.
 
 ### Fix directions, re-ranked by that research (superseded by the above, kept for the reasoning)
 
