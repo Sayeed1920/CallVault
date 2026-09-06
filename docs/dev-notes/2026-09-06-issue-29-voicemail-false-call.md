@@ -1,5 +1,10 @@
 # Issue #29 — playing a voicemail is reported as a call that failed to record
 
+> **🧪 VERIFYING — fixed 2026-09-06 on `fix/issue-29-voicemail-false-call` (`067b490`, `9519bba`).**
+> Unit-tested, device-tested for the one property no unit test can cover, and the release build is
+> green. **Not verified**: nobody has yet played a voicemail on an affected phone and watched the
+> warning not appear. That needs the reporter, or a Samsung.
+
 **Reporter:** mirror176 (Samsung Galaxy S20 FE 5G, One UI 5.1, Android 13), against 2.2.0, standalone
 mode, VoIP + resilient + offline recording all on. *"Playing back voicemail… causes callvault to
 indicate like a call was initiated and then marks that the call was not recorded. Issue disappears once
@@ -91,14 +96,34 @@ in our own upstream.
 - `AudioRecordingConfiguration.isClientSilenced()` exists: the platform will **tell** a recorder that it
   has been silenced by capture policy. We currently infer this. Relevant to the one-sided-VoIP warning.
 
-## Recommended fix, in order
+## What was implemented
 
-1. **Corroborate before believing the mode.** Require at least one active recording configuration
-   (excluding our own) before treating `MODE_IN_COMMUNICATION` as a call — and certainly before
-   `reportMissed` ever fires. Kills the whole class, needs nothing but the app.
-2. **Check the user's exclusion first**, above every report path.
-3. **Say less when we know least:** a "not ready" miss for a call we could not even identify is where we
-   shout loudest on the thinnest evidence.
+1. **`CallEvidence`** — asks the platform who is capturing, and treats only a **communication-type
+   source** (`VOICE_COMMUNICATION`, `VOICE_CALL`, `VOICE_UPLINK/DOWNLINK`) as evidence of a call. A
+   source and not a count, because our own capture opens `MIC` and appears in the same list, and an idle
+   phone was twice seen holding a stray `MIC` session.
+2. **All four miss-report paths now go through that gate** (`reportMissedIfReal`). Nothing else changed
+   about when a recording is attempted.
+3. **The per-app exclusion moved above the report paths.** It sat below two of them, so an app the user
+   had switched off still warned them whenever the recorder was not ready or the folder was unwritable.
+
+### The one design decision worth defending
+
+**The gate is on the report, never on the recording.** A VoIP app that captures with plain `MIC`, or
+that opens its capture a moment after the audio mode flips, will not corroborate. Gating the *recording*
+on that would trade this bug for a lost call, which is the worst failure this app has. Gating only the
+*warning* means a wrong answer costs a warning we did not print.
+
+A consequence, accepted knowingly: on a phone whose daemon **is** connected, a voicemail playback can
+still start a recording. The two fixes cover the two states between them — with the daemon up the app is
+identifiable and the user can exclude it (and that exclusion now works before any report), and with the
+daemon down there is no false warning any more. Revisit only if someone reports the spurious recording
+itself.
+
+### Not gated, deliberately
+
+`VoipRecordPrompt` — the "ask me" offer shown when auto-start is off. Suppressing a *prompt* on this
+evidence could cost a real recording, which is the line drawn above.
 
 ## ✅ MEASURED ON THE OP12 (2026-09-06) — the probe answered both questions
 
