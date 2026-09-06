@@ -100,15 +100,51 @@ in our own upstream.
 3. **Say less when we know least:** a "not ready" miss for a call we could not even identify is where we
    shout loudest on the thinnest evidence.
 
-## Must be verified on a device before implementing
+## ✅ MEASURED ON THE OP12 (2026-09-06) — the probe answered both questions
 
-📐 The mechanism is **reasoned, not measured**. Before writing the fix:
+An instrumented probe running in an **ordinary app process** (the isolated test app, so the visibility
+measured is the visibility the real app has) sampled `AudioManager` and `TelecomManager` once a second
+across playback and a real WhatsApp call:
 
-- During a real WhatsApp call, does an ordinary app see ≥1 active recording configuration? During
-  voicemail playback, zero? That is the whole fix in one probe.
-- Does `TelecomManager.isInCall()` read true during a WhatsApp call on the OP12? Settles whether
-  WhatsApp registers with Telecom at all.
-- Ask the reporter: the voicemail app's package name, whether the notification says "not ready in time",
+| state | mode | `isInCall` | `recordingConfigs` |
+|---|---|---|---|
+| idle | NORMAL | false | 0 |
+| **audio playing** (nothing else) | NORMAL | false | **0** |
+| **real WhatsApp call** (21 s) | IN_COMMUNICATION | **false** | **2** — `src=7 silenced=false`, `src=1 silenced=false` |
+| a few seconds after the call | NORMAL | false | 1 (`src=1`), then 0 |
+
+**Attribution is certain:** `src=7` is `VOICE_COMMUNICATION` — WhatsApp capturing for the call — and
+`src=1` is `MIC`, which is **our own daemon** (`VoipCaptureSession` opens `AudioSource.MIC`). Both calls
+produced recordings, so the second session is ours by construction.
+
+### What this proves
+
+1. **The discriminator is real, and needs nothing privileged.** A call shows another app capturing with
+   a communication source; playback shows no capture at all. `clientAudioSource` is **not** redacted for
+   an ordinary app — we read `src=7` from an unprivileged process. No daemon, no new permission.
+2. **`TelecomManager.isInCall()` was FALSE for the entire WhatsApp call.** WhatsApp does not register a
+   self-managed `ConnectionService` on this device. So Telecom is not merely unusable as a *suppressor*
+   — it is not even a usable *positive* signal for the most common app. **Drop it from the design.**
+3. **Our own capture is visible in the same list**, so "any capture" is the wrong rule — it would let our
+   own recording confirm itself. A stray background `MIC` session was also seen twice while idle, which
+   would have false-positived a naive count.
+
+### The rule the measurement supports
+
+Treat `MODE_IN_COMMUNICATION` as a call only when **another app is capturing with a communication-type
+source** (`VOICE_COMMUNICATION`, `VOICE_CALL`, `VOICE_UPLINK/DOWNLINK`). At the moment the mode event
+arrives our own capture has not started, so anything already in the list belongs to someone else.
+
+**Apply it asymmetrically, and this is the important part:** use it to gate the **miss report**, never
+the recording attempt. A VoIP app that captures with plain `MIC`, or that starts capture a moment after
+the mode flips, would fail the strict test — and the cost of being wrong must be a missing *warning*,
+never a missing *recording*.
+
+## Verified; what is left to ask the reporter
+
+
+
+Both device questions are now answered above. Still worth asking the reporter: the voicemail app's package name, whether the notification says "not ready in time",
   and a 2.3.0 debug report taken right after playing a voicemail.
 
 **rc2 does not change this** — the capture-start check added for 28c is on the carrier path only.
