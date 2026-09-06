@@ -29,6 +29,21 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **Playing a voicemail no longer counts as a call that failed to record.** CallVault spots app calls
+  by the phone switching its audio into "communication" mode, because Android offers nothing better —
+  but a voicemail app takes that same mode to play through the earpiece. Every voicemail played, and
+  every resume after a pause, was announced as an app call that had gone unrecorded, and was written
+  into the app's health record as a missed call. Reported by a user who found the warnings only stopped
+  when he switched to Shizuku, which turns app-call recording off entirely.
+
+  CallVault now checks whether anything on the phone is actually capturing audio for a call before it
+  says a call was missed. It never withholds a recording on that basis — only the warning — so a call
+  can still be recorded even where the check cannot confirm it.
+
+- **An app you have switched off for recording can no longer produce a "call not recorded" warning.**
+  The per-app choice was consulted after two of the checks that raise it, so an excluded app still
+  warned you whenever the recorder was not ready or the folder was unwritable.
+
 - **The crackling in call recordings is fixed, and both causes of it are.** On phones that could not
   quite keep up, the recorder threw away a 21-millisecond fragment of the call and joined the audio
   either side of it — silence sounded fine, but a cut through the middle of a word became a click.

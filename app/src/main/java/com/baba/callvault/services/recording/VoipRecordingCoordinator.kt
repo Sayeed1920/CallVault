@@ -90,16 +90,8 @@ object VoipRecordingCoordinator {
         if (service == null) {
             // Nothing can be done for THIS call, and that is not a shortcoming of the retry that is
             // missing here — see [reportMissed]. All that is left is to say so.
-            reportMissed(context, R.string.voip_missed_not_ready, null)
+            reportMissedIfReal(context, R.string.voip_missed_not_ready, null)
             AppLogger.w(TAG, "VoIP call detected but the daemon is not connected — not recording")
-            return
-        }
-
-        val folderUri = prefs.getRecordingFolderUri()
-        if (!SafHelper.isFolderValid(context, folderUri)) {
-            // User-owned and permanent until they fix it: every call goes the same way until then.
-            reportMissed(context, R.string.voip_missed_no_folder, Prerequisite.RECORDING_FOLDER)
-            AppLogger.e(TAG, "VoIP call detected but the recording folder is missing/unwritable")
             return
         }
 
@@ -116,9 +108,12 @@ object VoipRecordingCoordinator {
                 .onFailure { AppLogger.d(TAG, "caller lookup failed: ${it.message}") }
                 .getOrNull()
         }
-        // The user's per-app choice, checked before anything is created. Not later: creating the
-        // file first and deleting it would put a recording of an excluded app on disk, however
-        // briefly, and would leave a window where a sync tool could take a copy of it.
+        // The user's per-app choice, checked before anything is created OR reported. Not later:
+        // creating the file first and deleting it would put a recording of an excluded app on disk,
+        // however briefly, leaving a window where a sync tool could take a copy of it — and reporting
+        // first would tell the user off for getting exactly what they configured. This used to sit
+        // BELOW the folder check, so an excluded app still produced "an app call was not recorded"
+        // whenever the folder was unwritable (issue #29).
         if (!VoipAppPolicy.shouldRecord(callPackage, prefs.getVoipExcludedPackages())) {
             // Not reportMissed(): this is not a miss. The user asked for this app to be left alone,
             // and telling them off for getting what they configured is how a warning becomes noise.
@@ -126,11 +121,19 @@ object VoipRecordingCoordinator {
             return
         }
 
+        val folderUri = prefs.getRecordingFolderUri()
+        if (!SafHelper.isFolderValid(context, folderUri)) {
+            // User-owned and permanent until they fix it: every call goes the same way until then.
+            reportMissedIfReal(context, R.string.voip_missed_no_folder, Prerequisite.RECORDING_FOLDER)
+            AppLogger.e(TAG, "VoIP call detected but the recording folder is missing/unwritable")
+            return
+        }
+
         val fileName = buildFileName(codec, appLabel, caller)
 
         val saf = SafHelper.createAudioFile(context, folderUri, fileName, codec.mimeType)
         if (saf == null) {
-            reportMissed(context, R.string.voip_missed_no_folder, Prerequisite.RECORDING_FOLDER)
+            reportMissedIfReal(context, R.string.voip_missed_no_folder, Prerequisite.RECORDING_FOLDER)
             AppLogger.e(TAG, "Could not create the VoIP output file")
             return
         }
@@ -142,7 +145,7 @@ object VoipRecordingCoordinator {
         if (!started) {
             // Most likely the policy was not armed before the call — nothing can be captured now, so
             // remove the empty file rather than leaving a 0-byte recording in the user's folder.
-            reportMissed(context, R.string.voip_missed_not_ready, null)
+            reportMissedIfReal(context, R.string.voip_missed_not_ready, null)
             AppLogger.e(TAG, "VoIP recording refused by the daemon; discarding the empty file")
             runCatching { saf.descriptor.close() }
             // Nothing to delete in the user's folder: the destination is not created until a recording
@@ -163,6 +166,32 @@ object VoipRecordingCoordinator {
         isSuspendedForCarrierCall = false
         VoipRecordingNotification.show(context, appLabel)
         AppLogger.i(TAG, "VoIP recording started -> $fileName")
+    }
+
+    /**
+     * [reportMissed], but only when the phone actually looks like it is on a call — issue #29.
+     *
+     * **Why a gate is needed at all.** The detector's only signal is `MODE_IN_COMMUNICATION`, which is
+     * a routing state: an app that plays a voicemail through the earpiece takes it too. Every such
+     * playback reached the code below and told the user a call had gone unrecorded, and wrote an
+     * unexplained gap into the health record. The reporter of issue #29 hit that on every voicemail he
+     * played, and each replay did it again.
+     *
+     * **The gate never costs a recording.** It sits in front of the *report*, not in front of the
+     * recording, precisely because [CallEvidence] can be wrong: an app that captures with plain `MIC`,
+     * or that opens its capture a moment after the mode flips, will not corroborate. The price of that
+     * is a warning we do not print — never a call we do not record.
+     */
+    private fun reportMissedIfReal(context: Context, messageRes: Int, prerequisite: Prerequisite?) {
+        if (!CallEvidence.looksLikeACall(context)) {
+            AppLogger.i(
+                TAG,
+                "The audio mode says a call, but nothing on this phone is capturing for one — " +
+                    "not reporting a missed call (issue #29)",
+            )
+            return
+        }
+        reportMissed(context, messageRes, prerequisite)
     }
 
     /**
