@@ -79,6 +79,18 @@ object WhisperNative {
     external fun vadSegmentCount(ptr: Long): Int
 
     /**
+     * Where the i-th stretch of speech the VAD kept begins and ends, in ORIGINAL audio time.
+     *
+     * Issue #25: whisper's own segment timestamps are mapped back through a table that represents every
+     * removed pause with a hardcoded 100 ms, so a line after a long pause is stamped far too early.
+     * These are the real boundaries, and [SpeechGapSnap] uses them to put such a line back.
+     */
+    external fun vadSegmentStartMs(ptr: Long, index: Int): Long
+
+    /** @see vadSegmentStartMs */
+    external fun vadSegmentEndMs(ptr: Long, index: Int): Long
+
+    /**
      * Asks a run in progress to stop, from any thread.
      *
      * [transcribe] is one blocking call that neither coroutine cancellation nor WorkManager can

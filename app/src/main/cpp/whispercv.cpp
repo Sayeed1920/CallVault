@@ -410,7 +410,19 @@ Java_com_baba_callvault_transcription_WhisperNative_vadSegmentCount(JNIEnv *, jo
     return whisper_full_n_vad_segments(ctx_of(ptr));
 }
 
-JNIEXPORT jint JNICALL
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_baba_callvault_transcription_WhisperNative_vadSegmentStartMs(JNIEnv *, jobject, jlong ptr, jint i) {
+    // ORIGINAL-timeline start of the i-th stretch of speech the VAD kept. Issue #25 needs these to put
+    // a segment back where it was actually spoken; see SpeechGapSnap.
+    return whisper_full_get_vad_segment_t0(ctx_of(ptr), i) * 10;
+}
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_baba_callvault_transcription_WhisperNative_vadSegmentEndMs(JNIEnv *, jobject, jlong ptr, jint i) {
+    return whisper_full_get_vad_segment_t1(ctx_of(ptr), i) * 10;
+}
+
+extern "C" JNIEXPORT jint JNICALL
 Java_com_baba_callvault_transcription_WhisperNative_segmentCount(JNIEnv *, jobject, jlong ptr) {
     return whisper_full_n_segments(ctx_of(ptr));
 }

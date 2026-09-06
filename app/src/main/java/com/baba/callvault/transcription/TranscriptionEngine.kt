@@ -212,13 +212,33 @@ object TranscriptionEngine {
             whisperActive = false
         }
         val count = WhisperNative.segmentCount(ptr)
-        return (0 until count).map { i ->
+        val segments = (0 until count).map { i ->
             TranscriptSegment(
                 startMs = WhisperNative.segmentStartMs(ptr, i),
                 endMs = WhisperNative.segmentEndMs(ptr, i),
                 text = WhisperNative.segmentText(ptr, i).trim(),
             )
         }.filter { it.text.isNotEmpty() }
+        return SpeechGapSnap.apply(segments, speechStretches(ptr, vadModelPath != null))
+    }
+
+    /**
+     * The stretches of speech the VAD kept, in original audio time, or empty when it was not used.
+     *
+     * Feeds [SpeechGapSnap], which puts a line stamped inside a removed pause back where it was
+     * actually spoken — issue #25.
+     */
+    private fun speechStretches(ptr: Long, vadOn: Boolean): List<SpeechGapSnap.Speech> {
+        if (!vadOn) return emptyList()
+        return runCatching {
+            (0 until WhisperNative.vadSegmentCount(ptr)).map { i ->
+                SpeechGapSnap.Speech(
+                    startMs = WhisperNative.vadSegmentStartMs(ptr, i),
+                    endMs = WhisperNative.vadSegmentEndMs(ptr, i),
+                )
+            }
+        }.onFailure { AppLogger.w(TAG, "Could not read the VAD stretches: ${it.message}") }
+            .getOrDefault(emptyList())
     }
 
     suspend fun transcribe(
@@ -338,6 +358,9 @@ object TranscriptionEngine {
                         text = WhisperNative.segmentText(ptr, i).trim(),
                     )
                 }.filter { it.text.isNotEmpty() }
+                    // Before the chunk offset is added, so the stretches and the segments are in the
+                    // same (chunk-local) timeline — issue #25.
+                    .let { SpeechGapSnap.apply(it, speechStretches(ptr, vadModelPath != null)) }
 
                 // Stitched against where the audio REALLY started, which a seek may have moved earlier
                 // than the plan asked for. Using the planned offset instead would skew every timestamp
