@@ -29,6 +29,13 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **Updating the app no longer leaves it unable to record the next call.** Installing an update stops
+  CallVault's background services and the privileged recorder that captures the audio, and until now
+  they were only brought back if the update had also cost the app a permission. If it had not — the
+  usual case — nothing restarted them, and a call arriving in that window woke the app, started a
+  recording and produced no file. Found the hard way: a thirteen-minute call, eight minutes after an
+  update, with the call right after it recording perfectly.
+
 - **A line spoken after a long pause is no longer timestamped as if it came before it.** Tapping a
   line in a transcript jumps to that moment in the call — except after a silence, where it could land
   more than ten seconds early, on the wrong speaker. Reported by a user who noticed it on a call that
