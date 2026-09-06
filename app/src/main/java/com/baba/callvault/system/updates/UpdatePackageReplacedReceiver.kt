@@ -56,46 +56,50 @@ class UpdatePackageReplacedReceiver : BroadcastReceiver() {
     }
 
     /**
-     * Best-effort, off the broadcast thread: re-grant WRITE_SECURE_SETTINGS that the install-over
-     * dropped, over any transport that's ALREADY up (WD still on / loopback armed) — no adbd churn.
+     * Puts the app back on its feet after an install-over, off the broadcast thread.
+     *
+     * **The rule lives in [PostUpdateRecovery] and its invariant is that the recorder always comes
+     * back.** This used to return early whenever `WRITE_SECURE_SETTINGS` survived the update, reasoning
+     * that there was nothing left to heal — and that reasoning cost a real 13-minute call on
+     * 2026-09-06. An update stops our foreground services and kills the privileged daemon whatever
+     * happens to the grant; the next call then woke the app, started recording, and wrote nothing
+     * because there was no daemon to capture through. Healing the grant was only ever half the job.
      *
      * [AdbShell.tryHealWriteSecureSettings] is used INSTEAD of relying on the daemon launcher, because
      * when the daemon survived the update [RecorderServerLauncher.ensureServerRunning] early-returns on
-     * the already-connected binder and never reaches the self-grant — which is exactly the common case
-     * (recording keeps working, but the grant stays lost). After healing we still ensure the daemon is
-     * up (a no-op when it's already connected). Skipped when the grant survived (in-app updater re-grants
-     * inline). Harmless no-op when no transport is up — Home's banner then guides the one-time WD toggle.
+     * the already-connected binder and never reaches the self-grant. It runs over any transport that is
+     * ALREADY up, so it causes no adbd churn, and is a harmless no-op when none is — Home's banner then
+     * guides the one-time WD toggle.
+     *
+     * [RecorderBackend.ensureRunning] is a no-op when the daemon is already connected, and it also
+     * starts the keep-alive service, which is the other thing the replace stopped.
      */
     private fun recoverAfterReplace(context: Context) {
-        // Shizuku mode first, and unconditionally: a user service bound with daemon(true) SURVIVES the
-        // update, and an update moves the APK to a new hashed directory — so the surviving service holds
-        // a path to a file that no longer exists. It keeps answering, so nothing looks wrong, until a
-        // call needs the scrcpy jar and there is nothing to extract it from. Measured on the OP9: a real
-        // call recorded 0 bytes and reported success.
-        //
-        // Shizuku restarts a service whose version changes, and the version IS the app's versionCode —
-        // but that only covers real updates. A same-version reinstall (every development install, and a
-        // reinstall of the same release) leaves the stale service in place, so it is torn down here
-        // rather than trusted to the version check.
-        if (AppPreferences(context).getPrivilegedMode().needsShizuku) {
-            AppLogger.i(TAG, "App replaced in Shizuku mode; restarting the user service so it sees the new APK")
-            Thread {
+        val mode = AppPreferences(context).getPrivilegedMode()
+        val grantSurvived = !mode.needsShizuku && AdbShell.hasWriteSecureSettings(context)
+        val plan = PostUpdateRecovery.plan(mode, grantSurvived)
+        AppLogger.i(TAG, "App replaced (mode=$mode, grant survived=$grantSurvived): $plan")
+
+        Thread {
+            // Shizuku's user service survives the replace holding a path to an APK that no longer
+            // exists. It keeps answering, so nothing looks wrong, until a call needs the scrcpy jar and
+            // there is nothing to extract it from — measured on the OP9 as a call that recorded 0 bytes
+            // and reported success. Shizuku only restarts a service whose version changed, so a
+            // same-version reinstall (every development install) needs this too.
+            if (plan.restartShizukuService) {
                 runCatching { ShizukuBackend.stop(remove = true) }
                     .onFailure { AppLogger.w(TAG, "Could not stop the stale Shizuku service: ${it.message}") }
+            }
+            val healed = if (plan.healGrant) {
+                runCatching { AdbShell.tryHealWriteSecureSettings(context) }.getOrDefault(false)
+            } else {
+                false
+            }
+            if (plan.ensureRecorder) {
                 runCatching { RecorderBackend.ensureRunning(context) }
-            }.apply { isDaemon = true; name = "cv-post-update-shizuku" }.start()
-            return
-        }
-
-        if (AdbShell.hasWriteSecureSettings(context)) {
-            AppLogger.d(TAG, "WRITE_SECURE_SETTINGS survived the update; no post-replace recovery needed")
-            return
-        }
-        AppLogger.i(TAG, "WRITE_SECURE_SETTINGS lost on update; attempting non-churning self-heal")
-        Thread {
-            val healed = runCatching { AdbShell.tryHealWriteSecureSettings(context) }.getOrDefault(false)
-            runCatching { RecorderBackend.ensureRunning(context) }
-            AppLogger.i(TAG, "Post-replace recovery: WRITE_SECURE_SETTINGS regranted=$healed")
+                    .onFailure { AppLogger.w(TAG, "Post-replace recorder restart failed: ${it.message}") }
+            }
+            AppLogger.i(TAG, "Post-replace recovery done (grant regranted=$healed)")
         }.apply { isDaemon = true; name = "cv-post-update-recover" }.start()
     }
 
