@@ -29,6 +29,16 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **A line spoken after a long pause is no longer timestamped as if it came before it.** Tapping a
+  line in a transcript jumps to that moment in the call — except after a silence, where it could land
+  more than ten seconds early, on the wrong speaker. Reported by a user who noticed it on a call that
+  was transferred, with a long hold in between.
+
+  The cause is in the speech detection: it removes the silence before transcribing, and every pause,
+  however long, was being treated as a tenth of a second when the times were mapped back. Times are now
+  put back against the speech that was actually there. Checked against the recording the reporter
+  attached: the line that was stamped at 1:16 is now at 1:28, where it is really said.
+
 - **Playing a voicemail no longer counts as a call that failed to record.** CallVault spots app calls
   by the phone switching its audio into "communication" mode, because Android offers nothing better —
   but a voicemail app takes that same mode to play through the earpiece. Every voicemail played, and
