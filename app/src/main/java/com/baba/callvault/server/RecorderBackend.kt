@@ -264,12 +264,11 @@ object RecorderBackend {
      * What the status row on Settings reports. Standalone's readiness is a whole wizard's worth of
      * state and is reported elsewhere; this answers only the Shizuku half honestly.
      */
-    fun shizukuStatus(context: Context): ShizukuStatus = when {
-        !ShizukuBackend.isInstalled(context) -> ShizukuStatus.NOT_INSTALLED
-        !ShizukuBackend.isRunning() -> ShizukuStatus.NOT_RUNNING
-        !ShizukuBackend.hasPermission() -> ShizukuStatus.NO_PERMISSION
-        else -> ShizukuStatus.READY
-    }
+    fun shizukuStatus(context: Context): ShizukuStatus = ShizukuStatus.of(
+        isRunning = ShizukuBackend.isRunning(),
+        hasPermission = ShizukuBackend.hasPermission(),
+        isInstalled = ShizukuBackend.isInstalled(context),
+    )
 
     private fun ensureShizukuRunning(context: Context): Boolean {
         if (RecorderConnection.isConnected) {
@@ -302,19 +301,4 @@ object RecorderBackend {
         AppLogger.w(TAG, "Shizuku did not hand back a recorder binder within ${SHIZUKU_BIND_TIMEOUT_MS}ms")
         return false
     }
-}
-
-/** Why Shizuku mode can or cannot serve a recorder, in the order a user would fix them. */
-enum class ShizukuStatus {
-    /** No Shizuku app on the phone at all. */
-    NOT_INSTALLED,
-
-    /** Installed, but its server is not running — it must be started after every reboot. */
-    NOT_RUNNING,
-
-    /** Running, but CallVault has not been allowed to use it. */
-    NO_PERMISSION,
-
-    /** Running and permitted. */
-    READY,
 }

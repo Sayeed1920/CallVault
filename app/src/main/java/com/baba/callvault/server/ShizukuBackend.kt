@@ -15,6 +15,7 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import com.baba.callvault.utils.AppLogger
 import rikka.shizuku.Shizuku
+import rikka.shizuku.ShizukuProvider
 
 /**
  * Starts the recorder through a Shizuku server instead of our own embedded ADB.
@@ -23,9 +24,9 @@ import rikka.shizuku.Shizuku
  * this one asks Shizuku to start [RecorderUserService] and takes the binder Shizuku hands back. Both end
  * at [RecorderConnection.onBinderReceived], and nothing downstream can tell which ran.
  *
- * **Works with every Shizuku variant.** Stock Shizuku, Sui, and the thedjchi/symbuzzer forks all ship
- * `moe.shizuku.privileged.api` and the same `API_V23` permission, so none of this is variant-specific —
- * and nothing here should ever become so.
+ * **Works with every Shizuku variant.** Stock Shizuku, Sui and the community forks all speak the same
+ * API and the same `API_V23` permission, so none of this is variant-specific — and nothing here should
+ * ever become so. What they do *not* share is a package name: see [managerPackage].
  *
  * Nothing in this object throws: a phone without Shizuku, with Shizuku stopped, or with permission
  * denied is an ordinary state for a feature that is off by default, not an error to propagate.
@@ -34,8 +35,23 @@ object ShizukuBackend {
 
     private const val TAG = "CV:ShizukuBackend"
 
-    /** Every Shizuku variant, including Sui and the community forks, uses this package name. */
+    /** What stock Shizuku is called. Only a fallback — a Shizuku may answer to any name, or none. */
     const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
+
+    /**
+     * The permissions a Shizuku manager *declares*, which is what identifies one.
+     *
+     * Permissions live in a global namespace and are not filtered the way packages are, so this finds
+     * a Shizuku that a fixed package name cannot: a fork's stealth mode reinstalls Shizuku under a
+     * random package name (it rewrites only the manifest's package and its provider authorities —
+     * the permission it declares is untouched), and a package hidden from enumeration stays findable
+     * this way too. Both names are tried because Shizuku+ declares its own and merely *requests* the
+     * stock one; the stock name is first so an install that has both resolves the way it always did.
+     */
+    private val MANAGER_PERMISSIONS = listOf(
+        ShizukuProvider.PERMISSION,
+        "af.shizuku.plus.permission.API_V23",
+    )
 
     /** Request code for [requestPermission]; only has to be unique within the app. */
     const val PERMISSION_REQUEST_CODE = 5713
@@ -67,11 +83,32 @@ object ShizukuBackend {
 
     @Volatile private var connection: ServiceConnection? = null
 
-    /** Whether a Shizuku app is installed at all (needs the `<queries>` entry to see it). */
-    fun isInstalled(context: Context): Boolean = runCatching {
-        context.packageManager.getPackageInfo(SHIZUKU_PACKAGE, 0)
+    /**
+     * The package name of the Shizuku manager on this phone, or null when none can be found.
+     *
+     * Resolved from [MANAGER_PERMISSIONS] rather than from a hardcoded name, because the name is not
+     * dependable: stealth mode renames it, and Sui installs no manager app at all. The fixed name is
+     * kept only as a fallback, for a ROM that refuses the permission lookup.
+     *
+     * Null is never on its own a reason to give up on Shizuku — a running server answers [isRunning]
+     * regardless, and that is what [ShizukuStatus.of] asks first.
+     */
+    fun managerPackage(context: Context): String? =
+        MANAGER_PERMISSIONS.firstNotNullOfOrNull { permissionOwner(context, it) }
+            ?: SHIZUKU_PACKAGE.takeIf { isPackageInstalled(context, it) }
+
+    /** Which package declares [permission], or null when no installed app declares it. */
+    private fun permissionOwner(context: Context, permission: String): String? = runCatching {
+        context.packageManager.getPermissionInfo(permission, 0).packageName?.takeUnless { it.isBlank() }
+    }.getOrNull()
+
+    private fun isPackageInstalled(context: Context, packageName: String): Boolean = runCatching {
+        context.packageManager.getPackageInfo(packageName, 0)
         true
     }.getOrDefault(false)
+
+    /** Whether a Shizuku app is installed at all. Says nothing about whether it is running. */
+    fun isInstalled(context: Context): Boolean = managerPackage(context) != null
 
     /** Whether a Shizuku server is running right now and reachable. */
     fun isRunning(): Boolean = runCatching { Shizuku.pingBinder() }.getOrDefault(false)

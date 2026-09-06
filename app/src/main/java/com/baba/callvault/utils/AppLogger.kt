@@ -33,6 +33,7 @@ import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.server.RecorderConnection
 import com.baba.callvault.integrations.adb.AdbShell
 import com.baba.callvault.server.RecorderBackend
+import com.baba.callvault.server.ShizukuBackend
 
 /**
  * A unified, thread-safe, and asynchronous logging utility with built-in log rotation and redaction capabilities.
@@ -430,6 +431,10 @@ object AppLogger {
 
         writer.println("--- Configuration ---")
         writer.println("Privileged mode: ${mode?.name ?: "?"}")
+        // Printed in BOTH modes on purpose: the report that needs it most comes from someone stuck in
+        // standalone *because* we could not find their Shizuku, and the Shizuku block below is skipped
+        // for them. "none found" next to a Shizuku the user swears is installed is the whole diagnosis.
+        writer.println("Shizuku manager: ${runCatching { ShizukuBackend.managerPackage(context) }.getOrNull() ?: "none found"}")
         writer.println("Record phone calls: ${p.yesNo { isCarrierRecordingEnabled() }}")
         writer.println("Auto-record incoming: ${p.yesNo { isAutoRecordIncomingEnabled() }}")
         writer.println("Auto-record outgoing: ${p.yesNo { isAutoRecordOutgoingEnabled() }}")

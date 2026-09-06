@@ -63,9 +63,10 @@
         </intent>
     </queries>
 
-    <!-- Every Shizuku variant (stock, Sui, thedjchi's and symbuzzer's forks) ships this same
-         applicationId, so one entry covers all of them. Without it Android 11+ filters the package
-         out and Shizuku looks uninstalled even while it is running. -->
+    <!-- Stock Shizuku and most forks ship this applicationId; without the entry Android 11+ filters
+         the package out and Shizuku looks uninstalled even while it is running. It is NOT how Shizuku
+         is detected, though: a fork's stealth mode reinstalls Shizuku under a random package name and
+         Sui installs no app at all, so ShizukuBackend resolves it from the permission it declares. -->
     <queries>
         <package android:name="moe.shizuku.privileged.api" />
     </queries>
