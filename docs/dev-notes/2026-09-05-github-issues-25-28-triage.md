@@ -724,7 +724,46 @@ to the nearest boundary, so it doesn't end up in the middle of a gap that isn't 
 mapping"* — was true and still missed this, because the fix landed **before** the pin. Checking commits
 *after* a pin can only ever find what we have not got; it cannot tell you what you already have.
 
-### Fix directions, re-ranked by that research
+### 🧪 FIXED 2026-09-06 — and the measurement moved the target twice
+
+Branch `fix/issue-25-vad-timestamps` (`570d58a`). `SpeechGapSnap` + JNI getters for the VAD stretches.
+
+**Running the reporter's own recording through whisper.cpp with our exact settings killed the plan
+below before a line of app code was written:**
+
+| what the library actually reports | value |
+|---|---|
+| VAD stretch 6 | 74.54 – 77.04 s |
+| VAD stretch 7 (speech resumes) | **88.53** – 93.07 s |
+| whisper's segment start for "Thank you so much for connecting…" | **76.52 s** |
+| the same line's RAW token time (concatenated timeline) | **65.96 s** |
+| `whisper_full_get_token_t0` on it, with `token_timestamps` on | **76.84 s** |
+
+1. **"Snap a start that lands in a removed pause" does nothing here.** 76.52 s is *inside* stretch 6,
+   not in the gap. Fix direction 1 — ours, and the reporter's — would have shipped and changed nothing.
+2. **Upstream's token mapping does not rescue it either.** With `token_timestamps` on, the token times
+   are recomputed against the segment's own already-wrong window, so the getter returns 76.84 s. The
+   raw token time (65.96 s) *does* hold the right information, but enabling the flag destroys it.
+3. **The real mechanism:** whisper's timestamp for that line sits ~0.4 s *before* the seam in the
+   concatenated timeline — in the tail of the previous stretch. Removing an 11.5 s pause **amplifies
+   0.4 s into 12 s**. A tiny error, made enormous by the missing gap.
+
+**So the rule that shipped** moves a start when it lands in a removed pause **or** when it lands in the
+last second of a stretch while the line runs on past the following pause; ends move back to where
+speech stopped; nothing moves when the VAD kept nothing. Eight unit tests, every number from the
+reporter's file.
+
+⚠️ **It is a heuristic, deliberately.** Whisper's timestamps across a seam are not trustworthy to
+better than a few hundred milliseconds. A line that genuinely begins in the last second of a stretch
+and continues past a pause loses up to a second at its front — against lines no longer stamped a dozen
+seconds early.
+
+**Still to verify:** the reporter's file re-transcribed through the app itself, with the segment moving
+from ~76 s to ~88 s. The desktop harness that produced the table above is
+`scratchpad/t25.cpp` — a 40-line program linked against the vendored library, worth rebuilding rather
+than guessing next time.
+
+### Fix directions, re-ranked by that research (superseded by the above, kept for the reasoning)
 
 1. **RECOMMENDED — snap segment starts ourselves, using public API already in our tree.** For each
    segment, if its start falls in a removed gap, move it forward to the next speech stretch's original
