@@ -39,7 +39,6 @@
     <string name="disclaimer_introduction">Leia o aviso legal abaixo com atenção antes de continuar.</string>
     <string name="disclaimer_must_read">Você precisa ler o aviso legal.</string>
     <string name="disclaimer_title">Boas-vindas ao CallVault</string>
-    <string name="disclaimer_wait">Aguarde %1$ds</string>
     <string name="folder_cloud_rejected">Pastas na nuvem (como o Google Drive) não podem ser usadas para gravar. Escolha um armazenamento no próprio dispositivo — use a opção de backup no Google Drive para cópias na nuvem.</string>
     <string name="folder_cloud_warning">⚠ Esta pasta de gravação está na nuvem, o que não é confiável para a captura. Escolha uma pasta no dispositivo.</string>
     <string name="general_cancel">Cancelar</string>

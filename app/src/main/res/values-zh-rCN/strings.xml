@@ -36,7 +36,6 @@
     <string name="disclaimer_introduction">继续前请仔细阅读下方的免责声明。</string>
     <string name="disclaimer_must_read">您必须阅读免责声明。</string>
     <string name="disclaimer_title">欢迎使用 CallVault</string>
-    <string name="disclaimer_wait">等待%1$d秒</string>
     <string name="folder_cloud_rejected">云端文件夹（如 Google Drive）无法用于录音。请选择设备本地存储——如需云端副本，请使用 Google Drive 备份选项。</string>
     <string name="folder_cloud_warning">⚠ 此录音文件夹位于云端，用于录音并不可靠。请选择设备本地的文件夹。</string>
     <string name="general_cancel">取消</string>

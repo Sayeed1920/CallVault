@@ -36,7 +36,6 @@
     <string name="disclaimer_introduction">Пожалуйста, внимательно прочитайте отказ от ответственности ниже, прежде чем продолжить.</string>
     <string name="disclaimer_must_read">Вы должны прочитать дисклеймер.</string>
     <string name="disclaimer_title">Добро пожаловать в CallVault</string>
-    <string name="disclaimer_wait">Подождите %1$d сек</string>
     <string name="folder_cloud_rejected">Облачные папки (например, Google Drive) нельзя использовать для записи. Выберите хранилище на устройстве — для копий в облаке используйте функцию резервного копирования в Google Drive.</string>
     <string name="folder_cloud_warning">⚠ Эта папка для записей находится в облаке, что ненадёжно для записи. Выберите папку на устройстве.</string>
     <string name="general_cancel">Отменить</string>

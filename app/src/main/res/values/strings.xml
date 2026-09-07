@@ -67,7 +67,6 @@
         2. Monitor the app behavior on your specific device. If you observe any behavior that does not comply with your local laws, you must immediately cease any activity that constitutes a legal infraction (For example, hanging up the call, deleting the audio files, etc).
     </string>
     <string name="disclaimer_checkbox_label">I have read the disclaimer and understand the legal requirements, responsibilities, and technical limitations of this software.</string>
-    <string name="disclaimer_wait">Wait %1$ds</string>
     <string name="disclaimer_must_read">You must read the disclaimer.</string>
 
     <!-- Permissions Screen -->

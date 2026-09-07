@@ -36,7 +36,6 @@
     <string name="disclaimer_introduction">Przed kontynuowaniem uważnie przeczytaj poniższe zastrzeżenie.</string>
     <string name="disclaimer_must_read">Należy zapoznać się z treścią zastrzeżenia.</string>
     <string name="disclaimer_title">Witaj w CallVault</string>
-    <string name="disclaimer_wait">Czekaj %1$ds</string>
     <string name="folder_cloud_rejected">Folderów w chmurze (takich jak Google Drive) nie można używać do nagrywania. Wybierz pamięć na urządzeniu — do kopii w chmurze użyj opcji kopii zapasowej Google Drive.</string>
     <string name="folder_cloud_warning">⚠ Ten folder nagrań znajduje się w chmurze, co jest zawodne przy nagrywaniu. Wybierz folder na urządzeniu.</string>
     <string name="general_cancel">Anuluj</string>

@@ -36,7 +36,6 @@
     <string name="disclaimer_introduction">Vui lòng đọc kỹ tuyên bố miễn trừ trách nhiệm bên dưới trước khi tiếp tục.</string>
     <string name="disclaimer_must_read">Bạn phải đọc điều khoản miễn trừ trách nhiệm.</string>
     <string name="disclaimer_title">Chào mừng bạn đến với CallVault</string>
-    <string name="disclaimer_wait">Chờ %1$ds</string>
     <string name="folder_cloud_rejected">Không thể dùng thư mục trên đám mây (như Google Drive) để ghi âm. Hãy chọn bộ nhớ trên thiết bị — dùng tùy chọn sao lưu Google Drive để tạo bản sao trên đám mây.</string>
     <string name="folder_cloud_warning">⚠ Thư mục ghi âm này nằm trên đám mây, vốn không đáng tin cậy cho việc ghi âm. Hãy chọn một thư mục trên thiết bị.</string>
     <string name="general_cancel">Huỷ bỏ</string>

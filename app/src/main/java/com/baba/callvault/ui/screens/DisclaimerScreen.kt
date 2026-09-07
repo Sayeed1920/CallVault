@@ -37,7 +37,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -63,7 +62,6 @@ import com.baba.callvault.ui.common.CvHero
 import com.baba.callvault.ui.common.CvPrimaryButton
 import com.baba.callvault.ui.common.CvSectionHeader
 import com.baba.callvault.ui.theme.CallVaultTheme
-import kotlinx.coroutines.delay
 
 
 /**
@@ -71,8 +69,11 @@ import kotlinx.coroutines.delay
  *
  * A branded hero (teal app glyph + welcome) sits above the scrollable legal body in a styled
  * [CvCard], a clean acknowledgement checkbox, and a teal [CvPrimaryButton] for Continue. All gating
- * logic is preserved verbatim: the scroll-to-read gate, the countdown, the checkbox, and the
- * three-way `canContinue` condition.
+ * Two gates, both of which the reader controls: the text has to be scrolled to the end, and the
+ * acknowledgement has to be ticked. There used to be a third — a countdown that held Continue
+ * disabled for five seconds — and it is gone. A forced wait does not make anyone read; it makes them
+ * wait, and it charged the time again on every reinstall and on every phone someone set up. The
+ * notice earns its place on the screen; the timer earned nothing.
  *
  * @param onContinue Called when the user presses the enabled "Continue" button. The caller
  *                   ([AppNavigation]) then persists the acceptance flag and triggers a refresh
@@ -85,17 +86,8 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     // changes (like when recompose is triggered by a screen rotation)
     var hasAccepted by rememberSaveable { mutableStateOf(false) }
     var hasScrolledToBottom by rememberSaveable { mutableStateOf(false) }
-    var timeLeft by rememberSaveable { mutableIntStateOf(5) }
 
     val scrollState = rememberScrollState()
-
-    // Countdown timer: decrements timeLeft once per second until it reaches 0.
-    LaunchedEffect(Unit) {
-        while (timeLeft > 0) {
-            delay(1000L)
-            timeLeft--
-        }
-    }
 
     // Scroll detection: canScrollForward is false either when the user has reached the bottom
     // OR when the content fits entirely on screen without scrolling.
@@ -105,8 +97,8 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 
-    // Continue button — enabled only when all three gates are satisfied.
-    val canContinue = hasAccepted && hasScrolledToBottom && timeLeft == 0
+    // Continue button — enabled once the notice has been read to the end and acknowledged.
+    val canContinue = hasAccepted && hasScrolledToBottom
 
     // Surface ensures the Material 3 background colour fills the screen correctly.
     Surface(
@@ -199,10 +191,9 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
                 )
             }
 
-            // Continue button — shows the remaining countdown, then a read prompt, then "Continue".
+            // Continue button — a read prompt until the notice has been scrolled through, then "Continue".
             CvPrimaryButton(
                 text = when {
-                    timeLeft > 0 -> stringResource(R.string.disclaimer_wait, timeLeft)
                     !hasScrolledToBottom -> stringResource(R.string.disclaimer_must_read)
                     else -> stringResource(R.string.general_continue)
                 },

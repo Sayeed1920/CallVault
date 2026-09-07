@@ -36,7 +36,6 @@
     <string name="disclaimer_introduction">A folytatás előtt figyelmesen olvassa el az alábbi jogi nyilatkozatot.</string>
     <string name="disclaimer_must_read">Kérjük mindenképp olvasd el a jogi nyilatkozatot.</string>
     <string name="disclaimer_title">Üdvözöljük a CallVault alkalmazásban</string>
-    <string name="disclaimer_wait">Várj %1$d másodpercet</string>
     <string name="folder_cloud_rejected">A felhőmappák (például a Google Drive) nem használhatók rögzítésre. Válasszon eszközön lévő tárhelyet – a felhőben tárolt másolatokhoz használja a Google Drive biztonsági mentés lehetőséget.</string>
     <string name="folder_cloud_warning">⚠ Ez a rögzítési mappa a felhőben van, ami megbízhatatlan a rögzítéshez. Válasszon egy eszközön lévő mappát.</string>
     <string name="general_cancel">Mégsem</string>

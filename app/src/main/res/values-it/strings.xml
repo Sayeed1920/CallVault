@@ -36,7 +36,6 @@
     <string name="disclaimer_introduction">Legga attentamente il disclaimer qui sotto prima di continuare.</string>
     <string name="disclaimer_must_read">È necessario leggere l\'informativa legale.</string>
     <string name="disclaimer_title">Benvenuto in CallVault</string>
-    <string name="disclaimer_wait">Attendi %1$ds</string>
     <string name="folder_cloud_rejected">Le cartelle nel cloud (come Google Drive) non possono essere usate per la registrazione. Scelga un\'archiviazione sul dispositivo; usi l\'opzione di backup su Google Drive per le copie nel cloud.</string>
     <string name="folder_cloud_warning">⚠ Questa cartella di registrazione si trova nel cloud, il che non è affidabile per l\'acquisizione. Scelga una cartella sul dispositivo.</string>
     <string name="general_cancel">Cancella</string>
