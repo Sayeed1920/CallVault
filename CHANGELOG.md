@@ -27,6 +27,19 @@ All notable changes to CallVault are documented here. The format is based on
   *Settings ▸ Storage ▸ Keep the original calls* keeps them on the phone as well; un-merging works
   the same either way.
 
+### Changed
+
+- **The first-run notice no longer holds you back with a timer.** Continue used to stay disabled for
+  five seconds whether or not you had read anything. A forced wait does not make anyone read; it
+  makes them wait, and it charged the time again on every reinstall and every phone someone set up.
+  The notice still has to be scrolled to the end and acknowledged — both of which are the reader's
+  own doing. Reported by mirror176 in #27.
+
+- **What's New says one line per change instead of several paragraphs.** The newest release is
+  written out as a scannable list, releases you skipped keep their headline so you can see you
+  missed them, and a link goes to the full release notes on GitHub, where being thorough costs
+  nobody anything. Reported by mirror176 in #27, who had to "parse through" the 2.3.0 note.
+
 ### Fixed
 
 - **Updating the app no longer leaves it unable to record the next call.** Installing an update stops

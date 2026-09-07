@@ -111,8 +111,17 @@
     <string name="merge_note_will_delete">Các cuộc gọi kia sẽ bị xoá. Tách ra sau này sẽ đưa chúng trở lại.</string>
     <string name="merge_note_will_keep">Các cuộc gọi kia cũng được giữ lại trên máy.</string>
     <string name="home_scroll_to_top">Lên đầu</string>
+    <string name="home_whatsnew_full_notes">Ghi chú phát hành đầy đủ</string>
     <string name="whatsnew_230_title">Những cuộc gọi vốn là một cuộc trò chuyện có thể thành một bản ghi</string>
-    <string name="whatsnew_230_body">Cuộc gọi bị rớt và hai bên gọi lại cho nhau. Với bạn đó là một cuộc trò chuyện; với CallVault là hai bản ghi. Giờ bạn có thể ghép chúng: mở menu của cuộc gọi mở đầu, chọn Gộp với cuộc gọi khác, rồi đánh dấu những cuộc tiếp nối. Chúng được ghép theo đúng thứ tự bạn đánh dấu và được đánh số dần, nên bạn thấy được thứ tự trước khi xác nhận. Bao nhiêu cuộc gọi cũng được, và một cuộc gọi đã gộp vẫn có thể gộp tiếp.\n\nViệc ghép không làm giảm chất lượng và chỉ mất một khoảnh khắc: không có gì bị mã hoá lại, nên bản ghi đã gộp chứa đúng âm thanh gốc. Bản chép lời, các dấu, nhãn, dấu sao và ghi chú đều đi theo, và mỗi chỗ nối đều được để lại một dấu.\n\nCuộc gọi đã gộp có thể tách ra từ chính menu đó, trả lại từng cuộc gọi gốc cùng bản chép lời và các dấu của nó. Theo mặc định, những cuộc gọi tạo nên nó sẽ bị xoá, và hộp thoại báo điều đó trước khi bạn xác nhận; bạn có thể giữ chúng lại trong Cài đặt ▸ Bộ nhớ. Việc tách hoạt động như nhau trong cả hai trường hợp.\n\nVà xoay điện thoại không còn làm mất chỗ bạn đang xem: bản ghi bạn đang nghe vẫn mở, lựa chọn bạn đang thực hiện được giữ lại, và khoá ứng dụng không hỏi lại chỉ vì bạn đã xoay màn hình.\n\nVà bản thân âm thanh cũng sạch hơn. Trên những máy không theo kịp, trình ghi âm từng bỏ đi một mẩu cuộc gọi rồi nối âm thanh hai bên lại — đó chính là tiếng rẹt rẹt trên một số máy. Điều đó không còn xảy ra, một bản ghi không thực sự bắt đầu giờ sẽ báo cho bạn thay vì để bạn tay trắng, và đổi định dạng sang AAC không còn khiến bạn mất cuộc gọi kế tiếp. Và tin nhắn thoại phát qua loa nghe không còn bị nhầm là cuộc gọi không ghi âm được. Dấu thời gian trong bản ghi lời sau một khoảng lặng dài cũng đã đúng: chạm vào một dòng sẽ nhảy đến đúng chỗ nó được nói, thay vì sớm hơn vài giây. Và việc cập nhật CallVault không còn khiến cuộc gọi kế tiếp không được ghi âm.</string>
+    <string name="whatsnew_230_body">Ghép các cuộc gọi vốn là một cuộc trò chuyện thành một bản ghi — và tách lại sau nếu muốn.
+Xoay điện thoại không còn làm mất vị trí đang xem hay lựa chọn, và không hỏi lại khóa ứng dụng.
+Tiếng rè mà một số máy thêm vào bản ghi đã hết.
+Bản ghi không thật sự bắt đầu nay sẽ báo cho bạn, thay vì để bạn không có gì.
+Đổi định dạng sang AAC không còn làm mất cuộc gọi kế tiếp.
+Hộp thư thoại nghe qua loa nghe không còn bị ghi nhận là cuộc gọi ghi âm thất bại.
+Chạm vào một dòng bản chép sau khoảng lặng dài sẽ nhảy đúng thời điểm.
+Cập nhật CallVault không còn khiến nó không ghi được cuộc gọi tiếp theo.
+Shizuku vẫn được tìm thấy ngay cả khi bị ẩn dưới tên gói khác.</string>
     <string name="whatsnew_230_where">Menu ⋮ trên bất kỳ bản ghi nào ▸ Gộp với cuộc gọi khác</string>
     <string name="merge_progress_title">Đang gộp</string>
     <string name="unmerge_progress_title">Đang tách</string>

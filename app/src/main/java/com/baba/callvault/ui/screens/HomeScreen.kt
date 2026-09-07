@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
@@ -1132,10 +1133,14 @@ fun HomeScreen(
 /**
  * Post-update "What's new" note: the last few releases, newest first, each labelled with its version.
  *
- * Per-release rather than per-feature. Updates are not always taken one at a time, and the previous
- * design showed a single feature and let the rest go unmentioned. The list scrolls because three
- * releases of plain-language notes do not fit a dialog on a small screen, and a dialog that clips its
- * own content silently hides the newest thing it is meant to announce.
+ * Per-release rather than per-feature. Updates are not always taken one at a time, and an earlier
+ * design showed a single feature and let the rest go unmentioned.
+ *
+ * **The newest release is the only one written out, and it is written as one line per change.** It
+ * used to be three releases of prose, and a reporter said plainly what that costs: a wall of text to
+ * parse through, so people skip the notes entirely. Anyone who skipped a version still sees that they
+ * did — the releases before this one keep their headline, which is one line each — and the whole
+ * story stays a tap away in the release notes, where being thorough costs nobody anything.
  */
 @Composable
 private fun WhatsNewDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit) {
@@ -1149,7 +1154,10 @@ private fun WhatsNewDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                ReleaseHighlights.recent().forEach { release -> ReleaseNote(release) }
+                val releases = ReleaseHighlights.recent()
+                releases.firstOrNull()?.let { ReleaseNote(it) }
+                releases.drop(1).forEach { EarlierReleaseLine(it) }
+                FullReleaseNotesLink()
             }
         },
         confirmButton = {
@@ -1163,28 +1171,15 @@ private fun WhatsNewDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit) {
     )
 }
 
-/** One release in the note: version chip, headline, plain-language body, and where to switch it on. */
+/** The newest release: version chip, headline, one line per change, and where to switch it on. */
 @Composable
 private fun ReleaseNote(release: ReleaseHighlight) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = release.version,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = stringResource(release.title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        Text(
-            text = stringResource(release.body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        ReleaseHeadline(release)
+        // The body is authored as one change per line, so it is split rather than parsed: a release
+        // note with a stray blank line stays a list instead of becoming a bullet with nothing in it.
+        stringResource(release.body).split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+            .forEach { change -> ChangeLine(change) }
         release.whereToFind?.let {
             Text(
                 text = stringResource(it),
@@ -1194,6 +1189,63 @@ private fun ReleaseNote(release: ReleaseHighlight) {
         }
     }
 }
+
+/** A release the reader skipped: its headline only, so it is visible without being read. */
+@Composable
+private fun EarlierReleaseLine(release: ReleaseHighlight) {
+    ReleaseHeadline(release)
+}
+
+/** The version chip and the headline, shared by both. */
+@Composable
+private fun ReleaseHeadline(release: ReleaseHighlight) {
+    Row(verticalAlignment = Alignment.Top) {
+        Text(
+            text = release.version,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = stringResource(release.title),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** One change, as a bullet with a hanging indent so a line that wraps stays aligned. */
+@Composable
+private fun ChangeLine(text: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Text(
+            text = "\u2022",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Where the thorough version lives, for anyone who wants it. */
+@Composable
+private fun FullReleaseNotesLink() {
+    val uriHandler = LocalUriHandler.current
+    Text(
+        text = stringResource(R.string.home_whatsnew_full_notes),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.clickable { uriHandler.openUri(RELEASE_NOTES_URL) },
+    )
+}
+
+/** The releases page rather than one tag, so it keeps working for whatever version is installed. */
+private const val RELEASE_NOTES_URL = "https://github.com/madkongo/CallVault/releases"
 
 /**
  * Dismissable confirmation shown once after an update lands ("CallVault updated to X.Y.Z"). Uses a
