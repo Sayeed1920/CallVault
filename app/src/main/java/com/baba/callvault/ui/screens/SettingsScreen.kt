@@ -1827,7 +1827,11 @@ private fun BugReportSection(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
-        } else if (hasAnyDiagnostics) {
+        } else {
+            // Offered whenever logging is off, with no precondition on there being a log: the report
+            // always carries the configuration header, and the setup journal when there is one. The
+            // old gate asked for a log file first, so the maintainer had to switch logging on and off
+            // again just to reach Share — for a report whose useful half needed neither.
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
                     text = stringResource(R.string.settings_bugreport_share_hint),

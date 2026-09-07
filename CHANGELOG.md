@@ -50,6 +50,13 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **A bug report can be shared without switching logging on first.** Share was only offered once a log
+  file existed, so reporting anything meant enabling logging, reproducing, disabling it again — and the
+  most useful half of a report needs none of that. The report always carries the configuration header
+  (mode, transport, which switches are on, whether the recorder is connected) and the setup journal
+  when there is one, so it is now offered whenever logging is off.
+
+
 - **The transcript no longer changes size as you read it.** It opened at about half the screen with
   the playback controls out of sight, grew as you scrolled, collapsed again when the phone was turned
   and opened full the next time — because its height followed however much of the text had been drawn

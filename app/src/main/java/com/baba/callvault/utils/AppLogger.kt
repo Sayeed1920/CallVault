@@ -315,10 +315,11 @@ object AppLogger {
      */
     suspend fun buildShareableReport(context: Context): File? {
         val source = logFile
-        // The setup journal alone is enough to be worth sharing. Requiring the opt-in log here meant
-        // the report was unavailable on exactly the phones the journal exists for: setup failed, the
-        // user was never told to switch logging on, and Share was not offered at all.
-        if (!hasAnyDiagnostics()) return null
+        // No precondition at all. The report is worth sharing even with both logs empty, because the
+        // configuration header alone answers the first questions of every bug report — mode, transport,
+        // which switches are on, whether the recorder is connected — and that used to be unreachable
+        // unless the user had thought to switch logging on beforehand. Requiring a log meant the one
+        // person who most needed to send something was the one person who could not.
 
         val shareDir = File(context.cacheDir, "logs").apply { mkdirs() }
         val report = File(shareDir, "callvault_debug_report.txt")

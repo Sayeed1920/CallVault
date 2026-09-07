@@ -86,12 +86,21 @@ object SetupJournal {
         file?.takeIf { it.exists() && it.length() > 0 }?.readText()
     }.getOrNull()
 
-    /** Deletes it, for a user who deletes their logs. "Gone" has to mean gone here too. */
+    /**
+     * Deletes it, for a user who deletes their logs. "Gone" has to mean gone here too — and then it
+     * starts again, because the alternative is a journal that is silently dead until the next cold
+     * start.
+     *
+     * That is not hypothetical: deleting the logs mid-session left nothing to collect into, the setup
+     * path says nothing at all on a phone that is already recording, and the next bug report went out
+     * with no journal in it. Re-seeding the header here means the file exists from this moment on.
+     */
     fun clear() {
         runCatching {
             file?.delete()
             bytesWritten = 0L
             closed = false
+            append("=== CallVault setup journal — restarted after the log was deleted ===")
         }.onFailure { android.util.Log.w(TAG, "Could not clear the setup journal: ${it.message}") }
     }
 
