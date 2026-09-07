@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.baba.callvault.R
+import com.baba.callvault.integrations.adb.LoopbackArm
 import com.baba.callvault.integrations.adb.OfflineRecording
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -68,6 +69,8 @@ fun OfflineRecordingDialog(
     var phase by remember {
         mutableStateOf(if (mode == OfflineDialogMode.ENABLE) OfflinePhase.WARNING else OfflinePhase.WORKING)
     }
+    // Which failure to explain, when there is one.
+    var failure by remember { mutableStateOf(LoopbackArm.NO_ADB_SERVICE) }
 
     // DISABLE has no warning gate — start the work immediately and close when it's done.
     LaunchedEffect(Unit) {
@@ -107,7 +110,8 @@ fun OfflineRecordingDialog(
                     else R.string.offline_recording_disabling,
                 )
                 OfflinePhase.SUCCESS -> Text(stringResource(R.string.offline_recording_on))
-                OfflinePhase.FAILED -> Text(stringResource(R.string.home_whatsnew_offline_failed))
+                // The reason, not a guess: see LoopbackArm.
+                OfflinePhase.FAILED -> Text(stringResource(failure.messageRes()))
             }
         },
         confirmButton = {
@@ -115,9 +119,10 @@ fun OfflineRecordingDialog(
                 OfflinePhase.WARNING -> TextButton(onClick = {
                     phase = OfflinePhase.WORKING
                     scope.launch {
-                        val armed = withContext(Dispatchers.IO) { OfflineRecording.enable(context) }
-                        onResult(armed)
-                        phase = if (armed) OfflinePhase.SUCCESS else OfflinePhase.FAILED
+                        val result = withContext(Dispatchers.IO) { OfflineRecording.enable(context) }
+                        failure = result
+                        onResult(result == LoopbackArm.ARMED)
+                        phase = if (result == LoopbackArm.ARMED) OfflinePhase.SUCCESS else OfflinePhase.FAILED
                     }
                 }) { Text(stringResource(R.string.offline_recording_warning_continue)) }
                 OfflinePhase.SUCCESS, OfflinePhase.FAILED ->
@@ -140,4 +145,14 @@ private fun WorkingRow(@StringRes textRes: Int) {
         Spacer(Modifier.width(12.dp))
         Text(stringResource(textRes))
     }
+}
+
+/** What to tell the user about a failed arming attempt. */
+@StringRes
+private fun LoopbackArm.messageRes(): Int = when (this) {
+    // Never shown — ARMED is the success path — but a `when` that cannot be exhaustive is worse.
+    LoopbackArm.ARMED -> R.string.offline_recording_on
+    LoopbackArm.NEEDS_WIRELESS_DEBUGGING -> R.string.offline_failed_needs_wd
+    LoopbackArm.NO_ADB_SERVICE -> R.string.offline_failed_no_service
+    LoopbackArm.PORT_DID_NOT_COME_UP -> R.string.offline_failed_port
 }

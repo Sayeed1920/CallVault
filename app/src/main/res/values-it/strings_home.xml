@@ -45,7 +45,9 @@
     <string name="home_whatsnew_offline_cta">Attiva la registrazione senza Wi-Fi</string>
     <string name="home_whatsnew_offline_enabled">Registrazione offline attivata.</string>
     <string name="home_whatsnew_offline_enabling">Attivazione della registrazione senza Wi-Fi…</string>
-    <string name="home_whatsnew_offline_failed">Attivazione non riuscita — collegati una volta al Wi-Fi, poi riprova dalle Impostazioni.</string>
+    <string name="offline_failed_needs_wd">Attivazione non riuscita — il debug wireless è disattivato e CallVault non è riuscito ad attivarlo. Attivalo nelle opzioni sviluppatore e riprova.</string>
+    <string name="offline_failed_no_service">Attivazione non riuscita — CallVault non è riuscito a raggiungere il servizio di debug del telefono. Controlla il Wi-Fi e il debug wireless e riprova.</string>
+    <string name="offline_failed_port">Attivazione non riuscita — la porta locale non è tornata attiva. Riprova tra un momento.</string>
     <string name="home_whatsnew_resilient_body">Rende la registrazione delle chiamate più resistente alle interruzioni.\n\nAndroid può interrompere il processo in background di CallVault in qualsiasi momento. Con questa opzione attiva, una registrazione già in corso non ne risente più.\n\nDisattivata per impostazione predefinita — puoi attivarla anche in seguito da Impostazioni ▸ Affidabilità.</string>
     <string name="home_whatsnew_resilient_cta">Attiva</string>
     <string name="home_whatsnew_resilient_enabled">La registrazione resiliente è attiva. Una registrazione già in corso non risente dell\'interruzione del processo in background di CallVault da parte di Android.</string>

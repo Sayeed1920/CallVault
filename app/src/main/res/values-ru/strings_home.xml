@@ -45,7 +45,9 @@
     <string name="home_whatsnew_offline_cta">Включить запись без Wi-Fi</string>
     <string name="home_whatsnew_offline_enabled">Офлайн-запись включена.</string>
     <string name="home_whatsnew_offline_enabling">Включение записи без Wi-Fi…</string>
-    <string name="home_whatsnew_offline_failed">Не удалось включить — подключитесь один раз к Wi-Fi, затем попробуйте в Настройках.</string>
+    <string name="offline_failed_needs_wd">Не удалось включить — беспроводная отладка выключена, и CallVault не смог её включить. Включите её в параметрах разработчика и повторите попытку.</string>
+    <string name="offline_failed_no_service">Не удалось включить — CallVault не смог связаться со службой отладки телефона. Проверьте Wi-Fi и беспроводную отладку и повторите попытку.</string>
+    <string name="offline_failed_port">Не удалось включить — локальный порт не вернулся. Повторите попытку через мгновение.</string>
     <string name="home_whatsnew_resilient_body">Делает запись звонков более устойчивой к прерываниям.\n\nAndroid может остановить фоновый процесс CallVault в любой момент. Когда эта опция включена, уже идущая запись от этого не страдает.\n\nПо умолчанию выключено — включить можно и позже: Настройки ▸ Надёжность.</string>
     <string name="home_whatsnew_resilient_cta">Включить</string>
     <string name="home_whatsnew_resilient_enabled">Устойчивая запись включена. Уже идущая запись не пострадает, если Android остановит фоновый процесс CallVault.</string>

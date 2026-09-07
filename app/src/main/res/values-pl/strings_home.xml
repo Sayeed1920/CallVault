@@ -45,7 +45,9 @@
     <string name="home_whatsnew_offline_cta">Włącz nagrywanie bez Wi-Fi</string>
     <string name="home_whatsnew_offline_enabled">Nagrywanie offline włączone.</string>
     <string name="home_whatsnew_offline_enabling">Włączanie nagrywania bez Wi-Fi…</string>
-    <string name="home_whatsnew_offline_failed">Nie udało się włączyć — połącz się raz z Wi-Fi, a następnie spróbuj w Ustawieniach.</string>
+    <string name="offline_failed_needs_wd">Nie udało się włączyć — debugowanie bezprzewodowe jest wyłączone, a CallVault nie mógł go włączyć. Włącz je w opcjach programisty i spróbuj ponownie.</string>
+    <string name="offline_failed_no_service">Nie udało się włączyć — CallVault nie mógł połączyć się z usługą debugowania telefonu. Sprawdź Wi-Fi i debugowanie bezprzewodowe, a potem spróbuj ponownie.</string>
+    <string name="offline_failed_port">Nie udało się włączyć — port lokalny nie wrócił. Spróbuj ponownie za chwilę.</string>
     <string name="home_whatsnew_resilient_body">Sprawia, że nagrywanie rozmów jest bardziej odporne na przerwania.\n\nAndroid może w każdej chwili zatrzymać proces CallVault działający w tle. Gdy ta opcja jest włączona, trwające już nagranie nie jest tym dotknięte.\n\nDomyślnie wyłączone — możesz je włączyć również później w Ustawieniach ▸ Niezawodność.</string>
     <string name="home_whatsnew_resilient_cta">Włącz</string>
     <string name="home_whatsnew_resilient_enabled">Odporne nagrywanie jest włączone. Trwające już nagranie nie jest dotknięte, jeśli Android zatrzyma proces CallVault działający w tle.</string>

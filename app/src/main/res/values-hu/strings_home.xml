@@ -45,7 +45,9 @@
     <string name="home_whatsnew_offline_cta">Wi-Fi nélküli rögzítés bekapcsolása</string>
     <string name="home_whatsnew_offline_enabled">Offline rögzítés bekapcsolva.</string>
     <string name="home_whatsnew_offline_enabling">Wi-Fi nélküli rögzítés bekapcsolása…</string>
-    <string name="home_whatsnew_offline_failed">Nem sikerült bekapcsolni — csatlakozzon egyszer Wi-Fi-hez, majd próbálja meg a Beállításokban.</string>
+    <string name="offline_failed_needs_wd">Nem sikerült bekapcsolni — a vezeték nélküli hibakeresés ki van kapcsolva, és a CallVault nem tudta bekapcsolni. Kapcsold be a fejlesztői beállításokban, majd próbáld újra.</string>
+    <string name="offline_failed_no_service">Nem sikerült bekapcsolni — a CallVault nem érte el a telefon hibakereső szolgáltatását. Ellenőrizd a Wi-Fi-t és a vezeték nélküli hibakeresést, majd próbáld újra.</string>
+    <string name="offline_failed_port">Nem sikerült bekapcsolni — a helyi port nem jött vissza. Próbáld újra egy pillanat múlva.</string>
     <string name="home_whatsnew_resilient_body">Ellenállóbbá teszi a hívásrögzítést a megszakításokkal szemben.\n\nAz Android bármikor leállíthatja a CallVault háttérfolyamatát. Ha ez be van kapcsolva, a már folyamatban lévő felvételt ez többé nem érinti.\n\nAlapértelmezés szerint kikapcsolva — később is bekapcsolhatod: Beállítások ▸ Megbízhatóság.</string>
     <string name="home_whatsnew_resilient_cta">Bekapcsolom</string>
     <string name="home_whatsnew_resilient_enabled">Az ellenálló rögzítés be van kapcsolva. A már folyamatban lévő felvételt nem érinti, ha az Android leállítja a CallVault háttérfolyamatát.</string>

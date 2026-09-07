@@ -50,6 +50,18 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **CallVault no longer switches off a debugging switch you turned on yourself.** Wireless debugging
+  that CallVault enabled is still switched off when it is done with it — but a switch you flipped is
+  yours, and it is left alone. It used to be taken away within a second, with a note suggesting you
+  disable USB debugging instead, which costs you the thing you wanted. Reported by mirror176 in #30,
+  who uses it to reach his phone from a PC.
+
+- **Turning on off-Wi-Fi recording says what actually failed.** Every failure produced the same
+  sentence — "connect to Wi-Fi once, then try from Settings" — including on a phone already on Wi-Fi
+  with Wireless debugging on. It now distinguishes Wireless debugging being off, the phone's debugging
+  service being unreachable, and the local port not coming back. Reported by mirror176 in #30.
+
+
 - **A bug report can be shared without switching logging on first.** Share was only offered once a log
   file existed, so reporting anything meant enabling logging, reproducing, disabling it again — and the
   most useful half of a report needs none of that. The report always carries the configuration header

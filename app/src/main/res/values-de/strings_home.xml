@@ -45,7 +45,9 @@
     <string name="home_whatsnew_offline_cta">Aufnahme ohne Wi-Fi aktivieren</string>
     <string name="home_whatsnew_offline_enabled">Offline-Aufnahme aktiviert.</string>
     <string name="home_whatsnew_offline_enabling">Aufnahme ohne Wi-Fi wird aktiviert…</string>
-    <string name="home_whatsnew_offline_failed">Aktivierung fehlgeschlagen — verbinden Sie sich einmal mit Wi-Fi und versuchen Sie es dann in den Einstellungen.</string>
+    <string name="offline_failed_needs_wd">Nicht aktiviert — Drahtloses Debugging ist aus und CallVault konnte es nicht einschalten. Schalte es in den Entwickleroptionen ein und versuche es erneut.</string>
+    <string name="offline_failed_no_service">Nicht aktiviert — CallVault konnte den Debugging-Dienst des Telefons nicht erreichen. Prüfe WLAN und drahtloses Debugging und versuche es erneut.</string>
+    <string name="offline_failed_port">Nicht aktiviert — der lokale Port kam nicht zurück. Versuche es gleich noch einmal.</string>
     <string name="home_whatsnew_resilient_body">Macht die Anrufaufnahme widerstandsfähiger gegen Unterbrechungen.\n\nAndroid kann CallVaults Hintergrunddienst jederzeit stoppen. Wenn dies aktiviert ist, bleibt eine bereits laufende Aufnahme davon unberührt.\n\nStandardmäßig ausgeschaltet — du kannst sie auch später unter Einstellungen ▸ Zuverlässigkeit aktivieren.</string>
     <string name="home_whatsnew_resilient_cta">Aktivieren</string>
     <string name="home_whatsnew_resilient_enabled">Robuste Aufnahme ist aktiv. Eine bereits laufende Aufnahme bleibt unberührt, wenn Android CallVaults Hintergrunddienst stoppt.</string>

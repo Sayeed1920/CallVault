@@ -35,7 +35,9 @@
     <string name="home_whatsnew_body">• Recording now recovers by itself if it ever gets stuck\n• Home tells you when recording is down, instead of staying quiet\n• A phone call is no longer mistaken for an app call</string>
     <string name="home_whatsnew_offline_cta">Turn on off-Wi-Fi recording</string>
     <string name="home_whatsnew_offline_enabled">Offline recording enabled.</string>
-    <string name="home_whatsnew_offline_failed">Couldn\'t enable — connect to Wi-Fi once, then try from Settings.</string>
+    <string name="offline_failed_needs_wd">Couldn\'t enable — Wireless debugging is off and CallVault couldn\'t switch it on. Turn it on in Developer options, then try again.</string>
+    <string name="offline_failed_no_service">Couldn\'t enable — CallVault couldn\'t reach the phone\'s debugging service. Check you\'re on Wi-Fi with Wireless debugging on, then try again.</string>
+    <string name="offline_failed_port">Couldn\'t enable — the local port didn\'t come back up. Try again in a moment.</string>
     <string name="home_whatsnew_offline_enabling">Enabling off-Wi-Fi recording…</string>
     <string name="home_whatsnew_resilient_title">New: Resilient recording</string>
     <string name="home_whatsnew_resilient_body">Makes call recording more resistant to interruptions.\n\nAndroid can stop CallVault\'s background helper at any time. With this on, a recording already in progress is no longer affected when that happens.\n\nOff by default — you can also turn it on later in Settings ▸ Reliability.</string>

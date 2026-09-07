@@ -31,22 +31,30 @@ object OfflineRecording {
      * Wireless Debugging ONCE to arm; records off-WiFi thereafter until reboot). Re-warms the daemon so
      * the first off-WiFi call records. Returns true if the loopback listener is armed and reachable.
      */
-    fun enable(context: Context): Boolean {
+    /**
+     * Turns offline recording ON, and says how it went.
+     *
+     * The outcome is a [LoopbackArm] rather than a boolean so the screen can name the actual failure.
+     * It used to print "connect to Wi-Fi once, then try from Settings" for every one of them.
+     */
+    fun enable(context: Context): LoopbackArm {
         AppPreferences(context).setOfflineRecordingEnabled(true)
-        val armed = AdbShell.armLoopbackIfNeeded(context)
-        if (armed) {
+        val result = AdbShell.armLoopbackIfNeededWithReason(context)
+        if (result == LoopbackArm.ARMED) {
             runCatching { RecorderBackend.ensureRunning(context) }
                 .onFailure { AppLogger.w(TAG, "re-warm after enable failed: ${it.message}") }
         } else {
-            AppLogger.i(TAG, "Could not arm loopback (needs Wi-Fi + Wireless Debugging once)")
+            AppLogger.i(TAG, "Could not arm loopback: $result")
         }
-        return armed
+        return result
     }
 
     /** Turns offline recording OFF: clears the opt-in and closes the loopback port (best-effort). */
     fun disable(context: Context) {
         AppPreferences(context).setOfflineRecordingEnabled(false)
-        runCatching { AdbShell.disarmLoopback(context) }
+        // Under the lease, like arming: disarming needs the connection alive to send `usb:`, and
+        // another ADB user finishing meanwhile could switch Wireless debugging off underneath it.
+        runCatching { AdbShell.asAdbUser(context, "disabling offline recording") { AdbShell.disarmLoopback(context) } }
             .onFailure { AppLogger.d(TAG, "disarmLoopback on disable ignored: ${it.message}") }
     }
 }

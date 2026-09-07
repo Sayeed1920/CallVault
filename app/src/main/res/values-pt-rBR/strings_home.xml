@@ -45,7 +45,9 @@
     <string name="home_whatsnew_offline_cta">Ativar a gravação sem Wi-Fi</string>
     <string name="home_whatsnew_offline_enabled">Gravação offline ativada.</string>
     <string name="home_whatsnew_offline_enabling">Ativando a gravação sem Wi-Fi…</string>
-    <string name="home_whatsnew_offline_failed">Não foi possível ativar — conecte-se ao Wi-Fi uma vez e tente pelas Configurações.</string>
+    <string name="offline_failed_needs_wd">Não foi possível ativar — a depuração sem fio está desligada e o CallVault não conseguiu ligá-la. Ligue-a nas opções do desenvolvedor e tente de novo.</string>
+    <string name="offline_failed_no_service">Não foi possível ativar — o CallVault não conseguiu alcançar o serviço de depuração do telefone. Verifique o Wi-Fi e a depuração sem fio e tente de novo.</string>
+    <string name="offline_failed_port">Não foi possível ativar — a porta local não voltou. Tente novamente em instantes.</string>
     <string name="home_whatsnew_resilient_body">Deixa a gravação de chamadas mais resistente a interrupções.\n\nO Android pode encerrar o serviço auxiliar do CallVault a qualquer momento. Com isto ativado, uma gravação já em andamento deixa de ser afetada quando isso acontece.\n\nDesativado por padrão — você também pode ativar depois em Configurações ▸ Confiabilidade.</string>
     <string name="home_whatsnew_resilient_cta">Ativar</string>
     <string name="home_whatsnew_resilient_enabled">A gravação resiliente está ativada. Uma gravação já em andamento deixa de ser afetada se o Android encerrar o serviço auxiliar do CallVault.</string>

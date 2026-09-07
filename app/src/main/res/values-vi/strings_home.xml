@@ -45,7 +45,9 @@
     <string name="home_whatsnew_offline_cta">Bật ghi âm khi không có Wi-Fi</string>
     <string name="home_whatsnew_offline_enabled">Đã bật ghi âm ngoại tuyến.</string>
     <string name="home_whatsnew_offline_enabling">Đang bật ghi âm không cần Wi-Fi…</string>
-    <string name="home_whatsnew_offline_failed">Không thể bật — hãy kết nối Wi-Fi một lần, sau đó thử lại từ Cài đặt.</string>
+    <string name="offline_failed_needs_wd">Không bật được — gỡ lỗi không dây đang tắt và CallVault không thể bật nó. Hãy bật trong Tùy chọn nhà phát triển rồi thử lại.</string>
+    <string name="offline_failed_no_service">Không bật được — CallVault không liên hệ được dịch vụ gỡ lỗi của máy. Kiểm tra Wi-Fi và gỡ lỗi không dây rồi thử lại.</string>
+    <string name="offline_failed_port">Không bật được — cổng cục bộ chưa trở lại. Hãy thử lại sau giây lát.</string>
     <string name="home_whatsnew_resilient_body">Giúp việc ghi âm cuộc gọi chống chịu tốt hơn với các gián đoạn.\n\nAndroid có thể dừng tiến trình nền của CallVault bất cứ lúc nào. Khi bật tùy chọn này, bản ghi đang diễn ra sẽ không còn bị ảnh hưởng khi điều đó xảy ra.\n\nMặc định tắt — bạn cũng có thể bật sau trong Cài đặt ▸ Độ tin cậy.</string>
     <string name="home_whatsnew_resilient_cta">Bật</string>
     <string name="home_whatsnew_resilient_enabled">Ghi âm bền bỉ đang bật. Bản ghi đang diễn ra sẽ không bị ảnh hưởng nếu Android dừng tiến trình nền của CallVault.</string>

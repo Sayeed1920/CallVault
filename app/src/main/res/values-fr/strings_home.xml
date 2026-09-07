@@ -46,7 +46,9 @@
     <string name="home_whatsnew_offline_cta">Activer l\'enregistrement sans Wi-Fi</string>
     <string name="home_whatsnew_offline_enabled">Enregistrement hors ligne activé.</string>
     <string name="home_whatsnew_offline_enabling">Activation de l\'enregistrement sans Wi-Fi…</string>
-    <string name="home_whatsnew_offline_failed">Activation impossible — connectez-vous une fois au Wi-Fi, puis réessayez depuis les Paramètres.</string>
+    <string name="offline_failed_needs_wd">Activation impossible — le débogage sans fil est désactivé et CallVault n\'a pas pu l\'activer. Activez-le dans les options pour développeurs, puis réessayez.</string>
+    <string name="offline_failed_no_service">Activation impossible — CallVault n\'a pas pu joindre le service de débogage du téléphone. Vérifiez le Wi-Fi et le débogage sans fil, puis réessayez.</string>
+    <string name="offline_failed_port">Activation impossible — le port local n\'est pas revenu. Réessayez dans un instant.</string>
     <string name="home_whatsnew_resilient_body">Rend l\'enregistrement des appels plus résistant aux interruptions.\n\nAndroid peut arrêter le service d\'arrière-plan de CallVault à tout moment. Avec cette option activée, un enregistrement déjà en cours n\'en est plus affecté.\n\nDésactivé par défaut — vous pouvez aussi l\'activer plus tard dans Paramètres ▸ Fiabilité.</string>
     <string name="home_whatsnew_resilient_cta">Activer</string>
     <string name="home_whatsnew_resilient_enabled">L\'enregistrement résilient est activé. Un enregistrement déjà en cours n\'est plus affecté si Android arrête le service d\'arrière-plan de CallVault.</string>
