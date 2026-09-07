@@ -125,6 +125,9 @@
         <item>Corretto — Marche temporali corrette dopo una lunga pausa</item>
         <item>Corretto — L\'aggiornamento mantiene la registrazione successiva</item>
         <item>Corretto — Supportata la modalità nascosta di Shizuku</item>
+        <item>Corretto — Il debug wireless che attivi tu resta attivo</item>
+        <item>Corretto — La registrazione senza Wi-Fi dice cosa è fallito davvero</item>
+        <item>Corretto — Il puntino del microfono non resta acceso dopo la chiamata</item>
     </string-array>
     <string name="whatsnew_230_where">Il menu ⋮ di una registrazione ▸ Unisci a un’altra chiamata</string>
     <string name="merge_progress_title">Unione</string>

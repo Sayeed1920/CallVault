@@ -125,6 +125,9 @@
         <item>Javítva — Helyes időbélyegek hosszú szünet után</item>
         <item>Javítva — A frissítés megtartja a következő hívás rögzítését</item>
         <item>Javítva — Támogatott a Shizuku rejtett módja</item>
+        <item>Javítva — Az általad bekapcsolt vezeték nélküli hibakeresés bekapcsolva marad</item>
+        <item>Javítva — A Wi-Fi nélküli rögzítés megmondja, mi hibázott</item>
+        <item>Javítva — A mikrofonjelző nem marad égve a hívás után</item>
     </string-array>
     <string name="whatsnew_230_where">Bármely felvétel ⋮ menüje ▸ Egyesítés egy másik hívással</string>
     <string name="merge_progress_title">Egyesítés</string>

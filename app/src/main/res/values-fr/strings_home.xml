@@ -126,6 +126,9 @@
         <item>Corrigé — Horodatages corrects après une longue pause</item>
         <item>Corrigé — La mise à jour conserve l\'enregistrement suivant</item>
         <item>Corrigé — Mode masqué de Shizuku pris en charge</item>
+        <item>Corrigé — Le débogage sans fil que vous activez reste activé</item>
+        <item>Corrigé — L\'enregistrement hors Wi-Fi indique la vraie cause de l\'échec</item>
+        <item>Corrigé — Le point du micro ne reste plus allumé après l\'appel</item>
     </string-array>
     <string name="whatsnew_230_where">Le menu ⋮ d’un enregistrement ▸ Fusionner avec un autre appel</string>
     <string name="merge_progress_title">Fusion</string>

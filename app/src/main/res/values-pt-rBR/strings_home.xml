@@ -125,6 +125,9 @@
         <item>Corrigido — Horários corretos na transcrição após pausa longa</item>
         <item>Corrigido — Atualizar mantém a gravação da próxima chamada</item>
         <item>Corrigido — Suporte ao modo oculto do Shizuku</item>
+        <item>Corrigido — A depuração sem fio que você liga continua ligada</item>
+        <item>Corrigido — A gravação sem Wi-Fi diz o que realmente falhou</item>
+        <item>Corrigido — O ponto do microfone não fica aceso depois da chamada</item>
     </string-array>
     <string name="whatsnew_230_where">O menu ⋮ de qualquer gravação ▸ Mesclar com outra chamada</string>
     <string name="merge_progress_title">Mesclando</string>

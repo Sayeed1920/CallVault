@@ -125,6 +125,9 @@
         <item>修复 — 长时间停顿后转写时间戳正确</item>
         <item>修复 — 更新后仍能录下一通来电</item>
         <item>修复 — 支持 Shizuku 隐藏模式</item>
+        <item>修复 — 你自己开启的无线调试会保持开启</item>
+        <item>修复 — 无 Wi-Fi 录音会说明真正的失败原因</item>
+        <item>修复 — 通话结束后麦克风指示点不再常亮</item>
     </string-array>
     <string name="whatsnew_230_where">任意录音的 ⋮ 菜单 ▸ 与另一通电话合并</string>
     <string name="merge_progress_title">正在合并</string>

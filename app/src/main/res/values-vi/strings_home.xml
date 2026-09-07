@@ -125,6 +125,9 @@
         <item>Đã sửa — Dấu thời gian đúng sau khoảng lặng dài</item>
         <item>Đã sửa — Cập nhật vẫn giữ được bản ghi cuộc gọi kế tiếp</item>
         <item>Đã sửa — Hỗ trợ chế độ ẩn của Shizuku</item>
+        <item>Đã sửa — Gỡ lỗi không dây do bạn bật sẽ vẫn bật</item>
+        <item>Đã sửa — Ghi âm không cần Wi-Fi cho biết lỗi thật sự</item>
+        <item>Đã sửa — Chấm micro không còn sáng sau cuộc gọi</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ trên bất kỳ bản ghi nào ▸ Gộp với cuộc gọi khác</string>
     <string name="merge_progress_title">Đang gộp</string>

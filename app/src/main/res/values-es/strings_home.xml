@@ -125,6 +125,9 @@
         <item>Corregido — Marcas de tiempo correctas tras una pausa larga</item>
         <item>Corregido — Actualizar mantiene la grabación de la llamada siguiente</item>
         <item>Corregido — Compatible con el modo oculto de Shizuku</item>
+        <item>Corregido — La depuración inalámbrica que activas tú se queda activada</item>
+        <item>Corregido — La grabación sin Wi-Fi dice qué falló realmente</item>
+        <item>Corregido — El punto del micrófono ya no se queda encendido tras la llamada</item>
     </string-array>
     <string name="whatsnew_230_where">El menú ⋮ de cualquier grabación ▸ Combinar con otra llamada</string>
     <string name="merge_progress_title">Combinando</string>

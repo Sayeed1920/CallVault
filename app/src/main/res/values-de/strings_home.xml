@@ -125,6 +125,9 @@
         <item>Behoben — Transkript-Zeitstempel nach langer Pause stimmen</item>
         <item>Behoben — Update behält die Aufnahme des nächsten Anrufs</item>
         <item>Behoben — Shizuku-Versteckmodus wird unterstützt</item>
+        <item>Behoben — Selbst eingeschaltetes drahtloses Debugging bleibt an</item>
+        <item>Behoben — Off-WLAN-Aufnahme nennt den echten Fehler</item>
+        <item>Behoben — Das Mikrofonsymbol bleibt nach dem Anruf nicht mehr an</item>
     </string-array>
     <string name="whatsnew_230_where">Das ⋮-Menü einer Aufnahme ▸ Mit einem anderen Anruf zusammenführen</string>
     <string name="merge_progress_title">Wird zusammengeführt</string>

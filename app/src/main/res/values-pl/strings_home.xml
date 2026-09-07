@@ -125,6 +125,9 @@
         <item>Poprawka — Poprawne znaczniki czasu po długiej przerwie</item>
         <item>Poprawka — Aktualizacja zachowuje nagranie następnej rozmowy</item>
         <item>Poprawka — Obsługa trybu ukrycia Shizuku</item>
+        <item>Poprawka — Debugowanie bezprzewodowe włączone przez ciebie zostaje włączone</item>
+        <item>Poprawka — Nagrywanie bez Wi-Fi mówi, co naprawdę zawiodło</item>
+        <item>Poprawka — Kropka mikrofonu nie zostaje zapalona po rozmowie</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ dowolnego nagrania ▸ Połącz z innym połączeniem</string>
     <string name="merge_progress_title">Łączenie</string>
