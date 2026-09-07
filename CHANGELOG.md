@@ -40,6 +40,14 @@ All notable changes to CallVault are documented here. The format is based on
   missed them, and a link goes to the full release notes on GitHub, where being thorough costs
   nobody anything. Reported by mirror176 in #27, who had to "parse through" the 2.3.0 note.
 
+- **A journal of the first setup is now always kept, and can be shared.** The debug log is off until
+  you switch it on, so the first minutes after an install — when setup either works or does not —
+  were recorded nowhere, and by the time anyone asks for a log the moment has passed. This one is
+  small, narrow and always there: only the steps that get recording working (finding the ADB service,
+  connecting to it, starting the recorder, the grants and the modes), never anything about a call,
+  its audio or its text. It is capped, it stops once a recorder has connected, and *Settings ▸ Debug*
+  can read, share and delete it whether or not logging was ever switched on.
+
 ### Fixed
 
 - **Updating the app no longer leaves it unable to record the next call.** Installing an update stops
