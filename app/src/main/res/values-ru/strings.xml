@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">Удалить журнал?</string>
     <string name="settings_debug_log_empty">Журнал пуст.</string>
     <string name="settings_debug_log_file">Файл журнала</string>
+    <string name="settings_debug_journal_hint">Включает журнал настройки, который всегда сохраняется с первого запуска. Нажмите, чтобы прочитать.</string>
     <string name="settings_debug_log_view_hint">Нажмите, чтобы прочитать последние записи.</string>
     <string name="settings_debug_logging_enabled">Включить логи записи</string>
     <string name="settings_debug_logging_enabled_description">Чтобы сообщить об ошибке, включите это, перезапустите приложение, и повторите проблему.</string>

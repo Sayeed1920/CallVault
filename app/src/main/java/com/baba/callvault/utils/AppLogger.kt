@@ -59,6 +59,9 @@ object AppLogger {
      * The rate is dominated by call activity rather than idle chatter, so a heavy user gets fewer days
      * from the same number of lines. Three days is the target for ordinary use, not a guarantee.
      */
+    /** Names the always-on part in the in-app viewer, so the two are never confused for each other. */
+    private const val JOURNAL_VIEW_HEADING = "--- Setup journal (always on) ---"
+
     private const val MAX_LOG_LINES = 10_000
 
     /**
@@ -168,6 +171,9 @@ object AppLogger {
     fun init(context: Context) {
         prefs = AppPreferences(context)
         logFile = File(context.cacheDir, "app_debug.log")
+        // Always on, unlike the file above: the setup that fails on a stranger's phone happens before
+        // anyone has been told to switch logging on. See [SetupJournal].
+        SetupJournal.init(context)
         // Read (and on a fresh install, generate) the pseudonym salt here rather than on whichever
         // thread happens to log first, so the hot path only ever sees the cached value.
         pseudonymSalt()
@@ -221,6 +227,9 @@ object AppLogger {
      * and line tracking metrics. Execution is managed sequentially via a Mutex lock.
      */
     fun clearLogs() {
+        // "Gone" has to mean gone for the always-on journal as well, not only for the file the user
+        // switched on themselves.
+        SetupJournal.clear()
         scope.launch {
             fileMutex.withLock {
                 logWriter?.close()
@@ -240,6 +249,20 @@ object AppLogger {
         return file != null && file.exists() && file.length() > 0L
     }
 
+    /** Whether the always-on setup journal has anything in it. */
+    fun hasSetupJournal(): Boolean = setupJournalSizeBytes() > 0L
+
+    /** The setup journal's size in bytes, or 0 when there is none. */
+    fun setupJournalSizeBytes(): Long = SetupJournal.sizeBytes()
+
+    /**
+     * Whether there is anything at all worth sharing — the opt-in log, the setup journal, or both.
+     *
+     * What the Debug section gates Share on. A phone that failed during setup has no opt-in log by
+     * definition, and gating on that alone hid the one file that could explain it.
+     */
+    fun hasAnyDiagnostics(): Boolean = hasLogs() || hasSetupJournal()
+
     /** The log's size on disk in bytes, or 0 when there is no log. */
     fun logSizeBytes(): Long {
         val file = logFile ?: return 0L
@@ -257,15 +280,20 @@ object AppLogger {
      * log" from "an empty read".
      */
     suspend fun readTail(maxLines: Int): String? = withContext(Dispatchers.IO) {
-        val file = logFile ?: return@withContext null
+        // The setup journal is shown first and always. It is written without anyone switching it on,
+        // so its owner has to be able to read it without switching anything on either.
+        val journal = SetupJournal.readForReport()?.trimEnd()?.let { "$JOURNAL_VIEW_HEADING\n$it\n" }
+        val file = logFile ?: return@withContext journal
         runCatching {
-            if (!file.exists() || file.length() == 0L) return@withContext null
+            // No opt-in log is the ordinary case on a phone that failed during setup — show the
+            // journal on its own rather than an empty screen.
+            if (!file.exists() || file.length() == 0L) return@withContext journal
             // Flush first: without it the newest lines sit in the writer's buffer and the view shows
             // a log that is stale exactly where the user is looking.
             flushSync()
             val lines = file.readLines()
             val tail = if (lines.size <= maxLines) lines else lines.takeLast(maxLines)
-            tail.joinToString("\n")
+            journal.orEmpty() + tail.joinToString("\n")
         }.getOrElse {
             Log.w(TAG, "Could not read the log for viewing: ${it.message}")
             null
@@ -287,7 +315,10 @@ object AppLogger {
      */
     suspend fun buildShareableReport(context: Context): File? {
         val source = logFile
-        if (source == null || !source.exists() || source.length() == 0L) return null
+        // The setup journal alone is enough to be worth sharing. Requiring the opt-in log here meant
+        // the report was unavailable on exactly the phones the journal exists for: setup failed, the
+        // user was never told to switch logging on, and Share was not offered at all.
+        if (!hasAnyDiagnostics()) return null
 
         val shareDir = File(context.cacheDir, "logs").apply { mkdirs() }
         val report = File(shareDir, "callvault_debug_report.txt")
@@ -311,9 +342,19 @@ object AppLogger {
                 writer.println("===========================================")
                 writer.println()
 
+                // The setup journal goes FIRST and unconditionally. It is the only part of this report
+                // that exists on a phone where logging was never switched on — which is every phone
+                // that failed during setup, the case the rest of the report cannot cover.
+                SetupJournal.readForReport()?.let { journal ->
+                    writer.println("--- Setup journal (always on; the first run, kept as it happened) ---")
+                    writer.println(journal.trimEnd())
+                    writer.println("===========================================")
+                    writer.println()
+                }
+
                 // Snapshot the live log under the writer's lock so the copy is consistent.
                 val appEntries = fileMutex.withLock {
-                    if (source.exists()) entriesOf(source.readLines()) else emptyList()
+                    if (source?.exists() == true) entriesOf(source.readLines()) else emptyList()
                 }
 
                 // Interleaved rather than appended in a block. The whole point is to read one sequence
@@ -526,9 +567,15 @@ object AppLogger {
         // without this every daemon line would be dropped right here and the export would stay blind
         // to the process that actually owns the microphone.
         val toFile = prefs?.isLoggingEnabled() == true
+        val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
+
+        // The setup journal is written whether or not logging is on, so it is fed before the gate
+        // below — which is the whole point of it. It takes only the tags SetupJournalPolicy names,
+        // and the message reaching here is already redacted.
+        SetupJournal.record(tag, "$time [$level] $tag: $message")
+
         if (!toFile && !ringEnabled) return
 
-        val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
         // The trace is redacted HERE, not by the callers. They redact only their own message and hand
         // the raw throwable down, so until this line an exception message quoting a recording URI or a
         // number — a SAF FileNotFoundException, a DocumentsContract IllegalArgumentException, a

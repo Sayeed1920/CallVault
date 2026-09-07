@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">¿Eliminar el registro?</string>
     <string name="settings_debug_log_empty">El registro está vacío.</string>
     <string name="settings_debug_log_file">Archivo de registro</string>
+    <string name="settings_debug_journal_hint">Incluye el registro de configuración, guardado siempre desde el primer inicio. Toca para leerlo.</string>
     <string name="settings_debug_log_view_hint">Toca para leer las entradas más recientes.</string>
     <string name="settings_debug_logging_enabled">Activar el registro de eventos</string>
     <string name="settings_debug_logging_enabled_description">Para informar de un error, activa esta opción, reinicia la aplicación y reproduce el problema.</string>

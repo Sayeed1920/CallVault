@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">Supprimer le journal ?</string>
     <string name="settings_debug_log_empty">Le journal est vide.</string>
     <string name="settings_debug_log_file">Fichier journal</string>
+    <string name="settings_debug_journal_hint">Inclut le journal de configuration, toujours conservé depuis le premier lancement. Touchez pour le lire.</string>
     <string name="settings_debug_log_view_hint">Appuyez pour lire les entrées les plus récentes.</string>
     <string name="settings_debug_logging_enabled">Activer l\'enregistrement des journaux</string>
     <string name="settings_debug_logging_enabled_description">Pour signaler un bug, activez cette option, redémarrez l\'application et reproduisez le problème.</string>

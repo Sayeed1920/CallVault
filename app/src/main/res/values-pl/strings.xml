@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">Usunąć dziennik?</string>
     <string name="settings_debug_log_empty">Dziennik jest pusty.</string>
     <string name="settings_debug_log_file">Plik dziennika</string>
+    <string name="settings_debug_journal_hint">Zawiera dziennik konfiguracji, zawsze zachowywany od pierwszego uruchomienia. Dotknij, aby go przeczytać.</string>
     <string name="settings_debug_log_view_hint">Dotknij, aby przeczytać najnowsze wpisy.</string>
     <string name="settings_debug_logging_enabled">Włącz rejestrowanie logów</string>
     <string name="settings_debug_logging_enabled_description">Aby zgłosić błąd, włącz tę opcję, uruchom ponownie aplikację i spróbuj odtworzyć problem.</string>

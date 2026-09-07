@@ -10,6 +10,7 @@ package com.baba.callvault.server
 
 import android.os.IBinder
 import com.baba.callvault.utils.AppLogger
+import com.baba.callvault.utils.SetupJournal
 
 /**
  * CallVault Plan 5, Task 3 — PRODUCTION app-side connection holder.
@@ -51,6 +52,9 @@ object RecorderConnection {
     fun onBinderReceived(service: IRecorderService) {
         this.service = service
         AppLogger.i(TAG, "RecorderConnection received daemon binder")
+        // Setup has demonstrably worked, so the always-on setup journal has nothing left to learn and
+        // stops here for good. A healthy phone therefore pays for it exactly once.
+        SetupJournal.markSetupSucceeded()
         // The VoIP capture policy lives in the daemon process, so a relaunch loses it. Re-arm on every
         // fresh binder — it must be registered BEFORE a call starts, and there is no later chance.
         onDaemonReady?.invoke()

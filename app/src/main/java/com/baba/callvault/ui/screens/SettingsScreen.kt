@@ -1800,7 +1800,12 @@ private fun BugReportSection(
     // Re-checked on every settings change (e.g. right after the toggle flips off) so the Share
     // button appears as soon as a capture is frozen on disk.
     val hasLogs = remember(updateTrigger) { AppLogger.hasLogs() }
-    val logSize = remember(updateTrigger) { AppLogger.logSizeBytes() }
+    // The setup journal is written whether or not logging was ever switched on, so everything below
+    // — sharing it, reading it, deleting it — has to be reachable without the opt-in log existing.
+    // Gating on the opt-in log alone hid the journal on exactly the phones it is written for.
+    val hasAnyDiagnostics = remember(updateTrigger) { AppLogger.hasAnyDiagnostics() }
+    val logSize = remember(updateTrigger) { AppLogger.logSizeBytes() + AppLogger.setupJournalSizeBytes() }
+    val hasJournal = remember(updateTrigger) { AppLogger.hasSetupJournal() }
     var showLogViewer by remember { mutableStateOf(false) }
     var confirmClearLog by remember { mutableStateOf(false) }
 
@@ -1822,7 +1827,7 @@ private fun BugReportSection(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
-        } else if (hasLogs) {
+        } else if (hasAnyDiagnostics) {
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
                     text = stringResource(R.string.settings_bugreport_share_hint),
@@ -1846,13 +1851,14 @@ private fun BugReportSection(
         // The log file itself — visible whether or not logging is currently running. Until now the
         // file was invisible and the only way to clear it was to toggle logging off and on again,
         // which is a side effect nobody would guess at.
-        if (hasLogs) {
+        if (hasAnyDiagnostics) {
             SettingsDivider()
             NavigationRow(
                 icon = Icons.AutoMirrored.Filled.ListAlt,
                 label = stringResource(R.string.settings_debug_log_file),
                 value = formatByteSize(logSize),
-                supporting = stringResource(R.string.settings_debug_log_view_hint),
+                supporting = if (hasJournal) stringResource(R.string.settings_debug_journal_hint)
+                else stringResource(R.string.settings_debug_log_view_hint),
                 onClick = { showLogViewer = true }
             )
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {

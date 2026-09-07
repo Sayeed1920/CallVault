@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">Xóa nhật ký?</string>
     <string name="settings_debug_log_empty">Nhật ký trống.</string>
     <string name="settings_debug_log_file">Tệp nhật ký</string>
+    <string name="settings_debug_journal_hint">Bao gồm nhật ký thiết lập, luôn được giữ từ lần chạy đầu tiên. Chạm để đọc.</string>
     <string name="settings_debug_log_view_hint">Nhấn để đọc các mục gần đây nhất.</string>
     <string name="settings_debug_logging_enabled">Bật ghi nhật ký</string>
     <string name="settings_debug_logging_enabled_description">Để báo cáo lỗi, hãy bật chức năng này, khởi động lại ứng dụng và tái hiện lỗi.</string>

@@ -199,6 +199,7 @@
     <string name="settings_debug_log_delete_title">Excluir o log?</string>
     <string name="settings_debug_log_empty">O log está vazio.</string>
     <string name="settings_debug_log_file">Arquivo de log</string>
+    <string name="settings_debug_journal_hint">Inclui o registro de configuração, sempre guardado desde a primeira execução. Toque para ler.</string>
     <string name="settings_debug_log_view_hint">Toque para ler as entradas mais recentes.</string>
     <string name="settings_debug_logging_enabled">Ativar o registro de logs</string>
     <string name="settings_debug_logging_enabled_description">Para relatar um problema, ative esta opção, reproduza o problema, desative-a e compartilhe os registros.</string>

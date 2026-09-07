@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">删除日志？</string>
     <string name="settings_debug_log_empty">日志为空。</string>
     <string name="settings_debug_log_file">日志文件</string>
+    <string name="settings_debug_journal_hint">包含始终保留的首次设置日志。点按即可查看。</string>
     <string name="settings_debug_log_view_hint">点按可查看最近的条目。</string>
     <string name="settings_debug_logging_enabled">记录运行日志</string>
     <string name="settings_debug_logging_enabled_description">若要反馈Bug，请先开启此开关，然后在重启App之后再重复您刚才的操作。</string>

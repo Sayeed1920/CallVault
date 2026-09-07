@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">Protokoll löschen?</string>
     <string name="settings_debug_log_empty">Das Protokoll ist leer.</string>
     <string name="settings_debug_log_file">Protokolldatei</string>
+    <string name="settings_debug_journal_hint">Enthält das Einrichtungsprotokoll, das vom ersten Start an immer aufbewahrt wird. Zum Lesen antippen.</string>
     <string name="settings_debug_log_view_hint">Tippen, um die neuesten Einträge zu lesen.</string>
     <string name="settings_debug_logging_enabled">Logging aktivieren</string>
     <string name="settings_debug_logging_enabled_description">Um einen Fehler zu melden, aktivieren Sie diese Einstellung, starten Sie die App neu und reproduzieren die das Problem.</string>

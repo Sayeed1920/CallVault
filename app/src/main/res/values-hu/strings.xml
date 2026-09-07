@@ -196,6 +196,7 @@
     <string name="settings_debug_log_delete_title">Törli a naplót?</string>
     <string name="settings_debug_log_empty">A napló üres.</string>
     <string name="settings_debug_log_file">Naplófájl</string>
+    <string name="settings_debug_journal_hint">Tartalmazza a beállítási naplót, amelyet az első indítástól mindig megőrzünk. Koppints az olvasásához.</string>
     <string name="settings_debug_log_view_hint">Koppintson a legutóbbi bejegyzések elolvasásához.</string>
     <string name="settings_debug_logging_enabled">Naplózás bekapcsolása</string>
     <string name="settings_debug_logging_enabled_description">Hibajelentéshez engedélyezd ezt a beállítást, indítsd újra az alkalmazást majd próbáld reprodukálni a problémát.</string>
