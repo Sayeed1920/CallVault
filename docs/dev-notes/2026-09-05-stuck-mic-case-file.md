@@ -287,3 +287,28 @@ stop on an already-invalidated track cannot be known from here — the next repo
 ### Also seen in the same report, unrelated
 
 `WRITE_SECURE_SETTINGS: false` on his phone, and the self-heal failed with `Stream closed`.
+
+### How to read the NEXT report (2026-09-07, corrected by the maintainer)
+
+**An update clearing the dot is not a fix, and it is recent.** Installing a build now kills the old
+daemon process, and the app-op dies with it — but that only started with the last two builds, because
+`PostUpdateRecovery` (and the stale-daemon kill) is what finally replaces that process reliably. Before
+those, the tester had to kill the shell process by hand after every install. So earlier rounds were
+**not** masked by our own APKs; those reports were sound.
+
+Consequences for the rc14 round:
+
+1. The dot vanishing when he installs rc14 says nothing — that is the daemon being replaced.
+2. Only a **recurrence on rc14** is evidence, and only from a call whose log shows a rebuild
+   (`handoff drain ended EARLY … CBLK_INVALID` followed by `capture#N opened`).
+3. The line that decides it is `invalidated track stop() before rebuild: accepted=`.
+   - `accepted=true` and no stuck dot → fixed.
+   - `accepted=true` and the dot sticks → AudioFlinger takes the stop but does not finish the op; a
+     different lever is needed.
+   - `accepted=false` → it refuses to stop an invalidated track.
+
+**The fallback is already proven in the field.** Killing the daemon process clears the dot every time —
+that is exactly what an update does. So if the stop is refused, restarting the daemon when a stuck op is
+detected after a call (`MicOpReport` already parses `dumpsys appops` for it) will work. It was withheld
+from the tester's build on purpose: shipping it now would mask the one signal rc14 exists to produce.
+
