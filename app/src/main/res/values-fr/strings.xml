@@ -100,8 +100,6 @@
     <string name="notif_voip_recording_text">CallVault enregistre un appel dans une appli.</string>
     <string name="notif_voip_recording_title">Enregistrement d\'un appel VoIP</string>
     <string name="notif_wd_required">Le débogage sans fil doit rester activé pour que CallVault reste prêt sur ce téléphone. Activez « Enregistrer sans Wi-Fi » dans Paramètres ▸ Expérimental (ou activez le débogage USB) et CallVault le désactivera à nouveau.</string>
-    <string name="notif_wd_reverted_text">Le débogage USB est activé, donc CallVault n\'a pas besoin du débogage sans fil — et comme celui-ci ouvre un port réseau, il reste désactivé. Si vous l\'avez activé pour autre chose, désactivez d\'abord le débogage USB et CallVault n\'y touchera plus.</string>
-    <string name="notif_wd_reverted_title">Le débogage sans fil a été désactivé à nouveau</string>
     <string name="offline_recording_warning_continue">Continuer quand même</string>
     <string name="offline_recording_warning_message">Cela ouvre un port de débogage local sur votre téléphone afin que les appels puissent être enregistrés sans Wi-Fi. Il est protégé par la clé de votre appareil, mais cela représente un léger compromis de sécurité. Ne l\'activez que si vous avez besoin d\'enregistrer des appels sans Wi-Fi.</string>
     <string name="offline_recording_warning_title">Activer l\'enregistrement hors ligne ?</string>

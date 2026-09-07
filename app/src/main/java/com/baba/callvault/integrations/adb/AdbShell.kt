@@ -161,16 +161,27 @@ object AdbShell {
      * @Synchronized (instance monitor) — where both are held it is always acquired AFTER
      * [heavyOperationLock], matching every other lock site (heavy → instance), so no inversion.
      */
+    private fun connectViaWirelessDebugging(context: Context): Boolean =
+        connectViaWirelessDebuggingWithReason(context) == BaseConnect.CONNECTED
+
+    /** Why the Wireless-debugging bootstrap did or did not produce a connection. */
+    internal enum class BaseConnect { CONNECTED, NEEDS_WIRELESS_DEBUGGING, NO_ADB_SERVICE, CONNECT_REFUSED }
+
     @Synchronized
-    private fun connectViaWirelessDebugging(context: Context): Boolean {
+    private fun connectViaWirelessDebuggingWithReason(context: Context): BaseConnect {
         val mgr = AdbConnectionManager.getInstance(context)
-        if (mgr.isConnected) return true
+        if (mgr.isConnected) return BaseConnect.CONNECTED
         // Re-enable Wireless debugging if the OEM turned it off on reboot (needs WRITE_SECURE_SETTINGS).
-        if (!isWirelessDebuggingEnabled(context) && enableWirelessDebugging(context)) {
+        if (!isWirelessDebuggingEnabled(context)) {
+            if (!enableWirelessDebugging(context)) {
+                AppLogger.w(TAG, "Wireless debugging is off and could not be switched on")
+                return BaseConnect.NEEDS_WIRELESS_DEBUGGING
+            }
             AppLogger.i(TAG, "Re-enabled Wireless debugging; waiting for adbd to advertise…")
             Thread.sleep(WD_START_WAIT_MS)
         }
-        val port = AdbMdns.discoverPort(context, AdbMdns.TLS_CONNECT, MDNS_TIMEOUT_MS) ?: return false
+        val port = AdbMdns.discoverPort(context, AdbMdns.TLS_CONNECT, MDNS_TIMEOUT_MS)
+            ?: return BaseConnect.NO_ADB_SERVICE
         // Bounded for the same reason as the loopback connect: this call runs the whole CNXN/AUTH
         // handshake with no timeout of its own, and it is reached from armLoopbackIfNeeded, which holds
         // heavyOperationLock throughout — so one stalled handshake here freezes every ADB operation in
@@ -182,12 +193,11 @@ object AdbShell {
         // boolean — propagating crashed the app at onboarding's "Setup ADB" step — so it stays swallowed
         // to false inside the bounded worker.
         val ok = connectBounded(context, "Wireless debugging :$port") { mgr.connect("127.0.0.1", port) }
-        if (ok) {
-            Thread.sleep(CONNECT_SETTLE_MS)
-            AppPreferences(context).setAdbPaired(true)
-            grantSecureSettingsIfNeeded(context)
-        }
-        return ok
+        if (!ok) return BaseConnect.CONNECT_REFUSED
+        Thread.sleep(CONNECT_SETTLE_MS)
+        AppPreferences(context).setAdbPaired(true)
+        grantSecureSettingsIfNeeded(context)
+        return BaseConnect.CONNECTED
     }
 
     /**
@@ -384,20 +394,42 @@ object AdbShell {
      *
      * @return true if the loopback listener is armed and reachable after the call.
      */
-    fun armLoopbackIfNeeded(context: Context): Boolean = synchronized(heavyOperationLock) {
+    fun armLoopbackIfNeeded(context: Context): Boolean =
+        armLoopbackIfNeededWithReason(context) == LoopbackArm.ARMED
+
+    /**
+     * As [armLoopbackIfNeeded], but says **why** it failed, so the screen can too.
+     *
+     * The old boolean forced one message for every failure — "connect to Wi-Fi once, then try from
+     * Settings" — which names a cause nobody checked. mirror176 read it in #30 while sitting on Wi-Fi
+     * with Wireless debugging already on, and it told him nothing except that CallVault was confused.
+     *
+     * It also takes the ADB lease for the duration. Arming was the one path that did not, so any other
+     * ADB user finishing mid-arm could switch Wireless debugging off underneath it.
+     */
+    fun armLoopbackIfNeededWithReason(context: Context): LoopbackArm =
+        asAdbUser(context, "arming the loopback listener") {
+            armLoopbackLocked(context)
+        }
+
+    private fun armLoopbackLocked(context: Context): LoopbackArm = synchronized(heavyOperationLock) {
         if (connectLoopback(context)) {
             AppLogger.i(TAG, "Loopback already armed & reachable — nothing to do")
-            return@synchronized true
+            return@synchronized LoopbackArm.ARMED
         }
         // Need a base connection to arm through — bootstrap via Wireless Debugging directly (NOT
         // ensureConnected, which in offline mode is loopback-only and would just fail here). This is the
         // one deliberate, transient WD use in offline mode; applyWdPolicy turns WD back off once armed.
-        if (!connectViaWirelessDebugging(context)) {
-            AppLogger.i(TAG, "Cannot arm loopback — no base connection (needs WiFi + Wireless debugging once)")
-            return@synchronized false
+        val base = connectViaWirelessDebuggingWithReason(context)
+        if (base != BaseConnect.CONNECTED) {
+            AppLogger.i(TAG, "Cannot arm loopback — no base connection ($base)")
+            return@synchronized when (base) {
+                BaseConnect.NEEDS_WIRELESS_DEBUGGING -> LoopbackArm.NEEDS_WIRELESS_DEBUGGING
+                else -> LoopbackArm.NO_ADB_SERVICE
+            }
         }
         // ensureConnected may itself have landed us on loopback already (nothing left to arm).
-        if (connectLoopback(context)) return@synchronized true
+        if (connectLoopback(context)) return@synchronized LoopbackArm.ARMED
 
         val port = AppPreferences(context).getLoopbackAdbPort()
         val mgr = AdbConnectionManager.getInstance(context)
@@ -414,7 +446,7 @@ object AdbShell {
 
         val armed = connectLoopback(context)
         AppLogger.i(TAG, "Loopback arm result on :$port = $armed")
-        armed
+        if (armed) LoopbackArm.ARMED else LoopbackArm.PORT_DID_NOT_COME_UP
     }
 
     /**
@@ -473,12 +505,16 @@ object AdbShell {
      * Returns true if the write succeeded (or it was already on).
      */
     fun enableWirelessDebugging(context: Context): Boolean {
+        // Already on means it is the user's, not ours — recorded so nothing later mistakes it for a
+        // switch we are entitled to undo (#30).
         if (isWirelessDebuggingEnabled(context)) return true
         if (!hasWriteSecureSettings(context)) return false
         markOwnWirelessDebuggingWrite(1)
-        return runCatching {
+        val enabled = runCatching {
             android.provider.Settings.Global.putInt(context.contentResolver, "adb_wifi_enabled", 1)
         }.onFailure { AppLogger.e(TAG, "Failed to enable Wireless debugging", it) }.isSuccess
+        if (enabled) AppPreferences(context).setWirelessDebuggingEnabledByUs(true)
+        return enabled
     }
 
     // -------- Telling our own writes apart from the user's
@@ -516,9 +552,11 @@ object AdbShell {
         if (!isWirelessDebuggingEnabled(context)) return true
         if (!hasWriteSecureSettings(context)) return false
         markOwnWirelessDebuggingWrite(0)
-        return runCatching {
+        val disabled = runCatching {
             android.provider.Settings.Global.putInt(context.contentResolver, "adb_wifi_enabled", 0)
         }.onFailure { AppLogger.e(TAG, "Failed to disable Wireless debugging", it) }.isSuccess
+        if (disabled) AppPreferences(context).setWirelessDebuggingEnabledByUs(false)
+        return disabled
     }
 
     /**
@@ -549,9 +587,12 @@ object AdbShell {
     /**
      * Switches Wireless debugging off if it is on and it is safe to do so, saying why when it is not.
      *
-     * "WD only when needed" is CallVault's core behaviour rather than a user toggle, so this does not
-     * ask whether the user would like it — but it does respect the one case where switching off is
-     * destructive: `adbd` stops when its LAST transport goes away, and the daemon is a child of an adbd
+     * "WD only when needed" applies to **CallVault's own** use of the switch. A switch the user turned
+     * on is theirs: they may be using adb from a PC, and taking it away a second later — which is what
+     * #30 reported — is the app fighting its owner. Ownership is recorded in [enableWirelessDebugging]
+     * and consulted here.
+     *
+     * It also respects the one case where switching off is destructive: `adbd` stops when its LAST transport goes away, and the daemon is a child of an adbd
      * shell, so dropping WD while it is the only transport kills the daemon. Measured on a Galaxy
      * S24 FE as a six-round relaunch loop that never reached "ready to record".
      */
@@ -562,6 +603,10 @@ object AdbShell {
         }
 
         val plan = wirelessDebuggingPlan(context)
+        if (!AppPreferences(context).wasWirelessDebuggingEnabledByUs()) {
+            AppLogger.i(TAG, "Leaving Wireless debugging on after $reason: the user switched it on, not us")
+            return
+        }
         if (WirelessDebuggingPolicy.mustKeepWirelessDebugging(plan)) {
             AppLogger.i(TAG, "Keeping Wireless debugging on after $reason: it is adbd's only transport")
             return

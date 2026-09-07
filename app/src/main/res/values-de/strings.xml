@@ -100,8 +100,6 @@
     <string name="notif_voip_recording_text">CallVault nimmt gerade einen App-Anruf auf.</string>
     <string name="notif_voip_recording_title">Aufnahme eines App-Anrufs</string>
     <string name="notif_wd_required">Das drahtlose Debugging muss aktiviert bleiben, damit CallVault auf diesem Telefon bereit bleibt. Aktivieren Sie „Ohne Wi-Fi aufnehmen“ unter Einstellungen ▸ Experimentell (oder aktivieren Sie das USB-Debugging), dann schaltet CallVault es wieder ab.</string>
-    <string name="notif_wd_reverted_text">Das USB-Debugging ist aktiviert, daher benötigt CallVault das drahtlose Debugging nicht — und da es einen Netzwerkport öffnet, bleibt es abgeschaltet. Wenn Sie es für etwas anderes aktiviert haben, deaktivieren Sie zuerst das USB-Debugging, dann lässt CallVault das drahtlose Debugging unangetastet.</string>
-    <string name="notif_wd_reverted_title">Drahtloses Debugging wieder abgeschaltet</string>
     <string name="offline_recording_warning_continue">Trotzdem fortfahren</string>
     <string name="offline_recording_warning_message">Dadurch wird ein lokaler Debugging-Port auf Ihrem Telefon geöffnet, damit Anrufe ohne Wi-Fi aufgenommen werden können. Er ist durch den Schlüssel Ihres Geräts geschützt, stellt aber einen kleinen Sicherheitskompromiss dar. Aktivieren Sie ihn nur, wenn Sie Anrufe ohne Wi-Fi aufnehmen müssen.</string>
     <string name="offline_recording_warning_title">Offline-Aufnahme aktivieren?</string>

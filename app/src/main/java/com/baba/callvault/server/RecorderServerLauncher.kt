@@ -12,7 +12,6 @@ import android.content.Context
 import android.os.SystemClock
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.integrations.adb.AdbShell
-import com.baba.callvault.integrations.adb.WirelessDebuggingPolicy
 import com.baba.callvault.integrations.adb.UsbDefaultConfig
 import com.baba.callvault.utils.AppLogger
 
@@ -228,17 +227,11 @@ object RecorderServerLauncher {
         // just launched. Measured on a Galaxy S24 FE: death 50-90 ms after each disable, then relaunch,
         // then re-enable, six times over two minutes, never reaching "ready to record". Only switch it
         // off when something else is holding adbd up.
-        val plan = AdbShell.wirelessDebuggingPlan(context)
-        if (WirelessDebuggingPolicy.mustKeepWirelessDebugging(plan)) {
-            AppLogger.i(TAG, "Keeping Wireless debugging on: it is adbd's only transport (daemon would die)")
-            return
-        }
-
-        if (AdbShell.disableWirelessDebugging(context)) {
-            AppLogger.i(TAG, "Wireless debugging disabled ($plan; commands flow over binder)")
-        } else {
-            AppLogger.w(TAG, "Could not disable Wireless debugging (missing WRITE_SECURE_SETTINGS?)")
-        }
+        // Through the shared release, so the ownership rule applies here too. This used to call
+        // disableWirelessDebugging directly, which is how a switch the user had turned on still went off
+        // after the ownership check was added everywhere else: the launcher runs on every daemon start,
+        // so it was the one path that reached the setting first (#30).
+        AdbShell.releaseWirelessDebugging(context, "the daemon launch")
     }
 
     /**

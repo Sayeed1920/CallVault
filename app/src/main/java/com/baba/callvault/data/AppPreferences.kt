@@ -330,6 +330,7 @@ class AppPreferences(context: Context) {
         
         // --- Developer & Debug ---
         LOGGING_ENABLED("logging_enabled"),
+        WD_ENABLED_BY_US("wd_enabled_by_us"),
         LOG_PSEUDONYM_SALT("log_pseudonym_salt"),
         LOGCAT_RING_PREVIOUS_KIB("logcat_ring_previous_kib"),
         DEBUG_ENABLED("debug_enabled"),
@@ -1170,6 +1171,18 @@ class AppPreferences(context: Context) {
     }
 
     fun isLoggingEnabled() = getBoolean(Key.LOGGING_ENABLED, DefaultsValue.LOGGING_ENABLED)
+
+    /**
+     * Whether the Wireless debugging switch that is currently on was turned on by CallVault.
+     *
+     * Persisted rather than held in memory because the answer has to survive the app being killed:
+     * without it, the first ADB operation after a restart would treat a switch the user flipped as
+     * ours and turn it off — which is the whole of #30.
+     */
+    fun wasWirelessDebuggingEnabledByUs() = getBoolean(Key.WD_ENABLED_BY_US, false)
+
+    /** Records who turned Wireless debugging on. See [wasWirelessDebuggingEnabledByUs]. */
+    fun setWirelessDebuggingEnabledByUs(byUs: Boolean) = setBoolean(Key.WD_ENABLED_BY_US, byUs)
 
     /** Sets whether logging features are enabled. */
     fun setLoggingEnabled(enabled: Boolean) = setBoolean(Key.LOGGING_ENABLED, enabled)

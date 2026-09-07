@@ -100,8 +100,6 @@
     <string name="notif_voip_recording_text">A CallVault éppen egy alkalmazáshívást rögzít.</string>
     <string name="notif_voip_recording_title">VoIP-hívás rögzítése</string>
     <string name="notif_wd_required">A vezeték nélküli hibakeresésnek bekapcsolva kell maradnia, hogy a CallVault készen álljon ezen a telefonon. Kapcsolja be a „Rögzítés Wi-Fi nélkül” lehetőséget a Beállítások ▸ Kísérleti menüben (vagy engedélyezze az USB hibakeresést), és a CallVault ismét kikapcsolja.</string>
-    <string name="notif_wd_reverted_text">Az USB hibakeresés be van kapcsolva, így a CallVaultnak nincs szüksége a vezeték nélküli hibakeresésre — és mivel az hálózati portot nyit, kikapcsolva marad. Ha másért kapcsolta be, előbb kapcsolja ki az USB hibakeresést, és a CallVault nem nyúl hozzá.</string>
-    <string name="notif_wd_reverted_title">A vezeték nélküli hibakeresés újra kikapcsolva</string>
     <string name="offline_recording_warning_continue">Folytatás mindenképp</string>
     <string name="offline_recording_warning_message">Ez megnyit egy helyi hibakeresési portot a telefonján, hogy a hívások Wi-Fi nélkül is rögzíthetők legyenek. Az eszköz kulcsa védi, de kis biztonsági kompromisszumot jelent. Csak akkor engedélyezze, ha Wi-Fi nélkül kell hívásokat rögzítenie.</string>
     <string name="offline_recording_warning_title">Engedélyezi az offline rögzítést?</string>

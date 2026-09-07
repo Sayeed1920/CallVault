@@ -180,31 +180,25 @@ class DaemonKeepAliveService : Service() {
     }
 
     /**
-     * Reacts when the **user** switches Wireless debugging on while it is not needed.
+     * Notes who owns the Wireless debugging switch, and does nothing else.
      *
-     * Only the user's changes count. CallVault turns Wireless debugging on itself during startup, so
-     * acting on every change here would switch off the very thing the bootstrap just switched on —
-     * [AdbShell.didWeJustSetWirelessDebugging] is what tells the two apart.
+     * This used to switch it back **off** when the user turned it on while USB debugging was already
+     * holding `adbd` up — redundant from CallVault's point of view, and reported by mirror176 in #30 as
+     * the app taking away a switch he had flipped to reach his phone from a PC. It flicked off within a
+     * second, and the note explaining why told him to disable USB debugging instead, which costs him
+     * the thing he wanted. "Wireless debugging only while it is needed" is a rule about CallVault's own
+     * use of the switch; it was being applied to the switch itself.
      *
-     * Even then it acts only when Wireless debugging is genuinely redundant: USB debugging is holding
-     * `adbd` up **and** the daemon is already answering. Dropping it in any other state would be taking
-     * away the only way in.
+     * So the reaction is gone and the bookkeeping stays: a change we did not make means the switch is
+     * now the user's, and [AdbShell.releaseWirelessDebugging] will leave it alone.
+     * [AdbShell.didWeJustSetWirelessDebugging] is what tells our own writes from theirs.
      */
     private val wirelessDebuggingObserver = object : ContentObserver(watchdogHandler) {
         override fun onChange(selfChange: Boolean) {
-            if (!AdbShell.isWirelessDebuggingEnabled(applicationContext)) return
-            if (AdbShell.didWeJustSetWirelessDebugging(enabled = true)) return
-            if (!AdbShell.isUsbDebuggingEnabled(applicationContext)) return
-            if (!isDaemonAlive()) return
-
-            AppLogger.i(TAG, "Wireless debugging switched on by hand but USB debugging covers adbd — switching it back off")
-            Thread {
-                runCatching { RecorderBackend.ensureRunning(applicationContext) }
-                    .onFailure { AppLogger.w(TAG, "Could not re-apply the transport policy: ${it.message}") }
-            }.apply { isDaemon = true; name = "cv-wd-change" }.start()
-            // Say so. Undoing a switch the user just flipped, silently, reads as the app fighting them —
-            // even when it is right. One dismissible note explaining why is the honest minimum.
-            notifyWirelessDebuggingTurnedBackOff()
+            val on = AdbShell.isWirelessDebuggingEnabled(applicationContext)
+            if (AdbShell.didWeJustSetWirelessDebugging(enabled = on)) return
+            AppPreferences(applicationContext).setWirelessDebuggingEnabledByUs(false)
+            AppLogger.i(TAG, "Wireless debugging switched ${if (on) "on" else "off"} by hand; it is the user\'s to manage")
         }
     }
 
@@ -440,27 +434,6 @@ class DaemonKeepAliveService : Service() {
     }.getOrDefault(false)
 
     /** Tells the user CallVault undid their Wireless-debugging change, and why. Dismissible, silent. */
-    private fun notifyWirelessDebuggingTurnedBackOff() {
-        runCatching {
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(
-                NotificationChannel(
-                    INFO_CHANNEL_ID,
-                    getString(R.string.notif_info_channel),
-                    NotificationManager.IMPORTANCE_LOW,
-                ).apply { setShowBadge(false); enableVibration(false); setSound(null, null) },
-            )
-            val notification = NotificationCompat.Builder(this, INFO_CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.stat_notify_sync)
-                .setContentTitle(getString(R.string.notif_wd_reverted_title))
-                .setContentText(getString(R.string.notif_wd_reverted_text))
-                .setStyle(NotificationCompat.BigTextStyle().bigText(getString(R.string.notif_wd_reverted_text)))
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build()
-            manager.notify(INFO_NOTIF_ID, notification)
-        }.onFailure { AppLogger.d(TAG, "Could not post the Wireless-debugging note: ${it.message}") }
-    }
 
     private fun updateNotification(ready: Boolean) {
         runCatching {
@@ -587,8 +560,6 @@ class DaemonKeepAliveService : Service() {
         val isRecoveryStuck: Boolean get() = stuckRecovery.isStuck
 
         /** Low-importance channel for one-off explanations, kept apart from the permanent status note. */
-        private const val INFO_CHANNEL_ID = "callvault_info"
-        private const val INFO_NOTIF_ID = 4721
         private const val NOTIF_ID = 4720
 
         /** How often the watchdog checks the daemon is alive. Cheap (a binder ping). */

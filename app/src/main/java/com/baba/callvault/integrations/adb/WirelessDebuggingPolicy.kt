@@ -62,4 +62,19 @@ object WirelessDebuggingPolicy {
     /** Whether Wireless debugging has to stay on — i.e. the user should be told why. */
     fun mustKeepWirelessDebugging(plan: WirelessDebuggingPlan): Boolean =
         plan == WirelessDebuggingPlan.KEEP_ONLY_TRANSPORT
+
+    /**
+     * Whether CallVault may switch Wireless debugging off — which needs the switch to be **ours**.
+     *
+     * "Wireless debugging only while it is needed" was applied to the setting rather than to our own
+     * use of it, so a switch the user flipped for their own reasons was taken away as soon as any ADB
+     * operation of ours finished. mirror176 turns it on to reach his phone from a PC (#30) and watched
+     * it flick off within a second, with a notification telling him to disable USB debugging instead —
+     * advice that costs him the thing he wanted.
+     *
+     * So ownership decides, and the transport rule still overrides it: dropping `adbd`'s last transport
+     * kills the daemon whoever turned the switch on.
+     */
+    fun mayRelease(plan: WirelessDebuggingPlan, weEnabledIt: Boolean): Boolean =
+        weEnabledIt && !mustKeepWirelessDebugging(plan)
 }

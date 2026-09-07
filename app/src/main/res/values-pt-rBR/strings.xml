@@ -103,8 +103,6 @@
     <string name="notif_voip_recording_text">O CallVault está gravando uma chamada de app.</string>
     <string name="notif_voip_recording_title">Gravando chamada VoIP</string>
     <string name="notif_wd_required">A Depuração sem fio precisa ficar ativada para o CallVault continuar pronto neste celular. Ative “Gravar sem Wi-Fi” em Configurações ▸ Experimental (ou ative a Depuração USB) e o CallVault vai desligá-la de novo.</string>
-    <string name="notif_wd_reverted_text">A Depuração USB está ativada, então o CallVault não precisa da Depuração sem fio — e como ela abre uma porta de rede, fica desligada. Se você a ativou para outra coisa, desative primeiro a Depuração USB e o CallVault não vai mais mexer nela.</string>
-    <string name="notif_wd_reverted_title">A Depuração sem fio foi desligada de novo</string>
     <string name="offline_recording_warning_continue">Continuar mesmo assim</string>
     <string name="offline_recording_warning_message">Isto abre uma porta local de depuração no seu celular para que as chamadas sejam gravadas sem Wi-Fi. Ela é protegida pela chave do seu dispositivo, mas é uma pequena concessão de segurança. Ative apenas se você precisar gravar chamadas sem Wi-Fi.</string>
     <string name="offline_recording_warning_title">Ativar a gravação offline?</string>
