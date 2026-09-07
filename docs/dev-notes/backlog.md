@@ -22,6 +22,52 @@ with `&&`/`||` chains and silently reported the opposite answer while this was b
 
 ---
 
+## 🐞 The transcript sheet's height follows its content — one line explains most of #27's follow-up
+
+**Read from source on 2026-09-07, not measured.** `TranscriptSheet.kt:201`:
+
+```kotlin
+LazyColumn(state = listState, modifier = Modifier.weight(1f, fill = false))
+```
+
+`fill = false` lets the list take only the height of what it has *composed so far*, so the sheet grows
+as you scroll. That single line predicts nearly everything mirror176 reported in #27: it opens at about
+half height, grows towards fullscreen as you scroll down, the playback controls appear to be "revealed"
+because a growing list pushes them, rotating a fullscreen sheet drops it back to half (a fresh measure),
+and reopening it later opens fullscreen (the retained list state composes more at once). It reads as
+intermittent because it is content- and scroll-dependent, not random.
+
+Likely fix: `Modifier.weight(1f)`. The sheet already sets `skipPartiallyExpanded = true` and its own
+doc says "near full height", so filling is what was intended. **Verify on a device before believing
+this** — and check what an always-near-full sheet looks like for a three-line transcript.
+
+Same report, same area, cheap and independent: **the delete / re-transcribe confirmation closes the
+sheet before you have confirmed**, and cancelling leaves it closed. Only close it when a delete is
+actually performed. Note the agreed item above about removing "Transcribe again" from the sheet
+removes half of this on its own.
+
+---
+
+## 🔵 Transcript reading: mirror176's design proposals from #27
+
+Not defects. Recorded so they are not lost, and so the next person to open that screen sees them
+together rather than as four separate asks.
+
+- **Previous / next call from inside the transcript.** He reaches a transcript, reads it, and has to
+  go back out to reach the next call. If this is built, the order must follow the list's current sort
+  and filter, not the underlying unsorted order — otherwise "next" means something different from what
+  the screen shows.
+- **A transcript that is fullscreen all the time**, with the number, date and time in its header. He
+  argues the half-height state buys nothing once the header tells you whose call it is. Depends on the
+  height bug above being fixed first; they may turn out to be the same piece of work.
+- **A way to deselect a highlighted line.** Rotation jumps to the highlight, and with no way to clear
+  it, putting the phone down and picking it up at an angle throws away where you were reading. Two
+  parts: let a highlight be cleared, and prefer restoring the scroll position over jumping to it.
+- **Richer filtering and sorting of the call list**, which is what makes the prev/next ordering
+  question above real.
+
+---
+
 ## 🔵 Targeting Android 17 (API 37) will break mDNS discovery until we ask for it
 
 Android 17 makes `ACCESS_LOCAL_NETWORK` a runtime permission and gates `NsdManager`, mDNS and every
