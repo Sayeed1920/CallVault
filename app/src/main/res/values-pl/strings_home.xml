@@ -113,15 +113,17 @@
     <string name="home_scroll_to_top">Do góry</string>
     <string name="home_whatsnew_full_notes">Pełne informacje o wydaniu</string>
     <string name="whatsnew_230_title">Rozmowy, które były jedną rozmową, mogą być jednym nagraniem</string>
-    <string name="whatsnew_230_body">Połącz w jedno nagranie rozmowy, które były jedną rozmową — i rozdziel je później.
-Obrót telefonu nie gubi już miejsca ani zaznaczenia i nie pyta ponownie o blokadę aplikacji.
-Zniknęły trzaski, które niektóre telefony dodawały do nagrania.
-Nagranie, które tak naprawdę się nie zaczyna, teraz to mówi, zamiast zostawiać cię z niczym.
-Zmiana formatu na AAC nie kosztuje już następnej rozmowy.
-Poczta głosowa odsłuchana przez słuchawkę nie trafia już do dziennika jako nieudane nagranie.
-Dotknięcie wiersza transkrypcji po długiej przerwie przenosi do właściwego momentu.
-Aktualizacja CallVault nie uniemożliwia już nagrania kolejnej rozmowy.
-Shizuku zostaje znalezione nawet wtedy, gdy ukryto je pod inną nazwą pakietu.</string>
+    <string-array name="whatsnew_230_items">
+        <item>Nowość — Połącz w jedno nagranie rozmowy z jednej konwersacji</item>
+        <item>Poprawka — Obrót telefonu zachowuje twoje miejsce</item>
+        <item>Poprawka — Koniec z trzaskami w nagraniach</item>
+        <item>Poprawka — Nagranie, które się nie zaczyna, teraz to zgłasza</item>
+        <item>Poprawka — Zmiana na AAC zachowuje następną rozmowę</item>
+        <item>Poprawka — Poczta głosowa nie jest już nieudanym połączeniem</item>
+        <item>Poprawka — Poprawne znaczniki czasu po długiej przerwie</item>
+        <item>Poprawka — Aktualizacja zachowuje nagranie następnej rozmowy</item>
+        <item>Poprawka — Obsługa trybu ukrycia Shizuku</item>
+    </string-array>
     <string name="whatsnew_230_where">Menu ⋮ dowolnego nagrania ▸ Połącz z innym połączeniem</string>
     <string name="merge_progress_title">Łączenie</string>
     <string name="unmerge_progress_title">Rozdzielanie</string>

@@ -113,15 +113,17 @@
     <string name="home_scroll_to_top">Arriba</string>
     <string name="home_whatsnew_full_notes">Notas de versión completas</string>
     <string name="whatsnew_230_title">Las llamadas que fueron una conversación pueden ser una grabación</string>
-    <string name="whatsnew_230_body">Combina en una sola grabación las llamadas que fueron una misma conversación, y sepáralas cuando quieras.
-Girar el teléfono ya no pierde tu posición ni una selección, ni vuelve a pedir el bloqueo de la aplicación.
-El chisporroteo que algunos teléfonos añadían a la grabación ha desaparecido.
-Una grabación que nunca llega a empezar ahora lo dice, en lugar de dejarte sin nada.
-Cambiar el formato a AAC ya no te cuesta la llamada siguiente.
-Un buzón de voz escuchado por el auricular ya no se registra como una llamada que no se grabó.
-Tocar una línea de la transcripción tras una pausa larga salta al momento exacto.
-Actualizar CallVault ya no le impide grabar la llamada siguiente.
-Shizuku se encuentra incluso cuando está oculto con otro nombre de paquete.</string>
+    <string-array name="whatsnew_230_items">
+        <item>Nuevo — Combina en una grabación las llamadas de una misma conversación</item>
+        <item>Corregido — Girar el teléfono mantiene tu posición</item>
+        <item>Corregido — Se acabó el chisporroteo en las grabaciones</item>
+        <item>Corregido — Una grabación que no arranca ahora lo dice</item>
+        <item>Corregido — Cambiar a AAC mantiene la llamada siguiente</item>
+        <item>Corregido — El buzón de voz ya no se registra como llamada fallida</item>
+        <item>Corregido — Marcas de tiempo correctas tras una pausa larga</item>
+        <item>Corregido — Actualizar mantiene la grabación de la llamada siguiente</item>
+        <item>Corregido — Compatible con el modo oculto de Shizuku</item>
+    </string-array>
     <string name="whatsnew_230_where">El menú ⋮ de cualquier grabación ▸ Combinar con otra llamada</string>
     <string name="merge_progress_title">Combinando</string>
     <string name="unmerge_progress_title">Separando</string>

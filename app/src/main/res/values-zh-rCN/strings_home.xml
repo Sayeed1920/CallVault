@@ -113,15 +113,17 @@
     <string name="home_scroll_to_top">回到顶部</string>
     <string name="home_whatsnew_full_notes">完整发行说明</string>
     <string name="whatsnew_230_title">本就是一次对话的通话，可以合成一条录音</string>
-    <string name="whatsnew_230_body">把本是同一次谈话的多通来电合并成一条录音，之后也可以再拆开。
-旋转手机不再丢失当前位置或选择，也不会再次要求应用锁。
-某些手机给录音带来的杂音已经消失。
-始终没能真正开始的录音现在会明确告知，而不是让你一无所获。
-把格式切换为 AAC 不再让你损失下一通来电。
-通过听筒播放的语音信箱不再被记录为录音失败的来电。
-长时间停顿后点按转写中的某一行，会跳到真正说这句话的位置。
-更新 CallVault 不再导致下一通来电录不到。
-即使 Shizuku 被改成别的包名隐藏起来，也能被找到。</string>
+    <string-array name="whatsnew_230_items">
+        <item>新增 — 将同一次谈话的多通来电合并为一条录音</item>
+        <item>修复 — 旋转手机不再丢失当前位置</item>
+        <item>修复 — 录音不再有杂音</item>
+        <item>修复 — 录音未真正开始时会明确提示</item>
+        <item>修复 — 切换到 AAC 不再影响下一通来电</item>
+        <item>修复 — 语音信箱不再被记为录音失败的来电</item>
+        <item>修复 — 长时间停顿后转写时间戳正确</item>
+        <item>修复 — 更新后仍能录下一通来电</item>
+        <item>修复 — 支持 Shizuku 隐藏模式</item>
+    </string-array>
     <string name="whatsnew_230_where">任意录音的 ⋮ 菜单 ▸ 与另一通电话合并</string>
     <string name="merge_progress_title">正在合并</string>
     <string name="unmerge_progress_title">正在拆开</string>

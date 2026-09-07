@@ -113,15 +113,17 @@
     <string name="home_scroll_to_top">Nach oben</string>
     <string name="home_whatsnew_full_notes">Vollständige Versionshinweise</string>
     <string name="whatsnew_230_title">Anrufe, die ein Gespräch waren, können eine Aufnahme sein</string>
-    <string name="whatsnew_230_body">Anrufe, die ein Gespräch waren, zu einer Aufnahme zusammenführen — und später wieder trennen.
-Das Drehen des Telefons verliert nicht mehr deine Position oder eine Auswahl und fragt die App-Sperre nicht erneut ab.
-Das Knistern, das manche Telefone einer Aufnahme hinzufügten, ist weg.
-Eine Aufnahme, die nie richtig beginnt, sagt das jetzt, statt dich mit nichts zurückzulassen.
-Ein Wechsel des Formats zu AAC kostet nicht mehr den nächsten Anruf.
-Eine über den Hörer abgespielte Mailbox gilt nicht mehr als fehlgeschlagene Aufnahme.
-Ein Tippen auf eine Transkriptzeile nach einer langen Pause springt an die richtige Stelle.
-Ein Update von CallVault verhindert nicht mehr die Aufnahme des nächsten Anrufs.
-Shizuku wird auch dann gefunden, wenn es unter einem anderen Paketnamen versteckt wurde.</string>
+    <string-array name="whatsnew_230_items">
+        <item>Neu — Anrufe eines Gesprächs zu einer Aufnahme zusammenführen</item>
+        <item>Behoben — Drehen des Telefons behält deine Position</item>
+        <item>Behoben — Kein Knistern mehr in Aufnahmen</item>
+        <item>Behoben — Eine Aufnahme, die nicht startet, sagt es jetzt</item>
+        <item>Behoben — Wechsel zu AAC behält den nächsten Anruf</item>
+        <item>Behoben — Mailbox gilt nicht mehr als fehlgeschlagener Anruf</item>
+        <item>Behoben — Transkript-Zeitstempel nach langer Pause stimmen</item>
+        <item>Behoben — Update behält die Aufnahme des nächsten Anrufs</item>
+        <item>Behoben — Shizuku-Versteckmodus wird unterstützt</item>
+    </string-array>
     <string name="whatsnew_230_where">Das ⋮-Menü einer Aufnahme ▸ Mit einem anderen Anruf zusammenführen</string>
     <string name="merge_progress_title">Wird zusammengeführt</string>
     <string name="unmerge_progress_title">Wird getrennt</string>

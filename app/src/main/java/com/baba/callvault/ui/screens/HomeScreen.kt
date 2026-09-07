@@ -152,6 +152,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -1176,10 +1177,9 @@ private fun WhatsNewDialog(onDismiss: () -> Unit, onOpenSettings: () -> Unit) {
 private fun ReleaseNote(release: ReleaseHighlight) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ReleaseHeadline(release)
-        // The body is authored as one change per line, so it is split rather than parsed: a release
-        // note with a stray blank line stays a list instead of becoming a bullet with nothing in it.
-        stringResource(release.body).split('\n').map { it.trim() }.filter { it.isNotEmpty() }
-            .forEach { change -> ChangeLine(change) }
+        release.items?.let { items ->
+            stringArrayResource(items).forEach { change -> ChangeLine(change) }
+        }
         release.whereToFind?.let {
             Text(
                 text = stringResource(it),

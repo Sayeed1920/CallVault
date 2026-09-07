@@ -114,15 +114,17 @@
     <string name="home_scroll_to_top">Haut</string>
     <string name="home_whatsnew_full_notes">Notes de version complètes</string>
     <string name="whatsnew_230_title">Des appels qui étaient une seule conversation peuvent être un seul enregistrement</string>
-    <string name="whatsnew_230_body">Fusionnez en un seul enregistrement des appels qui ne formaient qu\'une conversation — et séparez-les plus tard.
-Tourner le téléphone ne fait plus perdre votre place ni une sélection, et ne redemande plus le verrouillage.
-Le grésillement que certains téléphones ajoutaient aux enregistrements a disparu.
-Un enregistrement qui ne démarre jamais vraiment le dit maintenant, au lieu de vous laisser sans rien.
-Passer au format AAC ne coûte plus l\'appel suivant.
-Un répondeur écouté dans l\'écouteur n\'est plus consigné comme un appel non enregistré.
-Toucher une ligne de transcription après une longue pause amène au bon moment.
-Mettre CallVault à jour ne l\'empêche plus d\'enregistrer l\'appel suivant.
-Shizuku est trouvé même lorsqu\'il est caché sous un autre nom de paquet.</string>
+    <string-array name="whatsnew_230_items">
+        <item>Nouveau — Fusionner en un enregistrement les appels d\'une même conversation</item>
+        <item>Corrigé — Tourner le téléphone conserve votre place</item>
+        <item>Corrigé — Plus de grésillement dans les enregistrements</item>
+        <item>Corrigé — Un enregistrement qui ne démarre pas le signale</item>
+        <item>Corrigé — Passer en AAC conserve l\'appel suivant</item>
+        <item>Corrigé — Le répondeur n\'est plus consigné comme appel manqué</item>
+        <item>Corrigé — Horodatages corrects après une longue pause</item>
+        <item>Corrigé — La mise à jour conserve l\'enregistrement suivant</item>
+        <item>Corrigé — Mode masqué de Shizuku pris en charge</item>
+    </string-array>
     <string name="whatsnew_230_where">Le menu ⋮ d’un enregistrement ▸ Fusionner avec un autre appel</string>
     <string name="merge_progress_title">Fusion</string>
     <string name="unmerge_progress_title">Séparation</string>

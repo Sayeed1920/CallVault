@@ -135,15 +135,17 @@
     <string name="home_scroll_to_top">Top</string>
     <string name="home_whatsnew_full_notes">Full release notes</string>
     <string name="whatsnew_230_title">Calls that were one conversation can be one recording</string>
-    <string name="whatsnew_230_body">Merge calls that were one conversation into a single recording — and un-merge them again later.
-Turning the phone no longer loses your place, drops a selection, or asks the app lock again.
-The crackle some phones added to a recording is gone.
-A recording that never really starts now says so, instead of leaving you with nothing.
-Switching the format to AAC no longer costs you the next call.
-A voicemail played through the earpiece is no longer logged as a call that failed to record.
-Tapping a transcript line after a long pause jumps to the moment it was really said.
-Updating CallVault no longer leaves it unable to record the call that comes next.
-Shizuku is found even when it has been hidden under another package name.</string>
+    <string-array name="whatsnew_230_items">
+        <item>New — Merge calls that were one conversation into one recording</item>
+        <item>Fixed — Rotating the phone keeps your place</item>
+        <item>Fixed — No more crackle in recordings</item>
+        <item>Fixed — A recording that fails to start now says so</item>
+        <item>Fixed — Switching to AAC keeps the next call</item>
+        <item>Fixed — Voicemail is no longer logged as a failed call</item>
+        <item>Fixed — Transcript timestamps after a long pause are right</item>
+        <item>Fixed — Updating keeps the next call recording</item>
+        <item>Fixed — Shizuku hide mode supported</item>
+    </string-array>
     <string name="whatsnew_230_where">The ⋮ menu on any recording ▸ Merge with another call</string>
     <string name="merge_progress_title">Merging</string>
     <string name="unmerge_progress_title">Un-merging</string>

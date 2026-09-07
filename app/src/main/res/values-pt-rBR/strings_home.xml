@@ -113,15 +113,17 @@
     <string name="home_scroll_to_top">Topo</string>
     <string name="home_whatsnew_full_notes">Notas de versão completas</string>
     <string name="whatsnew_230_title">Chamadas que eram uma conversa podem ser uma gravação</string>
-    <string name="whatsnew_230_body">Junte em uma só gravação as chamadas que foram uma mesma conversa — e separe-as depois.
-Girar o telefone não perde mais o seu lugar nem uma seleção, e não pede o bloqueio de novo.
-O chiado que alguns telefones acrescentavam à gravação acabou.
-Uma gravação que nunca chega a começar agora avisa, em vez de deixar você sem nada.
-Mudar o formato para AAC não custa mais a próxima chamada.
-Uma caixa postal ouvida pelo fone não é mais registrada como chamada que falhou.
-Tocar em uma linha da transcrição depois de uma pausa longa vai para o momento certo.
-Atualizar o CallVault não o impede mais de gravar a chamada seguinte.
-O Shizuku é encontrado mesmo quando está escondido sob outro nome de pacote.</string>
+    <string-array name="whatsnew_230_items">
+        <item>Novo — Junte em uma gravação as chamadas de uma mesma conversa</item>
+        <item>Corrigido — Girar o telefone mantém o seu lugar</item>
+        <item>Corrigido — Sem mais chiado nas gravações</item>
+        <item>Corrigido — Uma gravação que não começa agora avisa</item>
+        <item>Corrigido — Mudar para AAC mantém a próxima chamada</item>
+        <item>Corrigido — A caixa postal não é mais registrada como falha</item>
+        <item>Corrigido — Horários corretos na transcrição após pausa longa</item>
+        <item>Corrigido — Atualizar mantém a gravação da próxima chamada</item>
+        <item>Corrigido — Suporte ao modo oculto do Shizuku</item>
+    </string-array>
     <string name="whatsnew_230_where">O menu ⋮ de qualquer gravação ▸ Mesclar com outra chamada</string>
     <string name="merge_progress_title">Mesclando</string>
     <string name="unmerge_progress_title">Separando</string>

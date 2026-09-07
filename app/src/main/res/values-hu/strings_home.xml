@@ -113,15 +113,17 @@
     <string name="home_scroll_to_top">Az elejére</string>
     <string name="home_whatsnew_full_notes">Teljes kiadási jegyzék</string>
     <string name="whatsnew_230_title">Ami egy beszélgetés volt, egyetlen felvétel is lehet</string>
-    <string name="whatsnew_230_body">Az egy beszélgetéshez tartozó hívások egyetlen felvétellé fűzhetők össze — és később szét is választhatók.
-A telefon elforgatása többé nem veszíti el a helyed vagy a kijelölésed, és nem kéri újra az alkalmazászárat.
-Eltűnt a recsegés, amelyet néhány telefon adott a felvételhez.
-Az a felvétel, amely el sem indul rendesen, most szól erről, ahelyett hogy semmit sem kapnál.
-Az AAC formátumra váltás többé nem kerül a következő hívásba.
-A fülhallgatón lejátszott hangposta többé nem sikertelen felvételként kerül a naplóba.
-Hosszú szünet után az átirat egy sorára koppintva a valódi időpontra ugrik.
-A CallVault frissítése többé nem akadályozza meg a következő hívás rögzítését.
-A Shizuku akkor is megtalálható, ha másik csomagnév alatt rejtették el.</string>
+    <string-array name="whatsnew_230_items">
+        <item>Új — Egy beszélgetés hívásai egyetlen felvétellé fűzhetők</item>
+        <item>Javítva — A telefon elforgatása megtartja a helyed</item>
+        <item>Javítva — Nincs több recsegés a felvételekben</item>
+        <item>Javítva — Az el sem induló felvétel most szól róla</item>
+        <item>Javítva — Az AAC-re váltás megtartja a következő hívást</item>
+        <item>Javítva — A hangposta már nem sikertelen hívásként kerül naplóba</item>
+        <item>Javítva — Helyes időbélyegek hosszú szünet után</item>
+        <item>Javítva — A frissítés megtartja a következő hívás rögzítését</item>
+        <item>Javítva — Támogatott a Shizuku rejtett módja</item>
+    </string-array>
     <string name="whatsnew_230_where">Bármely felvétel ⋮ menüje ▸ Egyesítés egy másik hívással</string>
     <string name="merge_progress_title">Egyesítés</string>
     <string name="unmerge_progress_title">Szétbontás</string>

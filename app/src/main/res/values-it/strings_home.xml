@@ -113,15 +113,17 @@
     <string name="home_scroll_to_top">Su</string>
     <string name="home_whatsnew_full_notes">Note di rilascio complete</string>
     <string name="whatsnew_230_title">Chiamate che erano una sola conversazione possono essere una sola registrazione</string>
-    <string name="whatsnew_230_body">Unisci in una sola registrazione le chiamate che erano una stessa conversazione — e separale di nuovo in seguito.
-Ruotare il telefono non fa più perdere il punto in cui eri o una selezione, e non richiede di nuovo il blocco.
-Il crepitio che alcuni telefoni aggiungevano alle registrazioni è sparito.
-Una registrazione che non parte davvero ora lo dice, invece di lasciarti senza nulla.
-Passare al formato AAC non costa più la chiamata successiva.
-Una segreteria ascoltata dall\'auricolare non viene più registrata come chiamata non riuscita.
-Toccare una riga della trascrizione dopo una lunga pausa porta al momento giusto.
-Aggiornare CallVault non gli impedisce più di registrare la chiamata successiva.
-Shizuku viene trovato anche quando è nascosto sotto un altro nome di pacchetto.</string>
+    <string-array name="whatsnew_230_items">
+        <item>Nuovo — Unisci in una registrazione le chiamate di una stessa conversazione</item>
+        <item>Corretto — Ruotare il telefono mantiene il tuo punto</item>
+        <item>Corretto — Niente più crepitio nelle registrazioni</item>
+        <item>Corretto — Una registrazione che non parte ora lo dice</item>
+        <item>Corretto — Passare ad AAC mantiene la chiamata successiva</item>
+        <item>Corretto — La segreteria non è più registrata come chiamata fallita</item>
+        <item>Corretto — Marche temporali corrette dopo una lunga pausa</item>
+        <item>Corretto — L\'aggiornamento mantiene la registrazione successiva</item>
+        <item>Corretto — Supportata la modalità nascosta di Shizuku</item>
+    </string-array>
     <string name="whatsnew_230_where">Il menu ⋮ di una registrazione ▸ Unisci a un’altra chiamata</string>
     <string name="merge_progress_title">Unione</string>
     <string name="unmerge_progress_title">Separazione</string>

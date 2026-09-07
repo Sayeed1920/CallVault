@@ -8,6 +8,7 @@
 
 package com.baba.callvault.ui.common
 
+import androidx.annotation.ArrayRes
 import androidx.annotation.StringRes
 import com.baba.callvault.R
 
@@ -24,7 +25,17 @@ import com.baba.callvault.R
 data class ReleaseHighlight(
     val version: String,
     @StringRes val title: Int,
-    @StringRes val body: Int,
+    /**
+     * One line per change, as a string-array.
+     *
+     * An array rather than one string with line breaks in it: raw newlines inside a string resource
+     * are collapsed to spaces by the resource compiler, which turned nine changes into a single
+     * paragraph on the first attempt at this — the very wall of text the list replaced. An array
+     * cannot be flattened by accident, and it is what translators expect to see for a list.
+     *
+     * Null for the older releases: only the newest is written out, the rest show their headline.
+     */
+    @ArrayRes val items: Int? = null,
     /** Where to find it, when the feature is off by default and needs switching on. */
     @StringRes val whereToFind: Int? = null,
 )
@@ -38,7 +49,7 @@ object ReleaseHighlights {
         ReleaseHighlight(
             version = "2.3.0",
             title = R.string.whatsnew_230_title,
-            body = R.string.whatsnew_230_body,
+            items = R.array.whatsnew_230_items,
             // Merging is reached from a recording's own menu rather than a settings screen, so the
             // pointer names where the action lives, not something to switch on.
             whereToFind = R.string.whatsnew_230_where,
@@ -46,7 +57,6 @@ object ReleaseHighlights {
         ReleaseHighlight(
             version = "2.2.1",
             title = R.string.whatsnew_221_title,
-            body = R.string.whatsnew_221_body,
             // A maintenance release: everything in it applies on its own and none of it is a setting.
             // A pointer here would have to name a screen where there is nothing to do.
             whereToFind = null,
@@ -54,7 +64,6 @@ object ReleaseHighlights {
         ReleaseHighlight(
             version = "2.2.0",
             title = R.string.whatsnew_220_title,
-            body = R.string.whatsnew_220_body,
             // Most of this release applies on its own, but the housekeeping options are off by
             // default and are the ones someone would go looking for, so the pointer names them.
             whereToFind = R.string.whatsnew_220_where,
@@ -62,7 +71,6 @@ object ReleaseHighlights {
         ReleaseHighlight(
             version = "2.1.1",
             title = R.string.whatsnew_211_title,
-            body = R.string.whatsnew_211_body,
             // Nothing to switch on and nowhere to go — the improvement applies to every transcription
             // and summary from here on. Pointing at a screen would be pointing at nothing.
             whereToFind = null,
@@ -70,7 +78,6 @@ object ReleaseHighlights {
         ReleaseHighlight(
             version = "2.1.0",
             title = R.string.whatsnew_210_title,
-            body = R.string.whatsnew_210_body,
             // Not a setting to switch on, so this says when it applies rather than where it lives:
             // the labels appear on calls recorded from this version onwards and on no others.
             whereToFind = R.string.whatsnew_210_where,
@@ -78,7 +85,6 @@ object ReleaseHighlights {
         ReleaseHighlight(
             version = "2.0.0",
             title = R.string.whatsnew_200_title,
-            body = R.string.whatsnew_200_body,
             // This is the only place someone finds out the feature exists, and it costs a 3.5 GB
             // download — so the note says where to start rather than leaving them to go looking.
             whereToFind = R.string.whatsnew_200_where,
@@ -86,57 +92,47 @@ object ReleaseHighlights {
         ReleaseHighlight(
             version = "1.5.7",
             title = R.string.whatsnew_157_title,
-            body = R.string.whatsnew_157_body,
             whereToFind = R.string.whatsnew_157_where,
         ),
         ReleaseHighlight(
             version = "1.5.6",
             title = R.string.whatsnew_156_title,
-            body = R.string.whatsnew_156_body,
             whereToFind = R.string.whatsnew_156_where,
         ),
         ReleaseHighlight(
             version = "1.5.5",
             title = R.string.whatsnew_155_title,
-            body = R.string.whatsnew_155_body,
         ),
         ReleaseHighlight(
             version = "1.5.4",
             title = R.string.whatsnew_154_title,
-            body = R.string.whatsnew_154_body,
         ),
         ReleaseHighlight(
             version = "1.5.3",
             title = R.string.whatsnew_153_title,
-            body = R.string.whatsnew_153_body,
         ),
         ReleaseHighlight(
             version = "1.5.0",
             title = R.string.whatsnew_150_title,
-            body = R.string.whatsnew_150_body,
             whereToFind = R.string.whatsnew_150_where,
         ),
         ReleaseHighlight(
             version = "1.4.8",
             title = R.string.whatsnew_148_title,
-            body = R.string.whatsnew_148_body,
         ),
         ReleaseHighlight(
             version = "1.4.7",
             title = R.string.whatsnew_147_title,
-            body = R.string.whatsnew_147_body,
             whereToFind = R.string.whatsnew_147_where,
         ),
         ReleaseHighlight(
             version = "1.4.6",
             title = R.string.whatsnew_146_title,
-            body = R.string.whatsnew_146_body,
             whereToFind = R.string.whatsnew_146_where,
         ),
         ReleaseHighlight(
             version = "1.4.5",
             title = R.string.whatsnew_145_title,
-            body = R.string.whatsnew_145_body,
         ),
     )
 
