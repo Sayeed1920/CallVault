@@ -412,10 +412,29 @@ object HandoffReceiver {
             }
             // Let go of the dead track only once its replacement is in hand, so a failed rebuild does
             // not also throw away the reference that keeps the app's claim on the old one.
+            val oldHeld = held
             val oldCblk = cblk
             held = next.binder
             cblk = next.cblk
+            // STOP the invalidated track before dropping it, for the reason spelled out in
+            // [releaseRefs]: letting the last reference go runs releaseInput() without
+            // finishRecording(), and only stopInput() finishes the microphone app-op. That fix was made
+            // for the end-of-call path and this rebuild reintroduced the same leak — with evidence
+            // (2026-09-07, the tester's phone): capture#1 was invalidated 0.79 s into a call, rebuilt as
+            // capture#2, and five minutes after the call ended the phone still reported
+            // `uid=2000 op=RECORD_AUDIO running since +5m4s` — the age of capture#1, not of the
+            // recording, which finished clean. The green dot never went out.
+            //
+            // Whether AudioFlinger accepts a stop on an already-invalidated track is the one thing we
+            // cannot know from here, so the result is logged: `accepted=` answers it in the next report.
+            if (oldHeld != null) {
+                val accepted = HeldRecordControl.stop(oldHeld)
+                AppLogger.i(T, "invalidated track stop() before rebuild: accepted=$accepted (finishes the mic app-op)")
+            }
             runCatching { oldCblk?.close() }
+            // The old BinderProxy still holds the native ref until it is collected — same reason
+            // [forceReleaseCaptureInput] exists at end of call.
+            if (oldHeld != null) forceReleaseCaptureInput()
             cblkFdNum = next.cblk.fd
             geometry = next.geometry
             AppLogger.i(T, "capture rebuilt (cblkFd=$cblkFdNum ch=${geometry.channels} rate=${geometry.sampleRate}) — recording continues")

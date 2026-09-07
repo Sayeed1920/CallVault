@@ -231,3 +231,59 @@ confirmed fixed on his phone.
 What remains unproven is the thing that matters most: **whether recovery now produces a whole
 recording.** That cannot be settled by reasoning, only by the next affected call — which, for the
 first time in this investigation, will produce a report that says so.
+
+---
+
+## 2026-09-07 — SOLVED (pending the tester's confirmation): the leak is the rebuild path
+
+**🧪 VERIFYING.** The report this file was waiting for arrived, taken while the indicator was stuck,
+and it names both the holder and the cause.
+
+### What the report says
+
+System report, while stuck:
+
+```
+MICROPHONE HELD: 1 running mic app-op(s), 1 of them as uid 2000 (shell)
+    uid=2000 pack=com.android.shell op=RECORD_AUDIO running since +5m4s276ms
+Recorder processes: shell 9767 app_process ... RecorderServer
+--- Microphone activity --- No capture was left open. Every pairable recording that started also stopped.
+```
+
+No live record track; the **app-op alone** is stuck. Debug log, same phone (2.3.0-diagbinder):
+
+```
+10:51:25.694  capture#1 opened (handoff held record)
+10:51:26.486  handoff drain ended EARLY — TRACK INVALIDATED by AudioFlinger (CBLK_INVALID)
+10:51:26.999  capture#2 opened            ← the rebuild
+10:55:42.53   handoff track stop() before release: accepted=true (finishes the mic app-op)
+10:55:42.54   capture#2 released — no capture left open in this process
+```
+
+`+5m4s` before the report is **10:51:25** — capture#1. The op that is stuck belongs to the capture
+AudioFlinger invalidated, not to the recording that just ended.
+
+### The cause, and it is ours
+
+`HandoffReceiver`'s rebuild overwrote `held` with the replacement binder and dropped the old one
+**without stopping it**. `releaseRefs()` already documents why that leaks: releasing the last reference
+runs `AudioPolicyService::releaseInput()`, which clears the client without `finishRecording()` — only
+`stopInput()` finishes the app-op. The end-of-call path was fixed for exactly this; the rebuild path
+reintroduced it.
+
+Fixed by stopping the invalidated track before letting go of it, and forcing the reference collection,
+mirroring `releaseRefs()`. **The result is logged (`accepted=`)** because whether AudioFlinger accepts a
+stop on an already-invalidated track cannot be known from here — the next report answers it.
+
+### Two open questions from this file, now answered
+
+- **"Are the truncation and the stuck mic the same event?"** Same trigger, different outcomes.
+  `CBLK_INVALID` causes both: a failed rebuild truncates the recording, a successful rebuild leaves a
+  stuck dot. That is why they had never been seen together.
+- **`4e2ad94` mid-call recovery, "still unproven end to end on real hardware":** proven. Invalidated at
+  +0.79 s, rebuilt at +1.3 s, and the call came back whole — 256.0 s encoded of 256.7 s captured. The
+  tester's recording is fine; only the indicator was wrong.
+
+### Also seen in the same report, unrelated
+
+`WRITE_SECURE_SETTINGS: false` on his phone, and the self-heal failed with `Stream closed`.
