@@ -253,6 +253,15 @@ fun HomeScreen(
     var deleteTranscriptFor by rememberSaveable { mutableStateOf<String?>(null) }
 
     /**
+     * Which transcript to reopen if the delete is cancelled.
+     *
+     * The sheet is closed before the confirmation so the dialog does not sit on top of the text it
+     * is asking about — but a cancelled delete then left the reader back at the list, having lost
+     * their place for saying no.
+     */
+    var reopenTranscriptAfterDelete by rememberSaveable { mutableStateOf<String?>(null) }
+
+    /**
      * Which recording is open on the playback screen, or null for the list.
      *
      * Saveable, not remembered. Rotation recreates the Activity, and a plain `remember` came back as
@@ -976,9 +985,12 @@ fun HomeScreen(
                 transcriptFor = null
             },
             // Close the sheet first: an AlertDialog raised over a ModalBottomSheet leaves the
-            // user looking at the very text they asked to destroy.
+            // user looking at the very text they asked to destroy. Cancelling puts it back — losing
+            // the transcript you were reading because you thought better of deleting it is a
+            // punishment for changing your mind (mirror176, #27).
             onDelete = {
                 transcriptFor = null
+                reopenTranscriptAfterDelete = displayName
                 deleteTranscriptFor = displayName
             },
             // The contact's name is the one already in the header, so a labelled line reads as
@@ -1124,9 +1136,15 @@ fun HomeScreen(
             message = stringResource(R.string.transcript_delete_confirm_message, label),
             onConfirm = {
                 transcriptScope.launch { TranscriptRepository.delete(context, displayName) }
+                // Deleted, so there is nothing to go back to.
+                reopenTranscriptAfterDelete = null
                 deleteTranscriptFor = null
             },
-            onDismiss = { deleteTranscriptFor = null }
+            onDismiss = {
+                deleteTranscriptFor = null
+                transcriptFor = reopenTranscriptAfterDelete
+                reopenTranscriptAfterDelete = null
+            }
         )
     }
 }

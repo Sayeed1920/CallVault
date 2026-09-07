@@ -50,6 +50,17 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **The transcript no longer changes size as you read it.** It opened at about half the screen with
+  the playback controls out of sight, grew as you scrolled, collapsed again when the phone was turned
+  and opened full the next time — because its height followed however much of the text had been drawn
+  so far. It is now a stable near-full sheet with the controls where you left them. Reported by
+  mirror176 in #27.
+
+- **Cancelling a transcript deletion puts the transcript back.** The sheet closes before the
+  confirmation so the dialog is not sitting on top of the text it is asking about, but saying no then
+  left you back at the list. Reported by mirror176 in #27.
+
+
 - **Updating the app no longer leaves it unable to record the next call.** Installing an update stops
   CallVault's background services and the privileged recorder that captures the audio, and until now
   they were only brought back if the update had also cost the app a permission. If it had not — the

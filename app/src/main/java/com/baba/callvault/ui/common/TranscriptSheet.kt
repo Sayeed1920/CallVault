@@ -198,7 +198,15 @@ fun TranscriptSheet(
                     )
                 }
 
-                LazyColumn(state = listState, modifier = Modifier.weight(1f, fill = false)) {
+                // fill = true, deliberately. With `fill = false` the list took only the height of
+                // what it had composed so far, so the SHEET's height followed the content: it opened
+                // at about half height, grew as you scrolled, hid the playback controls until a
+                // growing list pushed them into view, collapsed back on rotation (a fresh measure)
+                // and opened full the next time (a retained list state composes more at once).
+                // mirror176 reported every one of those in #27 and called them intermittent, which
+                // is what content-dependent looks like from outside. Filling the space makes the
+                // height stable and the controls stay where they are put.
+                LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
                     itemsIndexed(segments, key = { _, s -> s.id }) { index, segment ->
                         TranscriptLine(
                             segment = segment,
