@@ -145,6 +145,11 @@ standard header restored.
 1. Do we have any field report that matches the Xiaomi shape — **pairing that finds nothing and
    shows no error**? If so this hypothesis moves from interesting to urgent, and the fix is ours to
    design properly rather than to import.
+   **ANSWERED 2026-09-07 — a candidate: issue #23** (Xiaomi 17 / HyperOS 3 / Android 17, stuck at
+   "Call recorder starting up", no endpoint ever reached, no error shown). It is a *match in shape*,
+   not a confirmation: the discovery path logged nothing, so the log cannot say which gate dropped the
+   service. Diagnostics for exactly that shipped on `diag/mdns-discovery-logging`; a fresh log from the
+   reporter settles it. See `2026-09-07-issue-23-xiaomi-discovery.md`.
 2. Is `ensureConnected`'s unbounded connect finally worth doing now, given it has been rediscovered
    independently by a third party?
 3. If we ever do bridge, does it go behind the same warning as offline recording?

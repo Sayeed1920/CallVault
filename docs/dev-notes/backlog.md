@@ -22,6 +22,24 @@ with `&&`/`||` chains and silently reported the opposite answer while this was b
 
 ---
 
+## 🔵 Targeting Android 17 (API 37) will break mDNS discovery until we ask for it
+
+Android 17 makes `ACCESS_LOCAL_NETWORK` a runtime permission and gates `NsdManager`, mDNS and every
+local-network socket behind it. **It is enforced by target, not by device**: at `targetSdk 36` we keep
+local-network access implicitly through `INTERNET`, so nothing is broken today — a reporter already on
+Android 17 (issue #23) reaches discovery fine. The day `targetSdk` goes to 37, `AdbMdns` finds nothing
+on every phone, and pairing dies with it.
+
+What it needs when we bump: declare `ACCESS_LOCAL_NETWORK`, request it at runtime before the first
+discovery, and handle denial with a real message rather than a silent nothing. Do NOT request it while
+we still target 36 — Google's own guidance is that it is not enforced there.
+
+Reference: <https://developer.android.com/privacy-and-security/local-network-permission>. Shizuku's
+13.7 fork already declares `ACCESS_LOCAL_NETWORK`, `USE_LOOPBACK_INTERFACE`, `NEARBY_WIFI_DEVICES` and
+`CHANGE_WIFI_MULTICAST_STATE`; we declare only `INTERNET`, which is worth re-reading at that point.
+
+---
+
 ## Current state — 2026-08-24
 
 **157 commits** sit unreleased on `feat/speaker-labels` → `spike/summarisation` →

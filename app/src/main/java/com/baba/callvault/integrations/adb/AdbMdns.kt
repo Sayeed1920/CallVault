@@ -19,7 +19,7 @@ package com.baba.callvault.integrations.adb
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
-import android.util.Log
+import com.baba.callvault.utils.AppLogger
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
@@ -49,6 +49,7 @@ class AdbMdns(
         if (running) return
         running = true
         if (!registered) {
+            AppLogger.d(TAG, "Discovering $serviceType")
             nsdManager.discoverServices(serviceType, NsdManager.PROTOCOL_DNS_SD, listener)
         }
     }
@@ -70,6 +71,7 @@ class AdbMdns(
     }
 
     private fun onServiceFound(info: NsdServiceInfo) {
+        AppLogger.d(TAG, "Found ${info.serviceName} ($serviceType); resolving")
         nsdManager.resolveService(info, ResolveListener(this))
     }
 
@@ -77,25 +79,51 @@ class AdbMdns(
         if (info.serviceName == serviceName) onPort(-1)
     }
 
+    /**
+     * Takes the service, or says why not.
+     *
+     * Every outcome is logged, including the drops. This used to be one silent `if`, which is fine on
+     * a phone you are holding and useless on a reporter's — see [MdnsServiceVerdict].
+     */
     @Suppress("DEPRECATION")
     private fun onServiceResolved(resolvedService: NsdServiceInfo) {
-        if (running && NetworkInterface.getNetworkInterfaces()
-                .asSequence()
-                .any { networkInterface ->
-                    networkInterface.inetAddresses
-                        .asSequence()
-                        .any { resolvedService.host.hostAddress == it.hostAddress }
-                }
-            && isPortAvailable(resolvedService.port)
-        ) {
-            serviceName = resolvedService.serviceName
-            onPort(resolvedService.port)
+        if (!running) return
+        val host = resolvedService.host?.hostAddress
+        val port = resolvedService.port
+        val verdict = MdnsServiceVerdict.of(
+            hostAddress = host,
+            isOneOfOurAddresses = { isOneOfOurAddresses(host) },
+            isLoopbackPortTaken = { isLoopbackPortTaken(port) },
+        )
+        if (verdict != MdnsServiceVerdict.ACCEPTED) {
+            AppLogger.w(TAG, "Dropped ${resolvedService.serviceName} at ${host ?: "no address"}:$port — $verdict")
+            return
         }
+        AppLogger.i(TAG, "Accepted ${resolvedService.serviceName} at $host:$port")
+        serviceName = resolvedService.serviceName
+        onPort(port)
     }
 
-    // The adb daemon is already bound to the advertised port, so a bind attempt FAILS
-    // for a genuine adb service — that failure is how we confirm it's the real thing.
-    private fun isPortAvailable(port: Int) = try {
+    /** Whether the resolved address belongs to this phone — i.e. it is our adb, not the neighbour's. */
+    private fun isOneOfOurAddresses(hostAddress: String?): Boolean = runCatching {
+        NetworkInterface.getNetworkInterfaces()
+            .asSequence()
+            .any { networkInterface ->
+                networkInterface.inetAddresses.asSequence().any { it.hostAddress == hostAddress }
+            }
+    }.getOrElse {
+        AppLogger.w(TAG, "Could not enumerate this device's addresses: ${it.message}")
+        false
+    }
+
+    /**
+     * Whether something is already listening on `127.0.0.1:port` — which for an advertised adb port
+     * means a genuine local `adbd`. The probe is a bind that we EXPECT to fail.
+     *
+     * A ROM whose `adbd` binds only the Wi-Fi address makes this bind succeed, and the real service
+     * then reads as fake ([MdnsServiceVerdict.NOTHING_LISTENING_ON_LOOPBACK]).
+     */
+    private fun isLoopbackPortTaken(port: Int): Boolean = try {
         ServerSocket().use {
             it.bind(InetSocketAddress("127.0.0.1", port), 1)
             false
@@ -107,11 +135,11 @@ class AdbMdns(
     private class DiscoveryListener(private val adbMdns: AdbMdns) : NsdManager.DiscoveryListener {
         override fun onDiscoveryStarted(serviceType: String) = adbMdns.onDiscoveryStart()
         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
-            Log.w(TAG, "onStartDiscoveryFailed: $serviceType err=$errorCode")
+            AppLogger.w(TAG, "Discovery could not start for $serviceType (error $errorCode)")
         }
         override fun onDiscoveryStopped(serviceType: String) = adbMdns.onDiscoveryStop()
         override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
-            Log.w(TAG, "onStopDiscoveryFailed: $serviceType err=$errorCode")
+            AppLogger.w(TAG, "Discovery could not stop for $serviceType (error $errorCode)")
         }
         override fun onServiceFound(serviceInfo: NsdServiceInfo) = adbMdns.onServiceFound(serviceInfo)
         override fun onServiceLost(serviceInfo: NsdServiceInfo) = adbMdns.onServiceLost(serviceInfo)
@@ -119,7 +147,9 @@ class AdbMdns(
 
     @Suppress("DEPRECATION")
     private class ResolveListener(private val adbMdns: AdbMdns) : NsdManager.ResolveListener {
-        override fun onResolveFailed(nsdServiceInfo: NsdServiceInfo, i: Int) {}
+        override fun onResolveFailed(nsdServiceInfo: NsdServiceInfo, i: Int) {
+            AppLogger.w(TAG, "Could not resolve ${nsdServiceInfo.serviceName} (error $i)")
+        }
         override fun onServiceResolved(nsdServiceInfo: NsdServiceInfo) =
             adbMdns.onServiceResolved(nsdServiceInfo)
     }
@@ -127,7 +157,7 @@ class AdbMdns(
     companion object {
         const val TLS_CONNECT = "_adb-tls-connect._tcp"
         const val TLS_PAIRING = "_adb-tls-pairing._tcp"
-        private const val TAG = "AdbMdns"
+        private const val TAG = "CV:AdbMdns"
 
         /**
          * Blocks (up to [timeoutMs]) until an mDNS service of [serviceType] is found,
@@ -144,8 +174,15 @@ class AdbMdns(
             }
             mdns.start()
             return try {
-                if (!latch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)) null
-                else portRef.get().takeIf { it > 0 }
+                if (!latch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                    // The line the reporter of #23 needed and did not have: the search ended with
+                    // nothing, which is a different failure from a service found and rejected (logged
+                    // above) and from a refused connection (logged by the caller).
+                    AppLogger.w(TAG, "No $serviceType service accepted within ${timeoutMs}ms")
+                    null
+                } else {
+                    portRef.get().takeIf { it > 0 }
+                }
             } finally {
                 mdns.stop()
             }
