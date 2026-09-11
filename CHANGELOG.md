@@ -3,7 +3,7 @@
 All notable changes to CallVault are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project uses semantic-ish versioning.
 
-## [2.3.0] — unreleased
+## [2.3.0] — 2026-09-11
 
 ### Added
 
@@ -235,7 +235,7 @@ All notable changes to CallVault are documented here. The format is based on
   exists only so a prompt dismissed by accident does not leave force-stopping the app as the only way
   back in, and it now appears only in that case.
 
-## [2.2.1] — unreleased
+## [2.2.1] — never released on its own; everything here ships in 2.3.0
 
 A maintenance release built entirely from what people reported after 2.2.0 went out. Nothing here is
 a new capability; all of it is something that was wrong, or something CallVault could not tell you.
