@@ -1829,7 +1829,7 @@ Hebrew test can only falsify a quality change, never clear it. Option 1 only wor
 the handoff path with resilient recording on. Needs a real affected recording, or a clip with a vibration
 before the first word, run through the whisper-cli harness with the app's exact settings.
 
-## One notification during a recorded call (issue #31 follow-up) — 🧪 IMPLEMENTED 2026-09-11, out of the backlog
+## One notification during a recorded call (issue #31 follow-up) — ✅ VERIFIED 2026-09-11, out of the backlog
 
 > Taken out of the backlog the same day at the maintainer's request and built with the shared-id design below
 > (`SharedStatusNotice`). Kept here because the risks listed are exactly what a real call has to check.
