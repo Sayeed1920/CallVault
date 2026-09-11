@@ -8,123 +8,47 @@
 
 package com.baba.callvault.ui.common
 
-import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import com.baba.callvault.data.AppPreferences
-import com.baba.callvault.data.recordings.RecordingsRepository.RecordingItem
-import androidx.compose.runtime.produceState
-import com.baba.callvault.transcription.AudioDecoder
-import com.baba.callvault.transcription.TranscriptionEstimate
-import com.baba.callvault.transcription.TranscriptionProgress
-import com.baba.callvault.transcription.model.TranscriptionModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 
-/** How often the shown figure is recomputed. Fast enough to look alive, slow enough to be free. */
-private const val TICK_MS = 500L
-
 /**
- * A percentage that keeps moving between whisper's anchors.
+ * The pill state to actually draw: the figure the run reports, held for a moment at 100 when it ends.
  *
- * whisper reports at chunk boundaries, so the raw figure sits still for long stretches. This holds
- * the clock, asks [TranscriptionProgress] what to show, and never lets the answer go backwards.
+ * The percentage itself is no longer worked out here. It used to be — the clock it is predicted from
+ * lived in this composition — and that was the bug behind issue #34: rotating the phone destroys the
+ * composition, so the clock restarted and the figure fell back to 1% and climbed the curve again,
+ * which reads exactly like the transcription starting over. It never did; only the number moved.
+ * The figure now belongs to the run that is producing it
+ * ([com.baba.callvault.transcription.TranscriptionProgressTracker]), and this draws what it says.
  *
- * Restarts cleanly when the recording being worked on changes — a new file is a new clock, and
- * carrying the previous one over would make the second recording in a batch open at the first one's
- * percentage.
- */
-@Composable
-fun rememberSmoothedPercent(
-    state: TranscribingPillState,
-    recordings: List<RecordingItem>
-): State<Int> {
-    val context = LocalContext.current
-    val current = state.currentName()
-
-    // Read fresh on every tick without restarting the loop: the reported figure changes far more
-    // often than the recording does, and keying the effect on it would reset the clock each time.
-    val reported by rememberUpdatedState(state.percentFor(current.orEmpty()))
-
-    // Read from the file, not from RecordingItem.durationSeconds.
-    //
-    // That field comes from matching the call log, and plenty of recordings never match — their rows
-    // show a date and a size and no duration at all. For those, an estimate built on it is zero,
-    // prediction is disabled, and the figure sits on whisper's anchors: exactly the stuck-looking 1%
-    // this was meant to cure. The container knows its own length regardless, which is also the
-    // source the confirmation dialog quotes, so the two now agree by construction.
-    val estimatedMs by produceState(0L, current) {
-        val uri = recordings.firstOrNull { it.displayName == current }?.uri
-        value = if (uri == null) 0L else withContext(Dispatchers.IO) {
-            val audioMs = runCatching { AudioDecoder.durationMs(context, uri) }.getOrDefault(0L)
-            if (audioMs <= 0L) 0L else {
-                val prefs = AppPreferences(context)
-                val model = TranscriptionModel.fromId(prefs.getTranscriptionModelId())
-                    ?: TranscriptionModel.DEFAULT
-                TranscriptionEstimate.estimateMs(audioMs, prefs.getRunCost(model))
-            }
-        }
-    }
-
-    val shown = remember(current) { mutableIntStateOf(0) }
-
-    LaunchedEffect(current, estimatedMs) {
-        if (current == null) {
-            shown.intValue = 0
-            return@LaunchedEffect
-        }
-        val startedAt = SystemClock.elapsedRealtime()
-        while (true) {
-            shown.intValue = TranscriptionProgress.display(
-                reportedPercent = reported,
-                elapsedMs = SystemClock.elapsedRealtime() - startedAt,
-                estimatedMs = estimatedMs,
-                previous = shown.intValue
-            )
-            delay(TICK_MS)
-        }
-    }
-
-    return shown
-}
-
-/**
- * The pill state to actually draw: smoothed while running, and held for a moment at 100 when it ends.
- *
- * Without the hold the figure disappears at whatever it happened to read on the last tick — around
- * seventy on a short call — which looks like the run gave up rather than finished. A run that
- * completed earned its hundred, and showing it costs a second.
+ * The hold at the end stays here, because it is about the screen rather than about the work: without
+ * it the figure disappears at whatever it happened to read on the last tick — around seventy on a
+ * short call — which looks like the run gave up rather than finished. A run that completed earned
+ * its hundred, and showing it costs a second.
  *
  * A stop is not a finish and gets no hold: the work did not complete, and pretending otherwise would
  * be the one lie this whole feature cannot afford.
  */
 @Composable
-fun rememberTranscribingDisplay(
-    state: TranscribingPillState,
-    recordings: List<RecordingItem>
-): TranscribingPillState {
-    val smoothed by rememberSmoothedPercent(state, recordings)
+fun rememberTranscribingDisplay(state: TranscribingPillState): TranscribingPillState {
+    val reported = state.percentFor(state.currentName().orEmpty())
 
     var holding by remember { mutableStateOf<TranscribingPillState?>(null) }
 
     // Both remembered while the run is going, because by the time they are needed the run is over:
-    // `state` has gone Hidden and `smoothed` has already been reset to zero for the absent
-    // recording. Reading either at that point raced the reset and usually lost.
+    // `state` has gone Hidden and carries no percentage for the recording that just finished.
     var lastRunning by remember { mutableStateOf<TranscribingPillState?>(null) }
     var lastPercent by remember { mutableIntStateOf(0) }
 
     if (state.occupiesTitleSlot) {
         lastRunning = state
-        if (smoothed > 0) lastPercent = smoothed
+        if (reported > 0) lastPercent = reported
     }
 
     LaunchedEffect(state.occupiesTitleSlot) {
@@ -144,7 +68,7 @@ fun rememberTranscribingDisplay(
         lastPercent = 0
     }
 
-    return holding ?: state.withPercent(smoothed)
+    return holding ?: state
 }
 
 /** Near enough the end that finishing is what happened, rather than being stopped early. */

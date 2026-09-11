@@ -9,12 +9,15 @@
 package com.baba.callvault.transcription
 
 import android.content.Context
+import android.os.SystemClock
+import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.baba.callvault.R
 import com.baba.callvault.data.AppPreferences
+import com.baba.callvault.data.recordings.RecordingCatalog
 import com.baba.callvault.transcription.model.ModelRepository
 import com.baba.callvault.transcription.model.TranscriptionModel
 import com.baba.callvault.utils.AppLogger
@@ -88,6 +91,12 @@ class TranscriptionWorker(
         var latestTotal = names.size
         var latestCurrent = ""
 
+        // The percentage is kept here, with the run, rather than on whatever screen is watching.
+        // Kept in the composition it used to be, rotating the phone threw away the clock behind it
+        // and the figure fell back to 1% and climbed again — which reads as the transcription
+        // starting over (issue #34). See [TranscriptionProgressTracker].
+        val progress = TranscriptionProgressTracker()
+
         suspend fun publishProgress(percent: Int) {
             setProgress(
                 workDataOf(
@@ -108,8 +117,14 @@ class TranscriptionWorker(
                 }
                 // Republish on the same tick. The percentage lives in native memory and changes
                 // continuously, so it can only reach the UI by being sampled — and this loop was
-                // already running, so it costs nothing to add.
-                publishProgress(TranscriptionEngine.progressPercent())
+                // already running, so it costs nothing to add. Whisper reports only at chunk
+                // boundaries, so the tracker fills the long gaps between its anchors.
+                publishProgress(
+                    progress.percent(
+                        reportedPercent = TranscriptionEngine.progressPercent(),
+                        nowMs = SystemClock.elapsedRealtime(),
+                    )
+                )
                 delay(ABORT_POLL_MS)
             }
         }
@@ -130,7 +145,13 @@ class TranscriptionWorker(
                 latestCompleted = completed
                 latestTotal = total
                 latestCurrent = current
-                publishProgress(percent = 0)
+                // A new recording is a new clock; announcing the same one again changes nothing.
+                progress.startRecording(
+                    displayName = current,
+                    estimatedMs = estimatedMsFor(current, model, prefs),
+                    nowMs = SystemClock.elapsedRealtime(),
+                )
+                publishProgress(progress.percent(reportedPercent = 0, nowMs = SystemClock.elapsedRealtime()))
             }
         )
 
@@ -138,6 +159,29 @@ class TranscriptionWorker(
 
         // Anything left unfinished stays queued, so a later run resumes rather than restarts.
         if (isStopped && transcribed < names.size) Result.retry() else Result.success()
+    }
+
+    /**
+     * How long [displayName] is expected to take on this phone, or 0 when that cannot be known.
+     *
+     * Read from the container rather than from the catalog's duration column: that column comes from
+     * matching the call log, and plenty of recordings never match — for those an estimate built on it
+     * would be zero, prediction would be off, and the figure would sit on whisper's anchors, which is
+     * the stuck-looking percentage the prediction exists to cure. The container knows its own length
+     * regardless, and it is the same source the confirmation dialog quotes, so the two agree.
+     */
+    private suspend fun estimatedMsFor(
+        displayName: String,
+        model: TranscriptionModel,
+        prefs: AppPreferences,
+    ): Long {
+        val uri = RecordingCatalog.all(applicationContext)
+            .firstOrNull { it.displayName == displayName }
+            ?.localUri
+            ?.toUri()
+            ?: return 0L
+        val audioMs = runCatching { AudioDecoder.durationMs(applicationContext, uri) }.getOrDefault(0L)
+        return if (audioMs <= 0L) 0L else TranscriptionEstimate.estimateMs(audioMs, prefs.getRunCost(model))
     }
 
     companion object {

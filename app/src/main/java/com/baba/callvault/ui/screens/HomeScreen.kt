@@ -299,9 +299,9 @@ fun HomeScreen(
     val transcribing by rememberTranscribingPillState()
 
     // whisper only reports at chunk boundaries, so the raw figure sits still for long stretches —
-    // long enough to read as a hang, which is the complaint this answers. The clock fills the gaps
-    // between its anchors; see TranscriptionProgress for what is and is not invented.
-    val transcribingShown = rememberTranscribingDisplay(transcribing, uiState.recordings)
+    // long enough to read as a hang. The gaps are filled by the run itself, which is what keeps the
+    // figure steady across a rotation (issue #34); this only holds it at 100 when a run finishes.
+    val transcribingShown = rememberTranscribingDisplay(transcribing)
     var showTranscribingSheet by rememberSaveable { mutableStateOf(false) }
 
     val transcriptScope = rememberCoroutineScope()
