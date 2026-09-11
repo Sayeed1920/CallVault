@@ -86,6 +86,21 @@ Reference: <https://developer.android.com/privacy-and-security/local-network-per
 
 ---
 
+## Current state — 2026-09-11
+
+**Released:** `v2.3.0` (versionCode **20350**), published 2026-09-11. Asset `CallVault.apk`, downloaded back
+and verified byte-identical to the tested build (sha256 `5b795a26…0add`). `origin/main` = `756f27a`.
+It carries everything once planned as 2.2.1, which never shipped on its own. The next release must be
+above 20350.
+
+**🧪 Shipped, waiting on a reporter or the maintainer:** stuck-mic auto-heal (tester's OP13), #33 progress
+curve, #31 manual-run notification, #34, #35, Save + full-screen log viewer (#28/#29, mirror176), #23
+(Xiaomi discovery), #24 (Shizuku hide mode).
+
+**Backlogged, not in 2.3.0:** #32, #36, #37, #38, F-Droid.
+
+The 2026-08-24 block below is stale — it describes the 2.1.0 stack — and is kept only as history.
+
 ## Current state — 2026-08-24
 
 **157 commits** sit unreleased on `feat/speaker-labels` → `spike/summarisation` →
