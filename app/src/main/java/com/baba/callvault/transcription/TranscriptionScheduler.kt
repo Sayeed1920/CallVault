@@ -101,6 +101,11 @@ object TranscriptionScheduler {
         displayName: String? = null,
         requiresCharging: Boolean = false,
         language: String? = null,
+        /**
+         * The user started this from the app, after the confirmation dialog. Such a run posts no
+         * "phone may get warm" notification unless it is long — see [TranscriptionNoticePolicy].
+         */
+        userRequested: Boolean = false,
     ) {
         val request = OneTimeWorkRequestBuilder<TranscriptionWorker>()
             .apply {
@@ -110,7 +115,8 @@ object TranscriptionScheduler {
                             TranscriptionWorker.KEY_DISPLAY_NAME to displayName,
                             // Absent unless the user picked one, which is what lets the worker tell
                             // "chose auto-detect" apart from "did not choose".
-                            TranscriptionWorker.KEY_LANGUAGE to language
+                            TranscriptionWorker.KEY_LANGUAGE to language,
+                            TranscriptionWorker.KEY_USER_REQUESTED to userRequested
                         )
                     )
                 }

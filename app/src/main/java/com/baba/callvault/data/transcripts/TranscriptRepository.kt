@@ -90,7 +90,7 @@ object TranscriptRepository {
      * [com.baba.callvault.transcription.TranscriptionLanguageChoice]); null uses the setting.
      */
     fun transcribeNow(context: Context, displayName: String, language: String? = null) {
-        TranscriptionScheduler.runNow(context, displayName, language = language)
+        TranscriptionScheduler.runNow(context, displayName, language = language, userRequested = true)
     }
 
     /**

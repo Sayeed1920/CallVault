@@ -50,8 +50,15 @@ class TranscriptionWorker(
         // Promote out of cached-process priority before allocating anything. Best-effort: a phone that
         // refuses the foreground service should still transcribe, just more vulnerable to being killed
         // — failing the whole job here would be a worse outcome than the risk it guards against.
-        runCatching { setForeground(getForegroundInfo()) }
-            .onFailure { AppLogger.w(TAG, "Could not run transcription in the foreground: ${it.message}") }
+        suspend fun promote() {
+            runCatching { setForeground(getForegroundInfo()) }
+                .onFailure { AppLogger.w(TAG, "Could not run transcription in the foreground: ${it.message}") }
+        }
+
+        // An automatic run is promoted at once, as it always was. A run the user just confirmed is
+        // decided below, once its length is known — see [TranscriptionNoticePolicy].
+        val userRequested = inputData.getBoolean(KEY_USER_REQUESTED, false)
+        if (!userRequested) promote()
 
         val prefs = AppPreferences(applicationContext)
 
@@ -79,6 +86,18 @@ class TranscriptionWorker(
         }
 
         AppLogger.i(TAG, "Transcribing ${names.size} recording(s) with ${model.id}")
+
+        if (userRequested) {
+            // A user request always names one recording. Its length is read from the container, which
+            // costs milliseconds and happens before the model is loaded.
+            val estimatedMs = single?.let { estimatedMsFor(it, model, prefs) } ?: 0L
+            if (TranscriptionNoticePolicy.showsNotification(userRequested = true, estimatedMs = estimatedMs)) {
+                AppLogger.i(TAG, "Showing the notification: this run may outlast Android's job limit (~${estimatedMs / 1000}s)")
+                promote()
+            } else {
+                AppLogger.i(TAG, "No notification: the user just confirmed this run and it is short (~${estimatedMs / 1000}s)")
+            }
+        }
 
         // Watch for a stop and pass it to whisper. `onStopped` is final on CoroutineWorker, and the
         // batch only consults isStopped *between* recordings — so without this a stop mid-recording
@@ -191,6 +210,8 @@ class TranscriptionWorker(
         private const val ABORT_POLL_MS = 400L
 
         /** Input key naming a single recording, for the manual button. Absent means "drain the queue". */
+        const val KEY_USER_REQUESTED = "userRequested"
+
         const val KEY_DISPLAY_NAME = "displayName"
 
         /**
