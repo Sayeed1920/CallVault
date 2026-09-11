@@ -133,6 +133,7 @@
         <item>Corregido — Sin aviso de calentamiento en una transcripción que tú iniciaste</item>
         <item>Corregido — Las llamadas grabadas automáticamente ya no muestran un botón Grabar</item>
         <item>Corregido — El progreso de la transcripción ya no se detiene en tres cuartos</item>
+        <item>Corregido — Una llamada grabada muestra una notificación, no dos</item>
     </string-array>
     <string name="whatsnew_230_where">El menú ⋮ de cualquier grabación ▸ Combinar con otra llamada</string>
     <string name="merge_progress_title">Combinando</string>

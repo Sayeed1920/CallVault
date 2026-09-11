@@ -61,6 +61,11 @@ All notable changes to CallVault are documented here. The format is based on
   Record button for a call that was already being recorded — and did the same again as the recording
   ended. Recording was never affected. Reported by mirror176 in #31.
 
+- **A recorded call shows one notification instead of two.** While a phone call was being recorded, "Ready
+  to record calls" stayed in the shade next to the recording notification — saying the app was ready to record
+  while it was already recording. The recording notification now takes its place for the length of the call,
+  and "Ready to record calls" comes back when it ends. Reported by the maintainer while checking #31.
+
 - **Transcription progress no longer stalls at about three quarters and then jumps to the end.** The
   figure between whisper's own reports was drawn on a curve that read 75% at the moment the job was
   expected to finish, so a quarter of the bar was never used. It now follows the clock to about 90% by

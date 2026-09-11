@@ -133,6 +133,7 @@
         <item>Poprawka — Brak powiadomienia o nagrzewaniu przy transkrypcji uruchomionej przez Ciebie</item>
         <item>Poprawka — Automatycznie nagrywane rozmowy nie pokazują już przycisku Nagraj</item>
         <item>Poprawka — Postęp transkrypcji nie zatrzymuje się już na trzech czwartych</item>
+        <item>Poprawka — Nagrywana rozmowa pokazuje jedno powiadomienie, nie dwa</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ dowolnego nagrania ▸ Połącz z innym połączeniem</string>
     <string name="merge_progress_title">Łączenie</string>

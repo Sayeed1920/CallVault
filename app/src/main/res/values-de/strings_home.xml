@@ -133,6 +133,7 @@
         <item>Behoben — Keine Wärme-Benachrichtigung mehr bei selbst gestarteter Transkription</item>
         <item>Behoben — Automatisch aufgenommene Anrufe zeigen nicht mehr kurz eine Aufnahmetaste</item>
         <item>Behoben — Der Transkriptionsfortschritt bleibt nicht mehr bei drei Vierteln stehen</item>
+        <item>Behoben — Ein aufgenommener Anruf zeigt eine Benachrichtigung statt zwei</item>
     </string-array>
     <string name="whatsnew_230_where">Das ⋮-Menü einer Aufnahme ▸ Mit einem anderen Anruf zusammenführen</string>
     <string name="merge_progress_title">Wird zusammengeführt</string>
