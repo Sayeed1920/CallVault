@@ -118,6 +118,7 @@
     <string name="whatsnew_230_title">Des appels qui étaient une seule conversation peuvent être un seul enregistrement</string>
     <string-array name="whatsnew_230_items">
         <item>Nouveau — Fusionner en un enregistrement les appels d\'une même conversation</item>
+        <item>Nouveau — Enregistrer le rapport de bug dans le dossier de votre choix</item>
         <item>Corrigé — Tourner le téléphone conserve votre place</item>
         <item>Corrigé — Plus de grésillement dans les enregistrements</item>
         <item>Corrigé — Un enregistrement qui ne démarre pas le signale</item>
@@ -135,6 +136,7 @@
         <item>Corrigé — Les appels enregistrés automatiquement n\'affichent plus un bouton Enregistrer</item>
         <item>Corrigé — La progression de la transcription ne bloque plus aux trois quarts</item>
         <item>Corrigé — Un appel enregistré affiche une seule notification, pas deux</item>
+        <item>Corrigé — Le journal s\'affiche en plein écran et revient à la ligne</item>
     </string-array>
     <string name="whatsnew_230_where">Le menu ⋮ d’un enregistrement ▸ Fusionner avec un autre appel</string>
     <string name="merge_progress_title">Fusion</string>

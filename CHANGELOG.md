@@ -27,6 +27,12 @@ All notable changes to CallVault are documented here. The format is based on
   *Settings ▸ Storage ▸ Keep the original calls* keeps them on the phone as well; un-merging works
   the same either way.
 
+- **A bug report can be saved as a file.** *Share* now has *Save* next to it, which opens Android's own
+  save dialog so you choose the folder and the name. Both halves of the report go into one text file.
+  The report used to exist only in CallVault's private storage, where no file manager — and no
+  `adb pull` — can reach it, so the only way to get it off the phone was to send it through another
+  app. Asked for by mirror176 in #28 and #29.
+
 ### Changed
 
 - **The first-run notice no longer holds you back with a timer.** Continue used to stay disabled for
@@ -110,6 +116,11 @@ All notable changes to CallVault are documented here. The format is based on
   most useful half of a report needs none of that. The report always carries the configuration header
   (mode, transport, which switches are on, whether the recorder is connected) and the setup journal
   when there is one, so it is now offered whenever logging is off.
+
+- **The log viewer can actually be read.** It was a small popup that cut every line off at the right
+  edge, gave no sign it could scroll, opened at the oldest lines and closed when the phone was turned.
+  It now fills the screen, wraps long lines — a switch turns that off for one line per row with
+  sideways scrolling — shows scrollbars, opens at the newest lines and stays open when you rotate.
 
 
 - **The transcript no longer changes size as you read it.** It opened at about half the screen with

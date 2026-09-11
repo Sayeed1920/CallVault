@@ -139,6 +139,7 @@
     <string name="whatsnew_230_title">Calls that were one conversation can be one recording</string>
     <string-array name="whatsnew_230_items">
         <item>New — Merge calls that were one conversation into one recording</item>
+        <item>New — Save the bug report to a folder you choose</item>
         <item>Fixed — Rotating the phone keeps your place</item>
         <item>Fixed — No more crackle in recordings</item>
         <item>Fixed — A recording that fails to start now says so</item>
@@ -156,6 +157,7 @@
         <item>Fixed — Automatically recorded calls no longer flash a Record button</item>
         <item>Fixed — Transcription progress no longer stalls at three quarters</item>
         <item>Fixed — A recorded call shows one notification, not two</item>
+        <item>Fixed — The log viewer fills the screen and wraps long lines</item>
     </string-array>
     <string name="whatsnew_230_where">The ⋮ menu on any recording ▸ Merge with another call</string>
     <string name="merge_progress_title">Merging</string>

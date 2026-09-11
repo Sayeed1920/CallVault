@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Những cuộc gọi vốn là một cuộc trò chuyện có thể thành một bản ghi</string>
     <string-array name="whatsnew_230_items">
         <item>Mới — Ghép các cuộc gọi của cùng một cuộc trò chuyện thành một bản ghi</item>
+        <item>Mới — Lưu báo cáo lỗi vào thư mục bạn chọn</item>
         <item>Đã sửa — Xoay điện thoại giữ nguyên vị trí đang xem</item>
         <item>Đã sửa — Không còn tiếng rè trong bản ghi</item>
         <item>Đã sửa — Bản ghi không khởi động được nay sẽ báo</item>
@@ -134,6 +135,7 @@
         <item>Đã sửa — Cuộc gọi ghi tự động không còn thoáng hiện nút Ghi</item>
         <item>Đã sửa — Tiến trình chép lời không còn đứng ở ba phần tư</item>
         <item>Đã sửa — Cuộc gọi đang ghi chỉ hiện một thông báo thay vì hai</item>
+        <item>Đã sửa — Trình xem nhật ký lấp đầy màn hình và ngắt dòng dài</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ trên bất kỳ bản ghi nào ▸ Gộp với cuộc gọi khác</string>
     <string name="merge_progress_title">Đang gộp</string>

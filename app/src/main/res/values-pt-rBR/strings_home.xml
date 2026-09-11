@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Chamadas que eram uma conversa podem ser uma gravação</string>
     <string-array name="whatsnew_230_items">
         <item>Novo — Junte em uma gravação as chamadas de uma mesma conversa</item>
+        <item>Novo — Salve o relatório de erros na pasta que você escolher</item>
         <item>Corrigido — Girar o telefone mantém o seu lugar</item>
         <item>Corrigido — Sem mais chiado nas gravações</item>
         <item>Corrigido — Uma gravação que não começa agora avisa</item>
@@ -134,6 +135,7 @@
         <item>Corrigido — Chamadas gravadas automaticamente não mostram mais o botão Gravar</item>
         <item>Corrigido — O progresso da transcrição não para mais em três quartos</item>
         <item>Corrigido — Uma chamada gravada mostra uma notificação, não duas</item>
+        <item>Corrigido — O visualizador de registros ocupa a tela e quebra as linhas longas</item>
     </string-array>
     <string name="whatsnew_230_where">O menu ⋮ de qualquer gravação ▸ Mesclar com outra chamada</string>
     <string name="merge_progress_title">Mesclando</string>

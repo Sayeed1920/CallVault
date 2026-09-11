@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Rozmowy, które były jedną rozmową, mogą być jednym nagraniem</string>
     <string-array name="whatsnew_230_items">
         <item>Nowość — Połącz w jedno nagranie rozmowy z jednej konwersacji</item>
+        <item>Nowość — Zapisz raport błędu w wybranym folderze</item>
         <item>Poprawka — Obrót telefonu zachowuje twoje miejsce</item>
         <item>Poprawka — Koniec z trzaskami w nagraniach</item>
         <item>Poprawka — Nagranie, które się nie zaczyna, teraz to zgłasza</item>
@@ -134,6 +135,7 @@
         <item>Poprawka — Automatycznie nagrywane rozmowy nie pokazują już przycisku Nagraj</item>
         <item>Poprawka — Postęp transkrypcji nie zatrzymuje się już na trzech czwartych</item>
         <item>Poprawka — Nagrywana rozmowa pokazuje jedno powiadomienie, nie dwa</item>
+        <item>Poprawka — Podgląd logu wypełnia ekran i zawija długie wiersze</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ dowolnego nagrania ▸ Połącz z innym połączeniem</string>
     <string name="merge_progress_title">Łączenie</string>

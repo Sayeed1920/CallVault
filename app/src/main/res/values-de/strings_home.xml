@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Anrufe, die ein Gespräch waren, können eine Aufnahme sein</string>
     <string-array name="whatsnew_230_items">
         <item>Neu — Anrufe eines Gesprächs zu einer Aufnahme zusammenführen</item>
+        <item>Neu — Fehlerbericht in einem Ordner deiner Wahl speichern</item>
         <item>Behoben — Drehen des Telefons behält deine Position</item>
         <item>Behoben — Kein Knistern mehr in Aufnahmen</item>
         <item>Behoben — Eine Aufnahme, die nicht startet, sagt es jetzt</item>
@@ -134,6 +135,7 @@
         <item>Behoben — Automatisch aufgenommene Anrufe zeigen nicht mehr kurz eine Aufnahmetaste</item>
         <item>Behoben — Der Transkriptionsfortschritt bleibt nicht mehr bei drei Vierteln stehen</item>
         <item>Behoben — Ein aufgenommener Anruf zeigt eine Benachrichtigung statt zwei</item>
+        <item>Behoben — Die Log-Ansicht füllt den Bildschirm und bricht lange Zeilen um</item>
     </string-array>
     <string name="whatsnew_230_where">Das ⋮-Menü einer Aufnahme ▸ Mit einem anderen Anruf zusammenführen</string>
     <string name="merge_progress_title">Wird zusammengeführt</string>

@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Ami egy beszélgetés volt, egyetlen felvétel is lehet</string>
     <string-array name="whatsnew_230_items">
         <item>Új — Egy beszélgetés hívásai egyetlen felvétellé fűzhetők</item>
+        <item>Új — A hibajelentés menthető egy általad választott mappába</item>
         <item>Javítva — A telefon elforgatása megtartja a helyed</item>
         <item>Javítva — Nincs több recsegés a felvételekben</item>
         <item>Javítva — Az el sem induló felvétel most szól róla</item>
@@ -134,6 +135,7 @@
         <item>Javítva — Az automatikusan rögzített hívásoknál nem villan fel a Rögzítés gomb</item>
         <item>Javítva — Az átirat folyamata nem akad meg háromnegyednél</item>
         <item>Javítva — A rögzített hívás egy értesítést mutat, nem kettőt</item>
+        <item>Javítva — A naplónézegető kitölti a képernyőt és tördeli a hosszú sorokat</item>
     </string-array>
     <string name="whatsnew_230_where">Bármely felvétel ⋮ menüje ▸ Egyesítés egy másik hívással</string>
     <string name="merge_progress_title">Egyesítés</string>

@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Chiamate che erano una sola conversazione possono essere una sola registrazione</string>
     <string-array name="whatsnew_230_items">
         <item>Nuovo — Unisci in una registrazione le chiamate di una stessa conversazione</item>
+        <item>Nuovo — Salva il rapporto di errore nella cartella che scegli</item>
         <item>Corretto — Ruotare il telefono mantiene il tuo punto</item>
         <item>Corretto — Niente più crepitio nelle registrazioni</item>
         <item>Corretto — Una registrazione che non parte ora lo dice</item>
@@ -134,6 +135,7 @@
         <item>Corretto — Le chiamate registrate automaticamente non mostrano più il pulsante Registra</item>
         <item>Corretto — L\'avanzamento della trascrizione non si blocca più ai tre quarti</item>
         <item>Corretto — Una chiamata registrata mostra una notifica, non due</item>
+        <item>Corretto — Il visualizzatore dei log occupa lo schermo e manda a capo le righe lunghe</item>
     </string-array>
     <string name="whatsnew_230_where">Il menu ⋮ di una registrazione ▸ Unisci a un’altra chiamata</string>
     <string name="merge_progress_title">Unione</string>
