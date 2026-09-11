@@ -11,6 +11,8 @@ package com.baba.callvault.data.transcripts
 import android.content.Context
 import com.baba.callvault.data.transcripts.db.TranscriptDatabase
 import com.baba.callvault.data.waveform.RecordingExtrasRepository
+import com.baba.callvault.transcription.TranscriptionEngine
+import com.baba.callvault.transcription.TranscriptionInFlight
 import com.baba.callvault.utils.AppLogger
 
 /**
@@ -45,6 +47,18 @@ object TranscriptCascade {
      */
     suspend fun deleteFor(context: Context, displayNames: Collection<String>) {
         if (displayNames.isEmpty()) return
+
+        // Before anything is removed, and before the early return below: a recording can be deleted
+        // while it is being transcribed, and whisper would otherwise grind on for minutes producing
+        // a transcript of a call that no longer exists — holding the one transcription thread, so
+        // everything queued behind it waits for a result that is thrown away (mirror176, issue #35).
+        // The runner treats an abort as "no result": it removes the row and moves on to the next
+        // recording, which is exactly the behaviour wanted here.
+        if (TranscriptionInFlight.isAmong(displayNames)) {
+            AppLogger.i(TAG, "Stopping the transcription of a recording that has just been deleted")
+            TranscriptionEngine.requestAbort()
+        }
+
         if (!TranscriptDatabase.exists(context)) return
 
         runCatching {

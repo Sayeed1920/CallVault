@@ -154,7 +154,14 @@ class TranscriptionRunner(
         // Named before the words are decoded, so a brand or a contact is spelled rather than
         // guessed at. Best-effort: no glossary and no resolvable name simply means no prompt.
         val prompt = runCatching { promptFor(displayName) }.getOrNull()
-        val attempt = runCatching { transcriber.transcribe(context, uri, modelPath, language, prompt) }
+        // Claimed for exactly as long as the engine is busy with this recording, so a delete
+        // arriving mid-run knows there is something to abandon — see [TranscriptionInFlight].
+        TranscriptionInFlight.claim(displayName)
+        val attempt = try {
+            runCatching { transcriber.transcribe(context, uri, modelPath, language, prompt) }
+        } finally {
+            TranscriptionInFlight.release(displayName)
+        }
 
         // A stop is not a result, and neither the exception nor `shouldStop` can be trusted to say so:
         //  - an aborted `whisper_full` returns NORMALLY with a partial result, so a stop can arrive

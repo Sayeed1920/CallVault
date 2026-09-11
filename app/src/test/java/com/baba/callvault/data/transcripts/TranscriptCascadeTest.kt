@@ -16,8 +16,12 @@ import com.baba.callvault.data.transcripts.db.TranscriptDatabase
 import com.baba.callvault.data.transcripts.db.TranscriptEntry
 import com.baba.callvault.data.transcripts.db.TranscriptSegmentEntry
 import com.baba.callvault.data.transcripts.db.TranscriptState
+import com.baba.callvault.transcription.TranscriptionEngine
+import com.baba.callvault.transcription.TranscriptionInFlight
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -39,6 +43,51 @@ import org.robolectric.annotation.Config
 class TranscriptCascadeTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @After
+    fun clearInFlight() {
+        TranscriptionInFlight.releaseAll()
+        TranscriptionEngine.clearAbortForTest()
+    }
+
+    /**
+     * Deleting the recording that is being transcribed right now must stop the run (issue #35).
+     *
+     * Without this, whisper goes on for minutes producing a transcript of a call that no longer
+     * exists, and because the engine serialises on one thread, every recording queued behind it
+     * waits for a result that is thrown away.
+     */
+    @Test
+    fun deleting_the_recording_being_transcribed_stops_the_run() = runBlocking {
+        // Arrange
+        val name = "in-flight.ogg"
+        RecordingCatalog.recordLocal(context, name, "content://local/9".toUri(), 10L, 0L)
+        seedTranscript(name)
+        TranscriptionInFlight.claim(name)
+
+        // Act
+        RecordingCatalog.removeName(context, name)
+
+        // Assert
+        assertTrue("the run was left going after its recording was deleted", TranscriptionEngine.wasAborted())
+    }
+
+    /** Deleting anything else must leave a run in progress alone. */
+    @Test
+    fun deleting_another_recording_leaves_the_run_alone() = runBlocking {
+        // Arrange
+        val running = "keep-running.ogg"
+        val deleted = "unrelated.ogg"
+        RecordingCatalog.recordLocal(context, deleted, "content://local/10".toUri(), 10L, 0L)
+        seedTranscript(deleted)
+        TranscriptionInFlight.claim(running)
+
+        // Act
+        RecordingCatalog.removeName(context, deleted)
+
+        // Assert
+        assertFalse("an unrelated delete stopped the run", TranscriptionEngine.wasAborted())
+    }
 
     @Test
     fun deleting_a_recording_by_name_deletes_its_transcript() = runBlocking {

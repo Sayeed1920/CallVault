@@ -11,6 +11,7 @@ package com.baba.callvault.transcription
 import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
+import androidx.annotation.VisibleForTesting
 import com.baba.callvault.utils.AppLogger
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -168,6 +169,17 @@ object TranscriptionEngine {
      *    stopped, so a run unwinding in that window looks like a genuine failure.
      */
     fun wasAborted(): Boolean = abortRequested.get()
+
+    /**
+     * Clears the abort flag without starting a run.
+     *
+     * Production never needs this — [transcribe] clears it as each run begins — but a test that
+     * asserts an abort *did not* happen must not inherit one set by the test before it.
+     */
+    @VisibleForTesting
+    fun clearAbortForTest() {
+        abortRequested.set(false)
+    }
 
     /**
      * Transcribes [uri] using the model at [modelPath].
