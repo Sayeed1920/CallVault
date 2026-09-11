@@ -85,10 +85,12 @@ All notable changes to CallVault are documented here. The format is based on
   ends its run, and the queue moves straight on. Reported by mirror176 in #35.
 
 - **The microphone indicator no longer stays on after a call.** When Android tears a capture down
-  mid-call, CallVault rebuilds it and the recording continues — but the torn-down capture was let go of
-  without being stopped, and only a stop finishes the microphone app-op. The green dot then stayed lit
-  under the shell process until something killed it, with no capture actually open. The rebuild now
-  stops the old capture before dropping it.
+  mid-call, CallVault rebuilds it and the recording continues whole — but Android can leave the torn-down
+  capture's microphone marker running, so the green dot stayed lit with nothing recording. Stopping the old
+  capture turned out not to clear it; replacing the background recorder does. A few seconds after a call ends,
+  CallVault now checks for exactly that and, if nothing is recording and the recorder can be brought straight
+  back, replaces it. It never does this during a call, and if the recorder could not come back it leaves the dot
+  rather than risk the next call.
 
 
 - **CallVault no longer switches off a debugging switch you turned on yourself.** Wireless debugging

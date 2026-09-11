@@ -312,3 +312,73 @@ that is exactly what an update does. So if the stop is refused, restarting the d
 detected after a call (`MicOpReport` already parses `dumpsys appops` for it) will work. It was withheld
 from the tester's build on purpose: shipping it now would mask the one signal rc14 exists to produce.
 
+
+---
+
+## 2026-09-11 — ❌ NOT WORKING: rc14's stop does not release the torn-down capture
+
+**The recurrence rc14 was built to catch.** Tester's OnePlus 13 (CPH2653, Android 16), **2.3.0-rc14 (20342)**,
+resilient recording on, `WRITE_SECURE_SETTINGS: false`. Reports generated 2026-09-11 12:50:56.
+
+System report, while stuck:
+
+```
+MICROPHONE HELD: 1 running mic app-op(s), 1 of them as uid 2000 (shell)
+    uid=2000 pack=com.android.shell op=RECORD_AUDIO running since +51m53s658ms
+No capture was left open. Every pairable recording that started also stopped.
+1 recorder process running (pid 19317)
+```
+
+The dump ran at ~12:50:55.6, so the op has been running since **~11:59:02** — the 11:59 outgoing call:
+
+```
+11:59:02.617  capture#29 opened (handoff held record)
+11:59:03.051  handoff drain ended EARLY — TRACK INVALIDATED by AudioFlinger (CBLK_INVALID)
+11:59:03.052  HandoffSource: releasing the previous held record before re-arming      ← daemon side
+11:59:03.487  capture#29 released
+11:59:03.522  capture#30 opened                                                        ← the rebuild
+11:59:03.528  invalidated track stop() before rebuild: accepted=true (finishes the mic app-op)
+11:59:03.610  handoff capture input released (forced collection of the IAudioRecord ref)
+11:59:23.875  handoff track stop() before release: accepted=true
+11:59:23.880  capture#30 released — no capture left open in this process
+```
+
+The 12:48 call repeated the pattern (capture#31 invalidated after 25 ms, rebuilt as #32, `accepted=true` twice)
+and may have added a second hold behind the older timestamp; `dumpsys appops` reports a single "running since".
+
+**Verdict, by this file's own table:** `accepted=true` **and** the dot sticks → AudioFlinger accepts the stop
+on an invalidated track but does not finish the op. Every lever available on that track was pulled — the
+app stopped it, forced the reference collection, and the daemon released its own `AudioRecord` — and the op
+still survived. rc14's change is correct hygiene but does not fix the dot. It stays in; it is not the fix.
+
+**What is proven to work:** killing the daemon process clears the op every time (every update since
+`PostUpdateRecovery` has shown it). That is the fallback §8 held back so rc14's signal would be readable. The
+signal is now read.
+
+**Next:** the daemon-restart auto-heal — after a call ends, if the mic app-op for uid 2000 is still running with
+no capture live, replace the daemon. Design questions open before building: where the `dumpsys appops` read runs
+(it needs shell privileges), what the restart costs on a phone with `WRITE_SECURE_SETTINGS: false`, and how to
+avoid restarting while the next call is starting.
+
+## 2026-09-11 — the daemon-restart auto-heal, built — 🧪 VERIFYING
+
+`MicOpAutoHeal` + `MicOpHealPolicy`, hooked where a carrier recording and a VoIP recording end. Eight seconds after
+the call it reads the shell uid's mic ops through the daemon (`diagnosticDump("appops_mic")`) and, if one is running
+with nothing recording, calls the daemon's `destroy()`; the keep-alive relaunches on the binder death.
+
+It will **not** act (and logs which rule stopped it): outside standalone mode; while a call or recording is up
+(re-checked just before acting); when the keep-alive could not bring the daemon back — no Wireless debugging, no armed
+loopback with adbd up, and no WRITE_SECURE_SETTINGS-plus-Wi-Fi; or within 10 minutes of a previous heal.
+
+**The tester's phone matters here:** `WRITE_SECURE_SETTINGS: false` and Wireless debugging off, so the heal runs only
+if his offline-recording loopback is armed. If it is not, the log says `NO_WAY_BACK` and the dot stays — on purpose.
+
+**How to read the next report** — every line is tagged `CV:MicOpHeal`:
+
+| Line | Meaning |
+|---|---|
+| `… 0 shell microphone op(s) running → NOTHING_HELD` | normal call, nothing stuck |
+| `… → HEAL` then `daemon replaced; the microphone indicator is clear` | ✅ what this build is for |
+| `… → NO_WAY_BACK` | stuck, but no safe way to relaunch on this phone; the dot stays by design |
+| `daemon replaced but … still running` | the op belongs to something else running as shell |
+| `the daemon is not back after 45000ms` | the relaunch failed — the most serious outcome; keep-alive keeps retrying |
