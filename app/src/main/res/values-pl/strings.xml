@@ -182,7 +182,7 @@
     <string name="settings_auto_record_incoming">Automatyczne nagrywaj połączenia przychodzące</string>
     <string name="settings_auto_record_outgoing">Automatyczne nagrywaj połączenia wychodzące</string>
     <string name="settings_bugreport_active_warning">Rejestrowanie diagnostyczne jest WŁĄCZONE. Pamiętaj, aby je wyłączyć po zakończeniu, aby zaoszczędzić miejsce.</string>
-    <string name="settings_bugreport_share">Udostępnij logi diagnostyczne</string>
+    <string name="settings_bugreport_share">Udostępnij</string>
     <string name="settings_bugreport_share_chooser">Udostępnij logi diagnostyczne</string>
     <string name="settings_bugreport_share_empty">Brak logów. Włącz rejestrowanie diagnostyczne, odtwórz problem, a następnie dotknij udostępnij.</string>
     <string name="settings_bugreport_share_hint">Logi z Twojej ostatniej sesji diagnostycznej są gotowe do udostępnienia.</string>
@@ -621,4 +621,8 @@
     <string name="general_back">Wstecz</string>
     <string name="export_heading_transcript">Transkrypcja</string>
     <string name="settings_bugreport_preparing">Przygotowywanie raportu debugowania…</string>
+    <string name="settings_bugreport_save">Zapisz</string>
+    <string name="settings_bugreport_saved">Raport zapisany</string>
+    <string name="settings_bugreport_save_failed">Nie udało się zapisać raportu</string>
+    <string name="settings_debug_log_wrap">Zawijaj wiersze</string>
 </resources>

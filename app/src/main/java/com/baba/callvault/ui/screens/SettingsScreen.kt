@@ -12,6 +12,7 @@ import android.provider.Settings
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -26,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
@@ -54,6 +56,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
+import com.baba.callvault.system.diagnostics.ReportBundle
+import com.baba.callvault.ui.common.verticalScrollbar
+import com.baba.callvault.ui.common.horizontalScrollbar
+import java.time.LocalDateTime
+import java.io.File
 import com.baba.callvault.services.recording.DaemonKeepAliveService
 import com.baba.callvault.services.recording.VoipCaptureController
 import androidx.compose.runtime.LaunchedEffect
@@ -81,6 +88,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.first
 import androidx.annotation.StringRes
 import com.baba.callvault.data.AppPreferences
 import com.baba.callvault.system.AppLock
@@ -110,6 +118,7 @@ import com.baba.callvault.system.takePersistableFolderPermission
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.baba.callvault.ui.common.ContactSelectionDialog
 import com.baba.callvault.ui.common.CvCard
+import com.baba.callvault.ui.common.CvPrimaryButton
 import com.baba.callvault.ui.common.CvScaffold
 import com.baba.callvault.ui.common.CvSecondaryButton
 import com.baba.callvault.ui.common.CvSectionHeader
@@ -183,6 +192,77 @@ fun SettingsScreen(
     // debug function doesn't work", reproduced as "works only on the second visit".
     var preparingReport by remember { mutableStateOf(false) }
 
+
+    /**
+     * Builds the app's debug report and, within [SYSTEM_REPORT_BUDGET_MS], the system report. Shared by Share and
+     * Save, so both hand over exactly the same thing. The first file is null only when there is nothing to report; the
+     * second when the system half could not be collected in time.
+     */
+    suspend fun buildReports(): Pair<File?, File?> {
+        val report = withContext(Dispatchers.IO) { AppLogger.buildShareableReport(context) }
+        // The system slice carries the daemon's lines and the platform's — the half no bug
+        // report has ever contained. Null when logcat gave nothing usable, in which case the
+        // app's own report still goes on its own.
+        //
+        // BOUNDED, and that is the whole point. It makes up to seven ADB round-trips, each
+        // retrying with a forced reconnect, so on a phone whose transport is unhealthy it
+        // can outlast any patience. Unbounded, a hang here threw away the app report too —
+        // which was already built and sitting in the variable above — and the user got
+        // nothing at all. Now the optional half can fail and the report still goes out.
+        //
+        // Run on a scope of its own and time out the AWAIT, not the work. buildReport is
+        // one long blocking block inside withContext(Dispatchers.IO) with no suspension
+        // points, and coroutine cancellation is cooperative — a timeout wrapped straight
+        // around it cannot interrupt a blocked socket read, so it would look like a bound
+        // and be none. await() IS a suspension point, so this returns on time and abandons
+        // the stuck thread instead of waiting for it. A detached scope keeps that
+        // abandoned job from holding up this coroutine's completion as a child would.
+        val collector = CoroutineScope(Dispatchers.IO)
+        val pending = collector.async { SystemLogCollector.buildReport(context) }
+        val systemReport = withTimeoutOrNull(SYSTEM_REPORT_BUDGET_MS) { pending.await() }
+        if (systemReport == null) {
+            collector.cancel()
+            AppLogger.w(
+                "CV:Settings",
+                "System report not attached (empty or over ${SYSTEM_REPORT_BUDGET_MS}ms); " +
+                    "going on with the app report alone"
+            )
+        }
+        return report to systemReport
+    }
+
+    // Save as. The reports live in the app's private cache, where no file manager can see them and `adb pull` cannot
+    // reach them on a release build, so Share was the only way out — and a user who will not send logs through email
+    // or a messenger could not get them at all (mirror176, #28 and #29). Android's own save dialog lets them pick the
+    // folder and the name, and needs no storage permission. Both reports go into the one file it creates.
+    val saveReportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri == null || preparingReport) return@rememberLauncherForActivityResult
+        scope.launch {
+            preparingReport = true
+            try {
+                val (report, systemReport) = buildReports()
+                if (report == null) {
+                    Toast.makeText(context, R.string.settings_bugreport_share_empty, Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val saved = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val bundle = ReportBundle.combine(report.readText(), systemReport?.readText())
+                        context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(bundle.toByteArray()) } != null
+                    }.onFailure { AppLogger.w("CV:Settings", "Saving the report failed: ${it.message}") }
+                        .getOrDefault(false)
+                }
+                Toast.makeText(
+                    context,
+                    if (saved) R.string.settings_bugreport_saved else R.string.settings_bugreport_save_failed,
+                    Toast.LENGTH_LONG,
+                ).show()
+            } finally {
+                preparingReport = false
+            }
+        }
+    }
+
     // Trigger recomposition when settings change by viewmodel.refresh()
     val updateTrigger by viewModel.updateTrigger.collectAsState()
 
@@ -239,35 +319,7 @@ fun SettingsScreen(
             if (!preparingReport) scope.launch {
                 preparingReport = true
                 try {
-                    val report = withContext(Dispatchers.IO) { AppLogger.buildShareableReport(context) }
-                    // The system slice carries the daemon's lines and the platform's — the half no bug
-                    // report has ever contained. Null when logcat gave nothing usable, in which case the
-                    // app's own report still goes on its own.
-                    //
-                    // BOUNDED, and that is the whole point. It makes up to seven ADB round-trips, each
-                    // retrying with a forced reconnect, so on a phone whose transport is unhealthy it
-                    // can outlast any patience. Unbounded, a hang here threw away the app report too —
-                    // which was already built and sitting in the variable above — and the user got
-                    // nothing at all. Now the optional half can fail and the report still goes out.
-                    //
-                    // Run on a scope of its own and time out the AWAIT, not the work. buildReport is
-                    // one long blocking block inside withContext(Dispatchers.IO) with no suspension
-                    // points, and coroutine cancellation is cooperative — a timeout wrapped straight
-                    // around it cannot interrupt a blocked socket read, so it would look like a bound
-                    // and be none. await() IS a suspension point, so this returns on time and abandons
-                    // the stuck thread instead of waiting for it. A detached scope keeps that
-                    // abandoned job from holding up this coroutine's completion as a child would.
-                    val collector = CoroutineScope(Dispatchers.IO)
-                    val pending = collector.async { SystemLogCollector.buildReport(context) }
-                    val systemReport = withTimeoutOrNull(SYSTEM_REPORT_BUDGET_MS) { pending.await() }
-                    if (systemReport == null) {
-                        collector.cancel()
-                        AppLogger.w(
-                            "CV:Settings",
-                            "System report not attached (empty or over ${SYSTEM_REPORT_BUDGET_MS}ms); " +
-                                "sharing the app report alone"
-                        )
-                    }
+                    val (report, systemReport) = buildReports()
                     if (report != null) {
                         context.shareLogFiles(listOfNotNull(report, systemReport))
                     } else {
@@ -276,6 +328,15 @@ fun SettingsScreen(
                 } finally {
                     preparingReport = false
                 }
+            }
+        },
+        // The save dialog opens first, named with the date and time; the report is built once a place is chosen.
+        onSaveLogs = {
+            if (!preparingReport) {
+                val now = LocalDateTime.now()
+                saveReportLauncher.launch(
+                    ReportBundle.suggestedFileName(now.year, now.monthValue, now.dayOfMonth, now.hour, now.minute)
+                )
             }
         },
         modifier = modifier
@@ -317,6 +378,7 @@ fun SettingsScreen(
  * @param onConfirmContacts      Called when contacts are confirmed from the dialog.
  * @param onDismissContacts      Called when we want to close the dialog without confirmation/saving.
  * @param onShareLogs            Called to share diagnostic logs via the system share-sheet (Debug section).
+ * @param onSaveLogs             Called to save diagnostic logs to a file the user picks (Debug section).
  * @param modifier               Optional size/position modifier.
  */
 /** Hard ceiling on the optional system-log half of a debug report. See the share handler. */
@@ -336,6 +398,7 @@ fun SettingsContent(
     onConfirmContacts: (Set<String>) -> Unit,
     onDismissContacts: () -> Unit,
     onShareLogs: () -> Unit,
+    onSaveLogs: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showLicensesDialog by remember { mutableStateOf(false) }
@@ -462,7 +525,7 @@ fun SettingsContent(
             // Debug section: always visible so anyone can enable logging and share logs to report an issue.
             item {
                 BugReportSection(
-                    preferences, updateTrigger, actions, onShareLogs,
+                    preferences, updateTrigger, actions, onShareLogs, onSaveLogs,
                     expanded = openSection == SECTION_BUG_REPORT,
                     onToggle = { onToggleSection(SECTION_BUG_REPORT) }
                 )
@@ -1786,6 +1849,7 @@ private fun VisualSubSection(preferences: AppPreferences, updateTrigger: Int, ac
  * @param updateTrigger Trigger value to force recomposition when settings change.
  * @param actions       Implementation of [SettingsActions] to handle user interaction.
  * @param onShareLogs   Called to share the diagnostic log report via the system share-sheet.
+ * @param onSaveLogs    Called to save the diagnostic log report to a file the user picks.
  */
 @Composable
 private fun BugReportSection(
@@ -1793,6 +1857,7 @@ private fun BugReportSection(
     updateTrigger: Int,
     actions: SettingsActions,
     onShareLogs: () -> Unit,
+    onSaveLogs: () -> Unit,
     expanded: Boolean,
     onToggle: () -> Unit
 ) {
@@ -1806,7 +1871,8 @@ private fun BugReportSection(
     val hasAnyDiagnostics = remember(updateTrigger) { AppLogger.hasAnyDiagnostics() }
     val logSize = remember(updateTrigger) { AppLogger.logSizeBytes() + AppLogger.setupJournalSizeBytes() }
     val hasJournal = remember(updateTrigger) { AppLogger.hasSetupJournal() }
-    var showLogViewer by remember { mutableStateOf(false) }
+    // Saveable: rotating the phone recreates the screen, and a plain remember closed the viewer mid-read.
+    var showLogViewer by rememberSaveable { mutableStateOf(false) }
     var confirmClearLog by remember { mutableStateOf(false) }
 
     SettingsSection(title = stringResource(R.string.settings_section_debug), expanded = expanded, onToggle = onToggle) {
@@ -1841,11 +1907,23 @@ private fun BugReportSection(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Button(
-                    onClick = onShareLogs,
-                    modifier = Modifier.fillMaxWidth()
+                // Side by side: Share hands the report to another app, Save writes it to a file on the phone.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.settings_bugreport_share))
+                    // The Cv pair share one height and shape; a plain Button next to CvSecondaryButton sat shorter.
+                    CvPrimaryButton(
+                        text = stringResource(R.string.settings_bugreport_share),
+                        onClick = onShareLogs,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CvSecondaryButton(
+                        text = stringResource(R.string.settings_bugreport_save),
+                        onClick = onSaveLogs,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -1910,47 +1988,98 @@ private fun BugReportSection(
 private const val LOG_VIEW_LINES = 500
 
 /**
- * Reads the tail of the debug log into a scrollable dialog.
+ * Reads the tail of the debug log into a full-screen page.
  *
- * Reading happens off the main thread and only while the dialog is open, so opening Settings never
- * pays for a file read the user did not ask for.
+ * It used to be a small popup that cut every line off at the right edge, scrolled in both directions with no sign it
+ * could, and closed when the phone was rotated (seen on the OP9 on 2026-09-11, while checking mirror176's log
+ * feedback in #28 and #29). Now it fills the
+ * screen, wraps lines by default with a switch to scroll sideways instead, shows scrollbars, and opens at the newest
+ * lines — the end is what someone opens a log to read.
  */
 @Composable
 private fun DebugLogViewer(onDismiss: () -> Unit) {
     var text by remember { mutableStateOf<String?>(null) }
     var loaded by remember { mutableStateOf(false) }
+    var wrap by rememberSaveable { mutableStateOf(true) }
+    // Once per opening: jumping to the end again after a rotation would throw away where the reader had scrolled to.
+    var openedAtEnd by rememberSaveable { mutableStateOf(false) }
+    val vertical = rememberScrollState()
+    val horizontal = rememberScrollState()
 
     LaunchedEffect(Unit) {
-        text = AppLogger.readTail(LOG_VIEW_LINES)
+        text = withContext(Dispatchers.IO) { AppLogger.readTail(LOG_VIEW_LINES) }
         loaded = true
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_debug_log_file)) },
-        text = {
-            when {
-                !loaded -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                text.isNullOrBlank() -> Text(stringResource(R.string.settings_debug_log_empty))
-                else -> Text(
-                    text = text!!,
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    modifier = Modifier
-                        .heightIn(max = LOG_VIEW_MAX_HEIGHT)
-                        .verticalScroll(rememberScrollState())
-                        .horizontalScroll(rememberScrollState()),
-                    softWrap = false,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.general_close)) }
-        },
-    )
-}
+    LaunchedEffect(loaded) {
+        if (!loaded || openedAtEnd) return@LaunchedEffect
+        // maxValue is Int.MAX_VALUE until the text is laid out, and 0 when it all fits.
+        val end = snapshotFlow { vertical.maxValue }.first { it != Int.MAX_VALUE }
+        if (end > 0) vertical.scrollTo(end)
+        openedAtEnd = true
+    }
 
-/** Caps the viewer so a long log cannot push the dialog's buttons off the screen. */
-private val LOG_VIEW_MAX_HEIGHT = 420.dp
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.general_close),
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.settings_debug_log_file),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_debug_log_wrap),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(checked = wrap, onCheckedChange = { wrap = it })
+                }
+                HorizontalDivider()
+                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    val content = text
+                    when {
+                        !loaded -> CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        content.isNullOrBlank() -> Text(
+                            text = stringResource(R.string.settings_debug_log_empty),
+                            modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                        )
+                        else -> {
+                            val barColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                            Text(
+                                text = content,
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                softWrap = wrap,
+                                // Scrollbars before the scrolls, so they are drawn at the size of the visible area.
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScrollbar(vertical, barColor)
+                                    .then(if (wrap) Modifier else Modifier.horizontalScrollbar(horizontal, barColor))
+                                    .verticalScroll(vertical)
+                                    .then(if (wrap) Modifier else Modifier.horizontalScroll(horizontal))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 /**
  * "Reliability" — controls that keep recording working in tricky conditions: recording without Wi-Fi
@@ -2960,7 +3089,8 @@ private fun SettingsScreenPreview() {
             onOpenContactsOutgoing = {},
             onConfirmContacts = {},
             onDismissContacts = {},
-            onShareLogs = {}
+            onShareLogs = {},
+            onSaveLogs = {}
         )
     }
 }

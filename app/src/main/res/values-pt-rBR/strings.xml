@@ -185,7 +185,7 @@
     <string name="settings_auto_record_incoming">Gravar automaticamente as chamadas recebidas</string>
     <string name="settings_auto_record_outgoing">Gravar automaticamente as chamadas efetuadas</string>
     <string name="settings_bugreport_active_warning">O registro de depuração está ATIVADO. Lembre-se de desativá-lo quando terminar, para economizar espaço.</string>
-    <string name="settings_bugreport_share">Compartilhar os registros de depuração</string>
+    <string name="settings_bugreport_share">Compartilhar</string>
     <string name="settings_bugreport_share_chooser">Compartilhar os registros de depuração</string>
     <string name="settings_bugreport_share_empty">Ainda não há registros. Ative o registro de depuração, reproduza o problema e toque em compartilhar.</string>
     <string name="settings_bugreport_share_hint">Os registros da sua última sessão de depuração estão prontos para compartilhar.</string>
@@ -622,4 +622,8 @@
     <string name="general_back">Voltar</string>
     <string name="export_heading_transcript">Transcrição</string>
     <string name="settings_bugreport_preparing">Preparando o relatório de depuração…</string>
+    <string name="settings_bugreport_save">Salvar</string>
+    <string name="settings_bugreport_saved">Relatório salvo</string>
+    <string name="settings_bugreport_save_failed">Não foi possível salvar o relatório</string>
+    <string name="settings_debug_log_wrap">Quebrar linhas</string>
 </resources>

@@ -182,7 +182,7 @@
     <string name="settings_auto_record_incoming">Registra automaticamente le chiamate in entrata</string>
     <string name="settings_auto_record_outgoing">Registra automaticamente le chiamate in uscita</string>
     <string name="settings_bugreport_active_warning">La registrazione di debug è ATTIVA. Ricordi di disattivarla al termine per risparmiare spazio.</string>
-    <string name="settings_bugreport_share">Condividi log di debug</string>
+    <string name="settings_bugreport_share">Condividi</string>
     <string name="settings_bugreport_share_chooser">Condividi log di debug</string>
     <string name="settings_bugreport_share_empty">Ancora nessun log. Attivi la registrazione di debug, riproduca il problema, poi tocchi condividi.</string>
     <string name="settings_bugreport_share_hint">I log dell\'ultima sessione di debug sono pronti per la condivisione.</string>
@@ -619,4 +619,8 @@
     <string name="general_back">Indietro</string>
     <string name="export_heading_transcript">Trascrizione</string>
     <string name="settings_bugreport_preparing">Preparazione del report di debug…</string>
+    <string name="settings_bugreport_save">Salva</string>
+    <string name="settings_bugreport_saved">Report salvato</string>
+    <string name="settings_bugreport_save_failed">Impossibile salvare il report</string>
+    <string name="settings_debug_log_wrap">A capo automatico</string>
 </resources>

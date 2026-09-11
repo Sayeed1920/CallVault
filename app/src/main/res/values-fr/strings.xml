@@ -182,7 +182,7 @@
     <string name="settings_auto_record_incoming">Enregistrement automatique des appels entrants</string>
     <string name="settings_auto_record_outgoing">Enregistrement automatique des appels sortants</string>
     <string name="settings_bugreport_active_warning">La journalisation de débogage est ACTIVÉE. Pensez à la désactiver une fois terminé pour économiser de l\'espace.</string>
-    <string name="settings_bugreport_share">Partager les journaux de débogage</string>
+    <string name="settings_bugreport_share">Partager</string>
     <string name="settings_bugreport_share_chooser">Partager les journaux de débogage</string>
     <string name="settings_bugreport_share_empty">Aucun journal pour l\'instant. Activez la journalisation de débogage, reproduisez le problème, puis touchez Partager.</string>
     <string name="settings_bugreport_share_hint">Les journaux de votre dernière session de débogage sont prêts à être partagés.</string>
@@ -619,4 +619,8 @@
     <string name="general_back">Retour</string>
     <string name="export_heading_transcript">Transcription</string>
     <string name="settings_bugreport_preparing">Préparation du rapport de débogage…</string>
+    <string name="settings_bugreport_save">Enregistrer</string>
+    <string name="settings_bugreport_saved">Rapport enregistré</string>
+    <string name="settings_bugreport_save_failed">Impossible d\'enregistrer le rapport</string>
+    <string name="settings_debug_log_wrap">Retour à la ligne</string>
 </resources>

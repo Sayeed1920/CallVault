@@ -182,7 +182,7 @@
     <string name="settings_auto_record_incoming">Automatikus bejövő hívás rögzítés</string>
     <string name="settings_auto_record_outgoing">Automatikus kimenő hívás rögzítés</string>
     <string name="settings_bugreport_active_warning">A hibakeresési naplózás BE van kapcsolva. Ne felejtse el kikapcsolni, ha végzett, hogy helyet takarítson meg.</string>
-    <string name="settings_bugreport_share">Hibakeresési naplók megosztása</string>
+    <string name="settings_bugreport_share">Megosztás</string>
     <string name="settings_bugreport_share_chooser">Hibakeresési naplók megosztása</string>
     <string name="settings_bugreport_share_empty">Még nincsenek naplók. Kapcsolja be a hibakeresési naplózást, idézze elő a problémát, majd koppintson a megosztásra.</string>
     <string name="settings_bugreport_share_hint">A legutóbbi hibakeresési munkamenet naplói készen állnak a megosztásra.</string>
@@ -619,4 +619,8 @@
     <string name="general_back">Vissza</string>
     <string name="export_heading_transcript">Átirat</string>
     <string name="settings_bugreport_preparing">Hibakeresési jelentés előkészítése…</string>
+    <string name="settings_bugreport_save">Mentés</string>
+    <string name="settings_bugreport_saved">Jelentés mentve</string>
+    <string name="settings_bugreport_save_failed">A jelentést nem sikerült menteni</string>
+    <string name="settings_debug_log_wrap">Sortörés</string>
 </resources>

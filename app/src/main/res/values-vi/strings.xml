@@ -182,7 +182,7 @@
     <string name="settings_auto_record_incoming">Tự động ghi âm cuộc gọi đến</string>
     <string name="settings_auto_record_outgoing">Tự động ghi âm cuộc gọi đi</string>
     <string name="settings_bugreport_active_warning">Ghi nhật ký gỡ lỗi đang BẬT. Hãy nhớ tắt khi xong để tiết kiệm dung lượng.</string>
-    <string name="settings_bugreport_share">Chia sẻ nhật ký gỡ lỗi</string>
+    <string name="settings_bugreport_share">Chia sẻ</string>
     <string name="settings_bugreport_share_chooser">Chia sẻ nhật ký gỡ lỗi</string>
     <string name="settings_bugreport_share_empty">Chưa có nhật ký. Hãy bật ghi nhật ký gỡ lỗi, tái hiện sự cố, rồi nhấn chia sẻ.</string>
     <string name="settings_bugreport_share_hint">Nhật ký từ phiên gỡ lỗi gần nhất của bạn đã sẵn sàng để chia sẻ.</string>
@@ -618,4 +618,8 @@
     <string name="general_back">Quay lại</string>
     <string name="export_heading_transcript">Bản ghi lời</string>
     <string name="settings_bugreport_preparing">Đang chuẩn bị báo cáo gỡ lỗi…</string>
+    <string name="settings_bugreport_save">Lưu</string>
+    <string name="settings_bugreport_saved">Đã lưu báo cáo</string>
+    <string name="settings_bugreport_save_failed">Không thể lưu báo cáo</string>
+    <string name="settings_debug_log_wrap">Xuống dòng</string>
 </resources>

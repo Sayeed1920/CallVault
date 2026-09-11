@@ -182,7 +182,7 @@
     <string name="settings_auto_record_incoming">Automatisch eingehende Anrufe aufnehmen</string>
     <string name="settings_auto_record_outgoing">Automatisch ausgehende Anrufe aufnehmen</string>
     <string name="settings_bugreport_active_warning">Debug-Protokollierung ist EIN. Denken Sie daran, sie auszuschalten, wenn Sie fertig sind, um Speicherplatz zu sparen.</string>
-    <string name="settings_bugreport_share">Debug-Protokolle teilen</string>
+    <string name="settings_bugreport_share">Teilen</string>
     <string name="settings_bugreport_share_chooser">Debug-Protokolle teilen</string>
     <string name="settings_bugreport_share_empty">Noch keine Protokolle. Aktivieren Sie die Debug-Protokollierung, reproduzieren Sie das Problem und tippen Sie dann auf Teilen.</string>
     <string name="settings_bugreport_share_hint">Die Protokolle Ihrer letzten Debug-Sitzung sind zum Teilen bereit.</string>
@@ -619,4 +619,8 @@
     <string name="general_back">Zurück</string>
     <string name="export_heading_transcript">Transkript</string>
     <string name="settings_bugreport_preparing">Fehlerbericht wird vorbereitet …</string>
+    <string name="settings_bugreport_save">Speichern</string>
+    <string name="settings_bugreport_saved">Bericht gespeichert</string>
+    <string name="settings_bugreport_save_failed">Bericht konnte nicht gespeichert werden</string>
+    <string name="settings_debug_log_wrap">Zeilen umbrechen</string>
 </resources>

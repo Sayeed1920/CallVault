@@ -341,7 +341,7 @@
     <string name="settings_debug_logging_enabled_description">To report a bug, enable this, reproduce the issue, then turn it off and share the logs.</string>
     <string name="settings_bugreport_active_warning">Debug logging is ON. Remember to turn it off when you\'re done to save space.</string>
     <string name="settings_bugreport_share_hint">Logs from your last debug session are ready to share.</string>
-    <string name="settings_bugreport_share">Share debug logs</string>
+    <string name="settings_bugreport_share">Share</string>
     <string name="settings_bugreport_preparing">Preparing debug report…</string>
     <string name="settings_bugreport_share_empty">No logs yet. Enable debug logging, reproduce the issue, then tap share.</string>
     <string name="settings_bugreport_share_chooser">Share debug logs</string>
@@ -824,4 +824,8 @@
     <string name="voip_recording_held">Held for a phone call. This recording will continue when you return.</string>
     <string name="general_back">Back</string>
     <string name="export_heading_transcript">Transcript</string>
+    <string name="settings_bugreport_save">Save</string>
+    <string name="settings_bugreport_saved">Report saved</string>
+    <string name="settings_bugreport_save_failed">Could not save the report</string>
+    <string name="settings_debug_log_wrap">Wrap lines</string>
 </resources>
