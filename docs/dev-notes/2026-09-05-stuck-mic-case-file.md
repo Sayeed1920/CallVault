@@ -382,3 +382,10 @@ if his offline-recording loopback is armed. If it is not, the log says `NO_WAY_B
 | `… → NO_WAY_BACK` | stuck, but no safe way to relaunch on this phone; the dot stays by design |
 | `daemon replaced but … still running` | the op belongs to something else running as shell |
 | `the daemon is not back after 45000ms` | the relaunch failed — the most serious outcome; keep-alive keeps retrying |
+
+**Regression call on rc20, OP12, 2026-09-11 14:28** (maintainer's call, log watched live): recording complete
+(`12.9s encoded of 12.9s captured`, no invalidation, capture released, nothing left open), and 9 s after hang-up
+`CV:MicOpHeal: after the carrier recording: 0 shell microphone op(s) running → NOTHING_HELD`. No errors, no daemon death.
+The shared status notification held too: CallVault's notification entries stayed at Android's autogroup summary, the
+debug-logging notice and id 4720 throughout, and afterwards only the keep-alive held 4720 ("Ready to record calls").
+This clears the **no-regression** half only; the heal itself still waits on a stuck dot from the tester.
