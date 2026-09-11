@@ -164,3 +164,67 @@ Verified against our tree rather than trusting the diffs:
 - `disarmLoopback` at `AdbShell.kt:441` **already** has the `ARM_FIRE_CAP_MS` bound they present as new.
 - `OfflineRecording.disable` is **already** off the main thread (`OfflineRecordingDialog.kt:75`).
 - The fork's `diag/*` branches are ours, not theirs.
+
+---
+
+# Second pass — 2026-09-11 (builds 14 → 21)
+
+**Status: 📐 CALCULATED — read from source and from the fork's patch scripts. Nothing adopted, built or
+tested.** Asked by the maintainer: what else has the fork done, and can we pull any of it safely?
+
+The fork (`callmonitor/core-v1`, `callmonitor/upload-v20`) added ~37 commits between 2026-09-02 and
+09-07, all still based on our 2.2.0 line (`aa1cae5`, 152 commits behind 2.3.0). Their reference device is
+a **Redmi Note 12 / HyperOS / Android 15** (`docs/ANDROID_DEVICE_TEST_PLAN.md`). Builds 16–21 are not in
+their Kotlin source: CI runs Python scripts (`.github/scripts/build1x_*.py`) that rewrite source before
+building. Running those scripts was blocked here, so their effect was read from the script text.
+
+| Change | Commit / build | Verdict |
+|---|---|---|
+| Don't flag recovery as stuck while the recorder is connected | `6f70af3` | ✅ take — same rule we applied to the update banner in 1.4.4 |
+| Turning off offline recording returns at once when nothing is armed | `0d6e7d7` (part) | ✅ take — still not in our tree; our `disable` now runs under the ADB lease |
+| Retry post-boot recovery the moment Wi-Fi or Wireless debugging appears | `4aab39b` | 🟡 idea only |
+| Accessibility service that drives Settings to switch Wireless debugging on | `e06497a`…, builds 14–18, 21 | ❌ not as-is |
+| Stereo recordings (uplink/downlink kept as two channels, Opus ≥ 48 kbps) | build 19 | ❌ not by default |
+| Upload queue to their server, branding, updater disabled, signer pinning, Windows installers | build 20 etc. | ❌ their product only |
+
+**1. Stuck flag (`DaemonRecoveryPolicy.isStuck`).** Ours is `consecutiveFailures >= escalateAfterFailures`
+alone, so a failure streak from before Wireless debugging was switched on keeps the red "not working"
+state after the recorder has recovered. Theirs adds `&& !RecorderConnection.isConnected`. Adopt the rule,
+but pass the connection state in rather than reading the singleton, so the policy stays unit-testable.
+
+**2. Offline disable.** Take only the `isLoopbackArmed` early return, as the first pass already said; skip
+their abandoned-thread timeout (lock starvation).
+
+**3. Retry on Wi-Fi / WD.** Ours: `AdbConnectionService` makes one attempt and stops; the keep-alive
+watchdog then retries every 60 s (`WATCHDOG_INTERVAL_MS`) and skips while off Wi-Fi. So the gain is up to
+a minute after a late Wi-Fi association. Their version keeps the startup foreground service alive
+indefinitely (`START_STICKY`, never stops on failure), which duplicates the keep-alive and its
+notification. If wanted, the right shape is a Wi-Fi callback in `DaemonKeepAliveService` that triggers
+`maybeRewarm` immediately.
+
+**4. Accessibility service.** For phones that deny `WRITE_SECURE_SETTINGS`, it opens Settings (later Quick
+Settings + Settings search, because HyperOS/Android 15 blocks background `startActivity`) and clicks the
+Wireless debugging switch. Reasons not to take it:
+- Six builds in one day to make it work; build 21's own notes say it fixed Settings opening *endlessly*
+  with Wi-Fi off, and cap it at 3 attempts per boot, 45 s each, 5 min apart (`RecoveryUiPolicy`).
+- Button and row labels are hard-coded in Russian and English only.
+- Android 13+ "restricted settings" block enabling an accessibility service for apps installed from an
+  APK until the user allows it in App info — every GitHub/Obtainium install.
+- An app that clicks through system Settings by itself is a trust and review problem for a call recorder.
+- It only matters where the grant is denied; issue #23's reporter has it granted.
+
+**5. Stereo.** Reverses our field-verified mono rule. They avoid the far-side starvation by raising stereo
+Opus to at least 48 kbps, so files roughly double. Their reason is server-side transcription with a
+channel per speaker; our speaker labels already read the stereo capture inside the daemon.
+
+## What the research added (not from the fork)
+
+HyperOS/MIUI deny `WRITE_SECURE_SETTINGS` unless **Developer options ▸ USB debugging (Security settings)**
+is on; without it `pm grant` silently does nothing or throws. Sources: PhoneProfilesPlus grant guide,
+Easer issue #489 (Xiaomi 15, HyperOS). CallVault says nothing about this anywhere — no string, no README
+line. A Xiaomi-specific hint where the grant fails is the cheap way to help the users the fork's
+accessibility service was built for. Separately, Android 13+ restricted settings apply to any
+accessibility idea we ever have.
+
+Web search found no independent source for "HyperOS adbd listens only on the WLAN address" (the first
+pass's loopback-bridge hypothesis); it still rests on the fork's claim and waits on issue #23's log.
