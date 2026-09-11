@@ -488,6 +488,8 @@ object VoipRecordingCoordinator {
             }
         }
         AppLogger.i(TAG, "VoIP recording stopped (${saf?.uri})")
+        // Same check as after a carrier recording: a stuck indicator with nothing recording. See [MicOpAutoHeal].
+        MicOpAutoHeal.scheduleAfterCall(context, "the VoIP recording")
     }
 
     /**

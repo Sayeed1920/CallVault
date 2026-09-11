@@ -565,6 +565,9 @@ class RecordingForegroundService : Service() {
                 uriToRename, mimeType, activeSession.lastCapturedByteCount, originalMetadata?.direction
             )
         }
+        // A capture AudioFlinger invalidated mid-call can leave the microphone indicator on with nothing recording;
+        // a few seconds from now this looks, and replaces the daemon if it is safe to. See [MicOpAutoHeal].
+        MicOpAutoHeal.scheduleAfterCall(applicationContext, "the carrier recording")
         currentState = RecordingServiceState.Standby(null)
         AppLogger.i(TAG, "The recording session has been stopped and resources have been released. Stopping foreground service. Goodbye >3")
         stopForeground(STOP_FOREGROUND_REMOVE)
