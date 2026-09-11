@@ -101,12 +101,14 @@ issue.
 2. **Show when CallVault is leaving the switch alone.** Today the only sign is a log line ("Leaving
    Wireless debugging on … the user switched it on, not us"). He asks for something the user can see.
 
-**Decide before building:**
+**Decided (maintainer, 2026-09-11): "off" means CallVault never turns Wireless debugging off.** It may
+still turn it on when the recorder needs a way back in. The other reading — never turning it on — was
+rejected: a dead recorder could not come back without USB debugging or loopback, and the next call
+could be missed. The cost of the chosen reading is that Wireless debugging stays on, leaving a network
+port open; the setting's description should say so.
 
-- **What "off" means.** If CallVault never turns Wireless debugging *on*, a dead recorder cannot come
-  back unless USB debugging or loopback gives it a way in, and the next call can be missed. If it never
-  turns it *off*, it stays on, which leaves a network port open. Likely answer: never turn it off, still
-  allowed to turn it on when needed — not decided.
+**Check before building:**
+
 - **The transport rule still wins.** Dropping adbd's last transport kills the daemon whatever the
   setting says.
 - **An old switch already exists:** `wd_disable_when_idle` ("Turn off Wireless debugging when idle",
