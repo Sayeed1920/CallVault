@@ -128,6 +128,8 @@
         <item>Behoben — Selbst eingeschaltetes drahtloses Debugging bleibt an</item>
         <item>Behoben — Off-WLAN-Aufnahme nennt den echten Fehler</item>
         <item>Behoben — Das Mikrofonsymbol bleibt nach dem Anruf nicht mehr an</item>
+        <item>Behoben — Der Transkriptionsfortschritt startet beim Drehen nicht mehr neu</item>
+        <item>Behoben — Ein gelöschter Anruf beendet seine Transkription</item>
     </string-array>
     <string name="whatsnew_230_where">Das ⋮-Menü einer Aufnahme ▸ Mit einem anderen Anruf zusammenführen</string>
     <string name="merge_progress_title">Wird zusammengeführt</string>

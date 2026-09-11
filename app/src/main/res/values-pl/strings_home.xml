@@ -128,6 +128,8 @@
         <item>Poprawka — Debugowanie bezprzewodowe włączone przez ciebie zostaje włączone</item>
         <item>Poprawka — Nagrywanie bez Wi-Fi mówi, co naprawdę zawiodło</item>
         <item>Poprawka — Kropka mikrofonu nie zostaje zapalona po rozmowie</item>
+        <item>Poprawka — Postęp transkrypcji nie zaczyna się od nowa po obróceniu</item>
+        <item>Poprawka — Usunięcie rozmowy zatrzymuje jej transkrypcję</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ dowolnego nagrania ▸ Połącz z innym połączeniem</string>
     <string name="merge_progress_title">Łączenie</string>

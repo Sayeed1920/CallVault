@@ -150,6 +150,8 @@
         <item>Fixed — Wireless debugging you switched on stays on</item>
         <item>Fixed — Off-Wi-Fi recording says what actually failed</item>
         <item>Fixed — The microphone dot no longer stays on after a call</item>
+        <item>Fixed — Transcription progress no longer restarts when you rotate</item>
+        <item>Fixed — Deleting a call stops its transcription</item>
     </string-array>
     <string name="whatsnew_230_where">The ⋮ menu on any recording ▸ Merge with another call</string>
     <string name="merge_progress_title">Merging</string>

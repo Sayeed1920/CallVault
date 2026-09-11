@@ -128,6 +128,8 @@
         <item>Đã sửa — Gỡ lỗi không dây do bạn bật sẽ vẫn bật</item>
         <item>Đã sửa — Ghi âm không cần Wi-Fi cho biết lỗi thật sự</item>
         <item>Đã sửa — Chấm micro không còn sáng sau cuộc gọi</item>
+        <item>Đã sửa — Tiến trình chép lời không còn chạy lại từ đầu khi xoay máy</item>
+        <item>Đã sửa — Xoá cuộc gọi sẽ dừng việc chép lời</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ trên bất kỳ bản ghi nào ▸ Gộp với cuộc gọi khác</string>
     <string name="merge_progress_title">Đang gộp</string>

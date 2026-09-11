@@ -50,6 +50,18 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **Rotating the phone no longer looks like it restarts a transcription.** The percentage is
+  predicted between whisper's own reports, and the clock behind that prediction lived on the screen
+  showing it — so turning the phone threw it away and the figure fell back to 1% and climbed again.
+  The transcription itself was never affected and always finished on time, but there was no way to
+  tell that from the outside. The figure now belongs to the run producing it, and a rotation cannot
+  touch it. Reported by mirror176 in #34.
+
+- **Deleting a call now stops its transcription.** The run used to carry on to the end, producing a
+  transcript of a recording that no longer existed — and because one transcription runs at a time,
+  everything queued behind it waited for a result that was thrown away. Deleting the recording now
+  ends its run, and the queue moves straight on. Reported by mirror176 in #35.
+
 - **The microphone indicator no longer stays on after a call.** When Android tears a capture down
   mid-call, CallVault rebuilds it and the recording continues — but the torn-down capture was let go of
   without being stopped, and only a stop finishes the microphone app-op. The green dot then stayed lit

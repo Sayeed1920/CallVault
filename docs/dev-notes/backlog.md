@@ -1771,3 +1771,28 @@ Options, cheapest first:
 
 Related: the live input-level meter (`10-product-ux.md` D1) attacks the same problem from the other end
 — confirmation *during* the call rather than after it.
+
+## Store recordings as Matroska `.mka` (issue #36)
+
+**Requested 2026-09-11 by mirror176.** One container per call holding both sides as separate audio
+streams, the transcript as a subtitle track, and caller/date/summary/notes as metadata — so the data
+is portable and readable by other software instead of living only in CallVault's database, and a
+merge becomes a container operation rather than a re-encode.
+
+The idea is sound. The blocker is the platform: **Android cannot write Matroska.** `MediaMuxer`
+offers MPEG-4, 3GPP, WEBM, OGG and HEIF (checked 2026-09-11), none of which is `.mka`; WEBM is a
+Matroska subset but the platform muxer exposes no subtitle track and no general metadata. Media3's
+muxer package is `Mp4Muxer`/`FragmentedMp4Muxer` only. Reading is fine — the platform demuxes `.mkv`
+for common codecs — so this is entirely a writing problem.
+
+Shipping it therefore means bundling or writing a Matroska muxer (libmatroska or ffmpeg: a new native
+dependency, its size, its licence, its build) and then changing every path that touches a recording —
+the three capture paths, playback, merge/un-merge, Drive backup, retention, the catalog — plus a
+migration for every recording that already exists. Largest single change the app has made, and it
+would also make the F-Droid picture harder (see the F-Droid readiness note).
+
+If it is ever taken up, the cheap half is worth separating: writing a **sidecar** (the transcript as
+`.srt`/`.ass` and the metadata as JSON next to the audio) gets most of the portability with none of
+the container work, and would be a day rather than a month.
+
+Full reasoning: `docs/dev-notes/2026-09-11-issues-34-35-36.md`.

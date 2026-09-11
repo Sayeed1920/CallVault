@@ -129,6 +129,8 @@
         <item>Corrigé — Le débogage sans fil que vous activez reste activé</item>
         <item>Corrigé — L\'enregistrement hors Wi-Fi indique la vraie cause de l\'échec</item>
         <item>Corrigé — Le point du micro ne reste plus allumé après l\'appel</item>
+        <item>Corrigé — La progression de la transcription ne repart plus de zéro en tournant l\'écran</item>
+        <item>Corrigé — Supprimer un appel arrête sa transcription</item>
     </string-array>
     <string name="whatsnew_230_where">Le menu ⋮ d’un enregistrement ▸ Fusionner avec un autre appel</string>
     <string name="merge_progress_title">Fusion</string>

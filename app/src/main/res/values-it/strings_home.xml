@@ -128,6 +128,8 @@
         <item>Corretto — Il debug wireless che attivi tu resta attivo</item>
         <item>Corretto — La registrazione senza Wi-Fi dice cosa è fallito davvero</item>
         <item>Corretto — Il puntino del microfono non resta acceso dopo la chiamata</item>
+        <item>Corretto — L\'avanzamento della trascrizione non riparte più ruotando</item>
+        <item>Corretto — Eliminare una chiamata ferma la sua trascrizione</item>
     </string-array>
     <string name="whatsnew_230_where">Il menu ⋮ di una registrazione ▸ Unisci a un’altra chiamata</string>
     <string name="merge_progress_title">Unione</string>
