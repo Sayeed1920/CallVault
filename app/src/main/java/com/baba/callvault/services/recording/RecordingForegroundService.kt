@@ -112,6 +112,16 @@ class RecordingForegroundService : Service() {
 
     // ── Recording session state ────────────────────────────────────────────────────────
 
+    /**
+     * Set once the service has begun stopping, so nothing re-posts the notification it is removing.
+     *
+     * Without it, the stop path's own `currentState = Standby` re-posted "Call in progress — Press to
+     * start recording" for a moment at the end of every recording, and a failed start's `finally`
+     * re-promoted a service that had already called stopSelf (issue #31). Cleared by the next command.
+     */
+    @Volatile
+    private var isShuttingDown = false
+
     /** The current state of the service. */
     @Volatile
     private var currentState: RecordingServiceState = RecordingServiceState.Standby(null)
@@ -236,9 +246,27 @@ class RecordingForegroundService : Service() {
             }
         }
 
+        // A new command means this instance is in use again, even if it had started to stop.
+        isShuttingDown = false
+
         // Quickly show a notification to satisfy Android's foreground service requirements,
         // as starting/waiting for the privileged daemon can take long enough for the OS to kill the service.
-        updateNotification()
+        // It describes the state this command is about to enter, not the one the service is in: a
+        // freshly started service is in Standby, and posting that first flashed "Press to start
+        // recording" on every automatically recorded call (issue #31). See [RecordingNoticePolicy].
+        val isStartRequest = action == ACTION_START_RECORDING || action == ACTION_MANUAL_START
+        val voipCall = isStartRequest && isVoipCallInProgress()
+        val opening = RecordingNoticePolicy.opening(
+            isStartRequest = isStartRequest,
+            hasSession = hasSession || isCurrentlyRecording,
+            hasMetadata = currentMeta != null,
+            isVoipCall = voipCall,
+        )
+        val openingState = currentMeta
+            ?.takeIf { opening == RecordingNoticePolicy.Opening.PREPARING }
+            ?.let { RecordingServiceState.Starting(it) }
+            ?: currentState
+        startForegroundWithType(notificationHelper.getNotification(openingState))
 
         when (action) {
             ACTION_START_RECORDING, ACTION_MANUAL_START -> {
@@ -254,7 +282,7 @@ class RecordingForegroundService : Service() {
                 // file became an error notification — while the VoIP recording itself was perfectly fine.
                 // Checked here rather than at OFFHOOK because the telephony state arrives ~230 ms BEFORE
                 // the VoIP call is detected, so there is nothing to see yet at that point.
-                if (isVoipCallInProgress()) {
+                if (voipCall) {
                     AppLogger.i(TAG, "Start request ignored: VoIP call, already handled by the VoIP recorder")
                     return START_NOT_STICKY
                 }
@@ -439,6 +467,9 @@ class RecordingForegroundService : Service() {
      * removes the foreground notification, and stops the service.
      */
     private fun stopRecordingSessionAndService() {
+        // First, so no state change from here on re-posts the notification this is about to remove.
+        // The finished recording keeps showing as it was until the notification goes.
+        isShuttingDown = true
         // The timeline belongs to the call that just ended; leaving it running would date the next
         // call's marks from this one's start.
         recordingClock.reset()
@@ -707,6 +738,9 @@ class RecordingForegroundService : Service() {
      * Updates the foreground service notification based on the current state (Recording or Standby).
      */
     private fun updateNotification() {
+        // Stopping: the notification is on its way out, and posting it again would flash a state the
+        // user has no use for — or re-promote a service that has already stopped itself.
+        if (isShuttingDown) return
         val notification = notificationHelper.getNotification(currentState)
         startForegroundWithType(notification)
     }
