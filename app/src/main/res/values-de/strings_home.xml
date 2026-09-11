@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Anrufe, die ein Gespräch waren, können eine Aufnahme sein</string>
     <string-array name="whatsnew_230_items">
         <item>Neu — Anrufe eines Gesprächs zu einer Aufnahme zusammenführen</item>
+        <item>Neu — Die Statusbenachrichtigung lässt sich in den Einstellungen ausblenden</item>
         <item>Behoben — Drehen des Telefons behält deine Position</item>
         <item>Behoben — Kein Knistern mehr in Aufnahmen</item>
         <item>Behoben — Eine Aufnahme, die nicht startet, sagt es jetzt</item>

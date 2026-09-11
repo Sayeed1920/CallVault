@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Chiamate che erano una sola conversazione possono essere una sola registrazione</string>
     <string-array name="whatsnew_230_items">
         <item>Nuovo — Unisci in una registrazione le chiamate di una stessa conversazione</item>
+        <item>Novità — La notifica di stato si può nascondere nelle Impostazioni</item>
         <item>Corretto — Ruotare il telefono mantiene il tuo punto</item>
         <item>Corretto — Niente più crepitio nelle registrazioni</item>
         <item>Corretto — Una registrazione che non parte ora lo dice</item>

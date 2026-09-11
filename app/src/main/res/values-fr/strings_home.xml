@@ -118,6 +118,7 @@
     <string name="whatsnew_230_title">Des appels qui étaient une seule conversation peuvent être un seul enregistrement</string>
     <string-array name="whatsnew_230_items">
         <item>Nouveau — Fusionner en un enregistrement les appels d\'une même conversation</item>
+        <item>Nouveau — La notification d\'état peut être masquée dans les Paramètres</item>
         <item>Corrigé — Tourner le téléphone conserve votre place</item>
         <item>Corrigé — Plus de grésillement dans les enregistrements</item>
         <item>Corrigé — Un enregistrement qui ne démarre pas le signale</item>

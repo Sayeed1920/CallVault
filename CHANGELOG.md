@@ -27,6 +27,12 @@ All notable changes to CallVault are documented here. The format is based on
   *Settings ▸ Storage ▸ Keep the original calls* keeps them on the phone as well; un-merging works
   the same either way.
 
+- **The "Ready to record calls" notification can be hidden.** *Settings ▸ General ▸ Visual ▸ Status
+  notification* opens Android's own switch for that one notification. It is always there because keeping
+  the recorder ready is a foreground service, which Android requires to show a notification — so rather
+  than stopping the recorder (and making calls start late), this hides the notification and leaves
+  recording exactly as it was. Requested by mirror176 in #31.
+
 ### Changed
 
 - **The first-run notice no longer holds you back with a timer.** Continue used to stay disabled for

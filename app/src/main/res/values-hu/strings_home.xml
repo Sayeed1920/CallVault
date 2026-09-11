@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">Ami egy beszélgetés volt, egyetlen felvétel is lehet</string>
     <string-array name="whatsnew_230_items">
         <item>Új — Egy beszélgetés hívásai egyetlen felvétellé fűzhetők</item>
+        <item>Új — Az állapotértesítés elrejthető a Beállításokban</item>
         <item>Javítva — A telefon elforgatása megtartja a helyed</item>
         <item>Javítva — Nincs több recsegés a felvételekben</item>
         <item>Javítva — Az el sem induló felvétel most szól róla</item>

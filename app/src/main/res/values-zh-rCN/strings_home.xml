@@ -117,6 +117,7 @@
     <string name="whatsnew_230_title">本就是一次对话的通话，可以合成一条录音</string>
     <string-array name="whatsnew_230_items">
         <item>新增 — 将同一次谈话的多通来电合并为一条录音</item>
+        <item>新增 — 可在设置中隐藏状态通知</item>
         <item>修复 — 旋转手机不再丢失当前位置</item>
         <item>修复 — 录音不再有杂音</item>
         <item>修复 — 录音未真正开始时会明确提示</item>
