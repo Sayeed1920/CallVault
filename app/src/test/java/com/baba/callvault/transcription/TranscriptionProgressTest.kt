@@ -43,9 +43,20 @@ class TranscriptionProgressTest {
     }
 
     @Test
-    fun `is well under way by the time it was expected to finish`() {
+    fun `reads about ninety percent when the estimate says it is done`() {
+        // Issue #33. The old curve read 75% at the estimated finish, so on a phone whose estimate is
+        // calibrated the run ended while the bar still said three quarters and then jumped to the
+        // end — a quarter of the bar that was never used.
         val shown = display(reported = 0, elapsed = 60_000, estimated = 60_000)
-        assertTrue("only reached $shown", shown in 60..85)
+        assertTrue("reached $shown at the estimated finish", shown in 88..91)
+    }
+
+    @Test
+    fun `tracks the clock before the estimate instead of racing ahead`() {
+        // Half the expected time has passed, so about half of the bar before the finishing stretch.
+        // Racing ahead would only move the stall to the end, which is the complaint.
+        val shown = display(reported = 0, elapsed = 30_000, estimated = 60_000)
+        assertTrue("read $shown at half the estimate", shown in 40..48)
     }
 
     @Test

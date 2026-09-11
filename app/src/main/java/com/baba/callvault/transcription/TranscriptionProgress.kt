@@ -46,19 +46,24 @@ object TranscriptionProgress {
     private const val STARTED = 1
 
     /**
-     * How sharply the prediction bends.
+     * Where the prediction stands at the moment the estimate says the run should be done.
      *
-     * The first attempt capped the prediction a fixed thirty points ahead of the last confirmed
-     * anchor. That traded a figure stuck at 0 for one stuck at 30 — the same complaint, moved along
-     * the bar — because whisper's first anchor on a short call does not arrive until a third of the
-     * way through.
-     *
-     * A curve instead of a cap. It rises quickly at first and then ever more slowly, so it is always
-     * moving and never arrives: at the estimated time it reads about three quarters, at twice that
-     * about nine tenths, and it keeps creeping after that. Chosen at 1.6 so the early motion is
-     * visible without racing far ahead of the work.
+     * The first curve here was asymptotic from the start and read **75%** at the estimated finish.
+     * On a phone whose estimate is calibrated — which is every phone after its first run — the job
+     * therefore ended while the bar still said three quarters, stalled on the flattening curve from
+     * about 67%, and then jumped to the end: a quarter of the bar that was never used (mirror176,
+     * issue #33). Up to the estimate the figure now simply follows the clock, reaching this value.
      */
-    private const val SHAPE = 1.6
+    private const val AT_ESTIMATE = 90
+
+    /**
+     * How quickly an overrunning run creeps from [AT_ESTIMATE] towards [PREDICTION_CEILING].
+     *
+     * Past the estimate the figure keeps moving but never arrives: about 94% at twice the estimate,
+     * and still short of the ceiling after that. A fixed cap is what this replaced once already — a
+     * figure stuck at one number reads as a hang.
+     */
+    private const val CREEP = 1.5
 
     /**
      * What to display, given what whisper last said and how the clock is going.
@@ -81,13 +86,18 @@ object TranscriptionProgress {
         // A finished run is the one case that may show 100.
         if (anchor >= 100) return 100
 
-        // Asymptotic, so it always moves and never arrives. An anchor from whisper can still jump
-        // it forward — the curve is a floor for motion, not a substitute for the truth.
+        // Follows the clock up to the estimate, then creeps and never arrives. An anchor from whisper
+        // can still jump it forward — the prediction is a floor for motion, not a substitute for the truth.
         val predicted = when {
             estimatedMs <= 0L -> 0
             else -> {
                 val ratio = elapsedMs.toDouble() / estimatedMs.toDouble()
-                (PREDICTION_CEILING * (1 - exp(-ratio * SHAPE))).toInt()
+                if (ratio <= 1.0) {
+                    (AT_ESTIMATE * ratio).toInt()
+                } else {
+                    val headroom = PREDICTION_CEILING - AT_ESTIMATE
+                    AT_ESTIMATE + (headroom * (1 - exp(-(ratio - 1.0) * CREEP))).toInt()
+                }
             }
         }
 
