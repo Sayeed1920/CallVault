@@ -252,6 +252,32 @@ fun CvSecondaryButton(
     }
 }
 
+/**
+ * Full-width destructive action button, red, for an action that removes something that exists — the same height and
+ * shape as [CvPrimaryButton]. The colours are stated rather than left to M3's defaults, which render in this app's
+ * coral rather than a clear red.
+ */
+@Composable
+fun CvDestructiveButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp),
+        shape = MaterialTheme.shapes.medium,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.error,
+            contentColor = MaterialTheme.colorScheme.onError,
+        ),
+    ) {
+        Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
 enum class CvTone {
     Success,
     Warning,

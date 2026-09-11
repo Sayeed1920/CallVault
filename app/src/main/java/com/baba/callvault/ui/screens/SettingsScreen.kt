@@ -118,6 +118,7 @@ import com.baba.callvault.system.takePersistableFolderPermission
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.baba.callvault.ui.common.ContactSelectionDialog
 import com.baba.callvault.ui.common.CvCard
+import com.baba.callvault.ui.common.CvDestructiveButton
 import com.baba.callvault.ui.common.CvPrimaryButton
 import com.baba.callvault.ui.common.CvScaffold
 import com.baba.callvault.ui.common.CvSecondaryButton
@@ -1913,13 +1914,14 @@ private fun BugReportSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // The Cv pair share one height and shape; a plain Button next to CvSecondaryButton sat shorter.
+                    // Both teal: two equal ways to get the same report out. Cv buttons, because a plain Button
+                    // is shorter than they are and the row sat uneven.
                     CvPrimaryButton(
                         text = stringResource(R.string.settings_bugreport_share),
                         onClick = onShareLogs,
                         modifier = Modifier.weight(1f),
                     )
-                    CvSecondaryButton(
+                    CvPrimaryButton(
                         text = stringResource(R.string.settings_bugreport_save),
                         onClick = onSaveLogs,
                         modifier = Modifier.weight(1f),
@@ -1944,7 +1946,9 @@ private fun BugReportSection(
                 onClick = { showLogViewer = true }
             )
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                CvSecondaryButton(
+                // Red: this row only exists while there is a log or journal on disk, so the button always
+                // removes something real.
+                CvDestructiveButton(
                     text = stringResource(R.string.settings_debug_log_delete),
                     onClick = { confirmClearLog = true },
                     modifier = Modifier.fillMaxWidth(),
