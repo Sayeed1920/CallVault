@@ -86,6 +86,40 @@ Reference: <https://developer.android.com/privacy-and-security/local-network-per
 
 ---
 
+## 🔵 #30 follow-up: a setting to stop CallVault managing Wireless debugging
+
+Asked for by mirror176 in #30 (2026-09-10). Agreed by the maintainer 2026-09-11, and promised in the
+issue.
+
+**What 2.3.0 already does:** CallVault only turns Wireless debugging off if CallVault turned it on
+(`WirelessDebuggingPolicy.mayRelease`, pref `wd_enabled_by_us`). A switch the user flips is left alone.
+
+**The ask:**
+
+1. **An on/off setting for that automation**, in Settings or as a button on the home screen. With it
+   off, CallVault leaves Wireless debugging to the user.
+2. **Show when CallVault is leaving the switch alone.** Today the only sign is a log line ("Leaving
+   Wireless debugging on … the user switched it on, not us"). He asks for something the user can see.
+
+**Decide before building:**
+
+- **What "off" means.** If CallVault never turns Wireless debugging *on*, a dead recorder cannot come
+  back unless USB debugging or loopback gives it a way in, and the next call can be missed. If it never
+  turns it *off*, it stays on, which leaves a network port open. Likely answer: never turn it off, still
+  allowed to turn it on when needed — not decided.
+- **The transport rule still wins.** Dropping adbd's last transport kills the daemon whatever the
+  setting says.
+- **An old switch already exists:** `wd_disable_when_idle` ("Turn off Wireless debugging when idle",
+  default off, from persistent-server mode, `AppPreferences.kt`). Check whether it is still shown or read
+  before adding a second one; it may be the right home for this.
+- **Standalone mode only.** Shizuku does not use Wireless debugging for us, so the row should say it
+  does nothing there.
+- **One place turns it off:** `AdbShell.releaseWirelessDebugging`. Check the setting there, not at each
+  caller — three callers had to agree before #30 was fixed.
+- **Onboarding:** probably not; this is a power-user setting.
+
+---
+
 ## Current state — 2026-09-11
 
 **Released:** `v2.3.0` (versionCode **20350**), published 2026-09-11. Asset `CallVault.apk`, downloaded back
@@ -97,7 +131,8 @@ above 20350.
 curve, #31 manual-run notification, #34, #35, Save + full-screen log viewer (#28/#29, mirror176), #23
 (Xiaomi discovery), #24 (Shizuku hide mode).
 
-**Backlogged, not in 2.3.0:** #32, #36, #37, #38, F-Droid.
+**Backlogged, not in 2.3.0:** #32, #36, #37, #38, F-Droid, and a setting to switch off CallVault's
+Wireless debugging management (#30 follow-up).
 
 The 2026-08-24 block below is stale — it describes the 2.1.0 stack — and is kept only as history.
 
