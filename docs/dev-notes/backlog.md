@@ -1858,3 +1858,53 @@ package holds the same id, so the shade shows one notification throughout.
 
 Cheaper half-measure if wanted: have the keep-alive show a recording title during carrier recordings, as it
 already does for VoIP. Still two notifications, but they would stop contradicting each other.
+
+## Import an audio file recorded elsewhere (issue #37)
+
+**Requested 2026-09-10 by mirror176.** Bring recordings made by other apps — including ShizuCallRecorder,
+which CallVault is a fork of — into CallVault, so they sit in the same list and can be transcribed.
+
+**What exists today**
+
+- The list is CallVault's own catalog (Room). It is seeded from a folder scan only when it is empty
+  (`RecordingCatalog.importIfEmpty`); after that only CallVault's own recordings are added. A file copied into
+  the recordings folder does **not** appear — seen on the OP9 on 2026-09-11.
+- Names are read from CallVault's filename grammar (`RecordingsRepository.parseName`: date, direction, contact,
+  or `voip-App`). ShizuCallRecorder shares the ancestry, but its current naming has to be checked before relying on it.
+- Transcription decodes whatever Android's `MediaExtractor` can read (`AudioDecoder`, stereo averaged to mono), so
+  an imported file transcribes like any recording once it is in the catalog.
+
+**Shape of the work**
+
+1. A picker (`OpenDocument`, `audio/*`).
+2. Copy the file into the recordings folder under a CallVault-style name, or catalogue it where it is. Copying
+   survives the other app deleting its file; referencing avoids doubling storage.
+3. A catalog row (`RecordingCatalog.recordLocal`), named from the file when it matches the grammar, otherwise from
+   its timestamp and original name; contact, direction and date editable afterwards.
+
+**Open questions:** copy or reference; whether Drive backup and retention should treat imports like recordings;
+and whether a "find recordings in my folder that aren't in the list" action would serve ShizuCallRecorder users more
+cheaply than a picker. Related: #36, which would let an import carry its own metadata.
+
+## Speaker labels for Shizuku recordings (issue #38)
+
+**Requested 2026-09-10 by mirror176.** In Shizuku mode the app says the two sides cannot be told apart in
+transcripts — yet his Shizuku recordings are stereo with the mic on the left and the other party on the right, so the
+sides are already separate in the file.
+
+**Why there are no labels today** (analysed as #28d on 2026-09-05): labels come from `SpeakerTurnDetector`, which
+runs on raw stereo PCM *before* our mono downmix, on the handoff path only. Shizuku cannot host an `AudioRecord`, so
+it records through scrcpy, which hands over **already-encoded** stereo. No PCM reaches us, so no turns are produced.
+
+**The opening:** the stereo survives into the file, and `AudioDecoder` already reads the channel count before
+averaging the channels for whisper. For a two-channel recording, that same decode pass could feed the left and right
+samples to `SpeakerTurnDetector` and store turns the way the handoff path does — labels at transcription time, with no
+change to capture.
+
+**Cautions before building**
+
+- Verify the channel order on a real Shizuku recording rather than trusting the report.
+- Old stereo recordings from before v1.4.4 would be labelled too; check their layout matches before trusting it.
+- The MUST-NOT-UNDO mono-encode rule concerns our own encoder and is not touched by this.
+- His other point — a non-Shizuku line holding both voices under one label — is the labeller's 66% dominance rule and
+  whisper merging turns into one segment, which belongs with #32, not with Shizuku.
