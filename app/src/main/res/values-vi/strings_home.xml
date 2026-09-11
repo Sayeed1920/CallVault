@@ -130,6 +130,9 @@
         <item>Đã sửa — Chấm micro không còn sáng sau cuộc gọi</item>
         <item>Đã sửa — Tiến trình chép lời không còn chạy lại từ đầu khi xoay máy</item>
         <item>Đã sửa — Xoá cuộc gọi sẽ dừng việc chép lời</item>
+        <item>Đã sửa — Không còn thông báo nóng máy khi bạn tự bắt đầu chép lời</item>
+        <item>Đã sửa — Cuộc gọi ghi tự động không còn thoáng hiện nút Ghi</item>
+        <item>Đã sửa — Tiến trình chép lời không còn đứng ở ba phần tư</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ trên bất kỳ bản ghi nào ▸ Gộp với cuộc gọi khác</string>
     <string name="merge_progress_title">Đang gộp</string>

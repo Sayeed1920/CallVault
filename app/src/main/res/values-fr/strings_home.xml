@@ -131,6 +131,9 @@
         <item>Corrigé — Le point du micro ne reste plus allumé après l\'appel</item>
         <item>Corrigé — La progression de la transcription ne repart plus de zéro en tournant l\'écran</item>
         <item>Corrigé — Supprimer un appel arrête sa transcription</item>
+        <item>Corrigé — Plus de notification de chauffe pour une transcription lancée par vous</item>
+        <item>Corrigé — Les appels enregistrés automatiquement n\'affichent plus un bouton Enregistrer</item>
+        <item>Corrigé — La progression de la transcription ne bloque plus aux trois quarts</item>
     </string-array>
     <string name="whatsnew_230_where">Le menu ⋮ d’un enregistrement ▸ Fusionner avec un autre appel</string>
     <string name="merge_progress_title">Fusion</string>

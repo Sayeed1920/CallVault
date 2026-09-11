@@ -130,6 +130,9 @@
         <item>Corregido — El punto del micrófono ya no se queda encendido tras la llamada</item>
         <item>Corregido — El progreso de la transcripción ya no se reinicia al girar</item>
         <item>Corregido — Borrar una llamada detiene su transcripción</item>
+        <item>Corregido — Sin aviso de calentamiento en una transcripción que tú iniciaste</item>
+        <item>Corregido — Las llamadas grabadas automáticamente ya no muestran un botón Grabar</item>
+        <item>Corregido — El progreso de la transcripción ya no se detiene en tres cuartos</item>
     </string-array>
     <string name="whatsnew_230_where">El menú ⋮ de cualquier grabación ▸ Combinar con otra llamada</string>
     <string name="merge_progress_title">Combinando</string>

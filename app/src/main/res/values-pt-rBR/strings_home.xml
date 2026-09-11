@@ -130,6 +130,9 @@
         <item>Corrigido — O ponto do microfone não fica aceso depois da chamada</item>
         <item>Corrigido — O progresso da transcrição não recomeça ao girar</item>
         <item>Corrigido — Excluir uma chamada interrompe sua transcrição</item>
+        <item>Corrigido — Sem aviso de aquecimento em uma transcrição que você iniciou</item>
+        <item>Corrigido — Chamadas gravadas automaticamente não mostram mais o botão Gravar</item>
+        <item>Corrigido — O progresso da transcrição não para mais em três quartos</item>
     </string-array>
     <string name="whatsnew_230_where">O menu ⋮ de qualquer gravação ▸ Mesclar com outra chamada</string>
     <string name="merge_progress_title">Mesclando</string>

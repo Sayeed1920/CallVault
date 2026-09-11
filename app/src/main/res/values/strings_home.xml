@@ -152,6 +152,9 @@
         <item>Fixed — The microphone dot no longer stays on after a call</item>
         <item>Fixed — Transcription progress no longer restarts when you rotate</item>
         <item>Fixed — Deleting a call stops its transcription</item>
+        <item>Fixed — No warm-phone notification for a transcription you started</item>
+        <item>Fixed — Automatically recorded calls no longer flash a Record button</item>
+        <item>Fixed — Transcription progress no longer stalls at three quarters</item>
     </string-array>
     <string name="whatsnew_230_where">The ⋮ menu on any recording ▸ Merge with another call</string>
     <string name="merge_progress_title">Merging</string>

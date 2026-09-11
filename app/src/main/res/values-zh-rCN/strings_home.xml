@@ -130,6 +130,9 @@
         <item>修复 — 通话结束后麦克风指示点不再常亮</item>
         <item>修复 — 旋转手机时转写进度不再从头开始</item>
         <item>修复 — 删除通话会停止它的转写</item>
+        <item>修复 — 你手动开始的转写不再显示手机发热通知</item>
+        <item>修复 — 自动录音的通话不再闪现录音按钮</item>
+        <item>修复 — 转写进度不再卡在四分之三</item>
     </string-array>
     <string name="whatsnew_230_where">任意录音的 ⋮ 菜单 ▸ 与另一通电话合并</string>
     <string name="merge_progress_title">正在合并</string>

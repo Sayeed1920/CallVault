@@ -130,6 +130,9 @@
         <item>Corretto — Il puntino del microfono non resta acceso dopo la chiamata</item>
         <item>Corretto — L\'avanzamento della trascrizione non riparte più ruotando</item>
         <item>Corretto — Eliminare una chiamata ferma la sua trascrizione</item>
+        <item>Corretto — Nessuna notifica di surriscaldamento per una trascrizione avviata da te</item>
+        <item>Corretto — Le chiamate registrate automaticamente non mostrano più il pulsante Registra</item>
+        <item>Corretto — L\'avanzamento della trascrizione non si blocca più ai tre quarti</item>
     </string-array>
     <string name="whatsnew_230_where">Il menu ⋮ di una registrazione ▸ Unisci a un’altra chiamata</string>
     <string name="merge_progress_title">Unione</string>

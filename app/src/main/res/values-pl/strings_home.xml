@@ -130,6 +130,9 @@
         <item>Poprawka — Kropka mikrofonu nie zostaje zapalona po rozmowie</item>
         <item>Poprawka — Postęp transkrypcji nie zaczyna się od nowa po obróceniu</item>
         <item>Poprawka — Usunięcie rozmowy zatrzymuje jej transkrypcję</item>
+        <item>Poprawka — Brak powiadomienia o nagrzewaniu przy transkrypcji uruchomionej przez Ciebie</item>
+        <item>Poprawka — Automatycznie nagrywane rozmowy nie pokazują już przycisku Nagraj</item>
+        <item>Poprawka — Postęp transkrypcji nie zatrzymuje się już na trzech czwartych</item>
     </string-array>
     <string name="whatsnew_230_where">Menu ⋮ dowolnego nagrania ▸ Połącz z innym połączeniem</string>
     <string name="merge_progress_title">Łączenie</string>

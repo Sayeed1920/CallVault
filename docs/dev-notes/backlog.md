@@ -1796,3 +1796,35 @@ If it is ever taken up, the cheap half is worth separating: writing a **sidecar*
 the container work, and would be a day rather than a month.
 
 Full reasoning: `docs/dev-notes/2026-09-11-issues-34-35-36.md`.
+
+## Transcript lines whisper invented from noise (issue #32)
+
+**Reported 2026-09-10 by mirror176**, S20 FE, resilient recording on. A call's transcript opened with a
+line that had **no speaker label**, stamped at 1 s, followed by a real `You:` "hello" at the same 1 s;
+tapping the unlabelled line played nothing audible. On another call a "hello" was stamped on a moment
+that held only the phone's vibration. Analysed from code on 2026-09-11, **not reproduced**.
+
+**What the code says is happening**
+
+- Speaker labels come from our own capture: `SpeakerTurnDetector` classifies every 100 ms as A, B, both
+  or silence (`SILENCE_FLOOR` 300), and `SpeakerLabeller` returns null when nobody was voiced during a
+  line, or when neither side reached 66%. **An unlabelled line is our own audio saying nobody spoke
+  there** — whisper wrote text on noise that the VAD had kept (`speech_pad_ms` 400, threshold 0.4).
+- Both lines land at 1 s because of the #25 fix: `SpeechGapSnap.snapForward` moves any start that falls
+  before the first kept speech onto that speech's start, so the invented line is moved onto the real
+  "hello" and the two share a timestamp.
+- Our whisper settings leave `suppress_nst` at its default (off) and `no_speech_thold` at 0.6.
+  whisper.cpp still has an open request for proper no-speech detection (#1026).
+
+**Options, none decided**
+
+1. Hide (or grey) a line when the captured turns say both sides were silent for its whole span.
+   Language-independent, which matters: an English hallucination word list is already measured-negative
+   in `transcription-quality-ceiling`.
+2. Try `suppress_nst = true` and/or a stricter `no_speech_thold`, measured on the desktop harness first.
+3. Don't snap a line forward onto the start of a line with the same text.
+
+**Risks before choosing:** option 1 would also hide genuinely quiet speech below the silence floor, and a
+Hebrew test can only falsify a quality change, never clear it. Option 1 only works where turns exist —
+the handoff path with resilient recording on. Needs a real affected recording, or a clip with a vibration
+before the first word, run through the whisper-cli harness with the app's exact settings.

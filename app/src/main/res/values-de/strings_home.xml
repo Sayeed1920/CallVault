@@ -130,6 +130,9 @@
         <item>Behoben — Das Mikrofonsymbol bleibt nach dem Anruf nicht mehr an</item>
         <item>Behoben — Der Transkriptionsfortschritt startet beim Drehen nicht mehr neu</item>
         <item>Behoben — Ein gelöschter Anruf beendet seine Transkription</item>
+        <item>Behoben — Keine Wärme-Benachrichtigung mehr bei selbst gestarteter Transkription</item>
+        <item>Behoben — Automatisch aufgenommene Anrufe zeigen nicht mehr kurz eine Aufnahmetaste</item>
+        <item>Behoben — Der Transkriptionsfortschritt bleibt nicht mehr bei drei Vierteln stehen</item>
     </string-array>
     <string name="whatsnew_230_where">Das ⋮-Menü einer Aufnahme ▸ Mit einem anderen Anruf zusammenführen</string>
     <string name="merge_progress_title">Wird zusammengeführt</string>

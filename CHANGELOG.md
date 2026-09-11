@@ -50,6 +50,23 @@ All notable changes to CallVault are documented here. The format is based on
 
 ### Fixed
 
+- **A transcription you started no longer posts a "your phone may get warm" notification.** You had
+  just confirmed a dialog saying the same thing. Automatic transcriptions — nightly, or after a call —
+  still show it, since nothing else tells you they are running. A run you started that is expected to
+  take eight minutes or more keeps it too: without it Android may stop the job at ten minutes, and a
+  stopped transcription starts again from nothing. Reported by mirror176 in #31.
+
+- **Automatically recorded calls no longer flash "Press to start recording".** The recording
+  notification was posted before the service had acted on the call, so for a moment it offered a
+  Record button for a call that was already being recorded — and did the same again as the recording
+  ended. Recording was never affected. Reported by mirror176 in #31.
+
+- **Transcription progress no longer stalls at about three quarters and then jumps to the end.** The
+  figure between whisper's own reports was drawn on a curve that read 75% at the moment the job was
+  expected to finish, so a quarter of the bar was never used. It now follows the clock to about 90% by
+  the expected finish, and keeps creeping if the job runs long. Summaries get the same fix. Reported by
+  mirror176 in #33.
+
 - **Rotating the phone no longer looks like it restarts a transcription.** The percentage is
   predicted between whisper's own reports, and the clock behind that prediction lived on the screen
   showing it — so turning the phone threw it away and the figure fell back to 1% and climbed again.
