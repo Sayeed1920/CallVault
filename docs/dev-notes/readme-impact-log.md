@@ -207,3 +207,19 @@ Shizuku mode.
    message in `892509e`.
 4. Confirm the GPLv3 §7 attribution is present: an in-UI "fork of ShizuCallRecorder" notice plus a repo
    link. That obligation is unchanged and is not optional.
+
+## 2026-09-11 — Shizuku support made visible (maintainer)
+
+The banner pill read **"No Shizuku"** and the GitHub description said **"no root/Shizuku/PC"**, which reads
+as "does not support Shizuku" — the opposite of the truth since Shizuku mode shipped. Changed:
+
+- Banner pill → **"Built-in or Shizuku"** (`docs/screenshots/banner.svg`).
+- GitHub description → "FOSS call recorder for Android, no root or PC — records both sides of a call on
+  its own over built-in ADB, or through Shizuku if you already use it. Fork of ShizuCallRecorder."
+  Topics added: `shizuku`, `call-recorder`, `android`, `adb`.
+- README: a "Works with Shizuku" badge; two side-by-side mode boxes under the tagline (built-in first,
+  marked default); the fork note no longer says "without requiring Shizuku"; "Two ways to run it" now
+  opens with built-in, and its table lists what both modes do before where they differ.
+
+**Still claimed, unchanged:** every ✅/❌ in the comparison table. The only new row — "Nothing to pair, and no
+wireless debugging of CallVault's own" — restates the paragraph that was already there.

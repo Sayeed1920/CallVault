@@ -28,11 +28,11 @@
   <g font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="18" font-weight="600">
     <rect x="304" y="226" width="132" height="34" rx="17" fill="#2DD4BF" fill-opacity="0.14"/>
     <text x="324" y="249" fill="#2DD4BF">No root</text>
-    <rect x="448" y="226" width="148" height="34" rx="17" fill="#2DD4BF" fill-opacity="0.14"/>
-    <text x="468" y="249" fill="#2DD4BF">No Shizuku</text>
-    <rect x="608" y="226" width="92" height="34" rx="17" fill="#2DD4BF" fill-opacity="0.14"/>
-    <text x="628" y="249" fill="#2DD4BF">No PC</text>
-    <rect x="712" y="226" width="84" height="34" rx="17" fill="#FB7185" fill-opacity="0.14"/>
-    <text x="732" y="249" fill="#FB7185">FOSS</text>
+    <rect x="448" y="226" width="226" height="34" rx="17" fill="#2DD4BF" fill-opacity="0.14"/>
+    <text x="468" y="249" fill="#2DD4BF">Built-in or Shizuku</text>
+    <rect x="686" y="226" width="92" height="34" rx="17" fill="#2DD4BF" fill-opacity="0.14"/>
+    <text x="706" y="249" fill="#2DD4BF">No PC</text>
+    <rect x="790" y="226" width="84" height="34" rx="17" fill="#FB7185" fill-opacity="0.14"/>
+    <text x="810" y="249" fill="#FB7185">FOSS</text>
   </g>
 </svg>

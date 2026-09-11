@@ -6,6 +6,7 @@
 [![Downloads](https://img.shields.io/github/downloads/madkongo/CallVault/total?style=for-the-badge&label=Downloads&labelColor=16223A&color=2DD4BF)](https://github.com/madkongo/CallVault/releases)
 [![License](https://img.shields.io/badge/License-GPL%20v3%20%2B%20%C2%A77-FB7185?style=for-the-badge&labelColor=16223A)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-11%2B-2DD4BF?style=for-the-badge&labelColor=16223A&logo=android&logoColor=white)](#requirements)
+[![Shizuku](https://img.shields.io/badge/Works%20with-Shizuku-2DD4BF?style=for-the-badge&labelColor=16223A)](#two-ways-to-run-it)
 
 **Records your calls, transcribes them, and summarises them — all on the phone itself.**
 
@@ -13,9 +14,15 @@ Free, no ads, no accounts. Nothing leaves your phone unless you switch on Drive 
 
 </div>
 
-Recording call audio needs shell-level privilege. CallVault can get it **on its own**, pairing once on the phone itself — or **borrow it from [Shizuku](https://github.com/RikkaApps/Shizuku)** if you already run that. [Compare the two ↓](#two-ways-to-run-it)
+Recording call audio needs shell-level privilege. CallVault gets it one of two ways — pick either in the setup wizard, and switch whenever you like:
 
-> **CallVault is a fork of [ShizuCallRecorder](https://github.com/kitsumed/ShizuCallRecorder)** (Copyright © kitsumed (Med)), re-architected to run **self-contained over embedded ADB**, without requiring Shizuku. It is a modified, independent version — not endorsed by or affiliated with the original author. See [NOTICE.md](./NOTICE.md).
+| **Built-in** (default) | **Shizuku** |
+|---|---|
+| Pairs once, on the phone itself. No other app, no PC. | Already run [Shizuku](https://github.com/RikkaApps/Shizuku)? Nothing to pair — choose it and go. |
+
+[Compare the two ↓](#two-ways-to-run-it)
+
+> **CallVault is a fork of [ShizuCallRecorder](https://github.com/kitsumed/ShizuCallRecorder)** (Copyright © kitsumed (Med)), re-architected to run **self-contained over embedded ADB**, so it no longer needs Shizuku — and still runs through it, as a second mode, if you prefer. It is a modified, independent version — not endorsed by or affiliated with the original author. See [NOTICE.md](./NOTICE.md).
 
 ## What it does
 
@@ -90,15 +97,21 @@ CallVault reaches the network in three places, and nowhere else: **GitHub**, to 
 
 ## Two ways to run it
 
-**Already running Shizuku? CallVault supports it directly.** Choose Shizuku mode and there is nothing to pair, no wireless debugging to switch on, and CallVault starts no debugging of its own — it borrows the privilege Shizuku already holds. Phone calls record, and everything that happens afterwards — transcripts, summaries, search, tags, playback and export — is identical. What differs is capture-side only, and the table says exactly what.
+**Built-in mode is CallVault's own, and the default.** It pairs once, on the phone, and needs no second app at all. It is the default because it can do more, not because Shizuku is an afterthought.
 
-The other mode is CallVault's own: it pairs once, on the phone, and needs no second app at all. It is the default because it can do more, not because Shizuku is an afterthought. The table is the honest difference between the two — switch whenever you like, and any setting a mode couldn't honour comes back when you switch away.
+**Already running Shizuku? CallVault supports it directly.** Choose Shizuku mode and there is nothing to pair, no wireless debugging to switch on, and CallVault starts no debugging of its own — it borrows the privilege Shizuku already holds. Phone calls record, and everything that happens afterwards — transcripts, summaries, search, tags, playback and export — is identical. What differs is capture-side only.
+
+Switch whenever you like; any setting a mode couldn't honour comes back when you switch away. The table is the honest difference between the two.
 
 | | Built-in mode | Shizuku mode |
 |---|:---:|:---:|
+| **In both modes** | | |
+| Phone calls, both sides | ✅ | ✅ |
+| Transcripts, summaries, search, tags, playback and export | ✅ | ✅ |
+| **Where they differ** | | |
 | Works without installing another app | ✅ | ❌ |
+| Nothing to pair, and no wireless debugging of CallVault's own | ❌ | ✅ |
 | Recording works after a reboot, with nothing to do | ✅ | ❌ |
-| Phone calls | ✅ | ✅ |
 | App calls (opt-in) | ✅ | ❌ |
 | Speaker labels | ✅ | ❌ |
 | Keeps recording if Android kills the background process (opt-in) | ✅ | ❌ |
