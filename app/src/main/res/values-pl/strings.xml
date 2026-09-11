@@ -621,4 +621,6 @@
     <string name="general_back">Wstecz</string>
     <string name="export_heading_transcript">Transkrypcja</string>
     <string name="settings_bugreport_preparing">Przygotowywanie raportu debugowania…</string>
+    <string name="settings_status_notification_title">Powiadomienie o stanie</string>
+    <string name="settings_status_notification_description">Pokazuje, że CallVault jest gotowy do nagrywania rozmów. Wyłączenie tylko je ukrywa – nagrywanie działa dalej.</string>
 </resources>

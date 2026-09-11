@@ -618,4 +618,6 @@
     <string name="general_back">返回</string>
     <string name="export_heading_transcript">转写</string>
     <string name="settings_bugreport_preparing">正在准备调试报告…</string>
+    <string name="settings_status_notification_title">状态通知</string>
+    <string name="settings_status_notification_description">表示 CallVault 已准备好录制通话。关闭只会隐藏它，录音照常进行。</string>
 </resources>

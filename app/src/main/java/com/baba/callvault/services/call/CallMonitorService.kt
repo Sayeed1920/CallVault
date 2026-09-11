@@ -8,6 +8,7 @@
 
 package com.baba.callvault.services.call
 
+import com.baba.callvault.services.recording.RecorderStatusChannel
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -92,12 +93,7 @@ class CallMonitorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, getString(R.string.notif_readiness_channel), NotificationManager.IMPORTANCE_MIN).apply {
-                setSound(null, null)
-                setShowBadge(false)
-            },
-        )
+        RecorderStatusChannel.ensure(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -244,7 +240,7 @@ class CallMonitorService : Service() {
         // Shares the SINGLE readiness notification with DaemonKeepAliveService (same channel + id) so this
         // transient post-boot monitor never adds a duplicate "starting up / ready" notification. Detached
         // (not removed) in onDestroy so the permanent keep-alive notification outlives this service.
-        private const val CHANNEL_ID = "recorder_keepalive"
+        private const val CHANNEL_ID = RecorderStatusChannel.ID
         private const val NOTIF_ID = 4720
 
         /** How long after boot the live listener stays registered before the broadcast path takes over. */

@@ -217,13 +217,7 @@ class DaemonKeepAliveService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, getString(R.string.notif_readiness_channel), NotificationManager.IMPORTANCE_MIN).apply {
-                setShowBadge(false)
-                enableVibration(false)
-                setSound(null, null)
-            },
-        )
+        RecorderStatusChannel.ensure(this)
 
         runCatching {
             contentResolver.registerContentObserver(
@@ -513,7 +507,7 @@ class DaemonKeepAliveService : Service() {
 
     companion object {
         private const val TAG = "CV:DaemonKeepAlive"
-        private const val CHANNEL_ID = "recorder_keepalive"
+        private const val CHANNEL_ID = RecorderStatusChannel.ID
 
         /**
          * Sent by the "Ask me" prompt's Record button. Handled here because this service owns the

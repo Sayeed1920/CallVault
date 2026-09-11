@@ -622,4 +622,6 @@
     <string name="general_back">Voltar</string>
     <string name="export_heading_transcript">Transcrição</string>
     <string name="settings_bugreport_preparing">Preparando o relatório de depuração…</string>
+    <string name="settings_status_notification_title">Notificação de status</string>
+    <string name="settings_status_notification_description">Mostra que o CallVault está pronto para gravar chamadas. Desativá-la apenas a oculta — a gravação continua.</string>
 </resources>

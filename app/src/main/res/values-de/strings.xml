@@ -619,4 +619,6 @@
     <string name="general_back">Zurück</string>
     <string name="export_heading_transcript">Transkript</string>
     <string name="settings_bugreport_preparing">Fehlerbericht wird vorbereitet …</string>
+    <string name="settings_status_notification_title">Statusbenachrichtigung</string>
+    <string name="settings_status_notification_description">Zeigt, dass CallVault Anrufe aufnehmen kann. Ausschalten blendet sie nur aus – die Aufnahme funktioniert weiter.</string>
 </resources>

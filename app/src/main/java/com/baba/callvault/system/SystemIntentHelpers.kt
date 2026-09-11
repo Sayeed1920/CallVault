@@ -8,6 +8,7 @@
 
 package com.baba.callvault.system
 
+import com.baba.callvault.services.recording.RecorderStatusChannel
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -108,6 +109,17 @@ fun Context.openAppSettings() {
             data = "package:$packageName".toUri()
         }
     )
+}
+
+/**
+ * Opens Android's settings for the "Ready to record calls" notification alone, where it can be switched
+ * off without stopping the recorder (issue #31). Creates the channel first, because the row can be
+ * tapped before the recorder has ever run. Falls back to App Info on a ROM without the channel page.
+ */
+fun Context.openRecorderStatusNotificationSettings() {
+    RecorderStatusChannel.ensure(this)
+    val opened = runCatching { launchSmartIntent(RecorderStatusChannel.settingsIntent(this)) }.isSuccess
+    if (!opened) openAppSettings()
 }
 
 /**

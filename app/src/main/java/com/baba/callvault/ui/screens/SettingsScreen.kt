@@ -26,6 +26,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import com.baba.callvault.system.openRecorderStatusNotificationSettings
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
@@ -1766,6 +1768,16 @@ private fun VisualSubSection(preferences: AppPreferences, updateTrigger: Int, ac
             label           = stringResource(R.string.settings_vibration_enabled),
             checked         = isVibrationEnabled,
             onCheckedChange = { actions.setVibrationEnabled(it) }
+        )
+        // A link rather than a switch: the notification is required while the recorder is kept warm,
+        // so the only way to hide it without making calls start late is Android's own channel switch.
+        // Mirroring that as a toggle here would show a state Android owns and can change behind it.
+        NavigationRow(
+            icon       = Icons.Filled.NotificationsOff,
+            label      = stringResource(R.string.settings_status_notification_title),
+            value      = "",
+            supporting = stringResource(R.string.settings_status_notification_description),
+            onClick    = { context.openRecorderStatusNotificationSettings() },
         )
     }
 }
