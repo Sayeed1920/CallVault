@@ -1828,3 +1828,30 @@ that held only the phone's vibration. Analysed from code on 2026-09-11, **not re
 Hebrew test can only falsify a quality change, never clear it. Option 1 only works where turns exist —
 the handoff path with resilient recording on. Needs a real affected recording, or a clip with a vibration
 before the first word, run through the whisper-cli harness with the app's exact settings.
+
+## One notification during a recorded call (issue #31 follow-up)
+
+**Found 2026-09-11 by the maintainer on a real call:** a carrier recording shows **two** notifications —
+the recording one and the keep-alive's "Ready to record calls", which is moot while a call is recorded.
+VoIP calls already avoid this: the keep-alive notification itself switches to a recording title.
+
+**Why it isn't simply hidden:** that notification belongs to `DaemonKeepAliveService`, a foreground service,
+and AOSP `NotificationManagerService` raises an app's MIN/NONE foreground notification back to LOW unless the
+user changed the channel. The service also owns VoIP detection and the #30/USB observers, so stopping it is
+not an option either.
+
+**The supported fix:** let `RecordingForegroundService` post under the keep-alive's notification id. AOSP
+`ActiveServices.cancelForegroundNotificationLocked` skips the cancel while another foreground service in the
+package holds the same id, so the shade shows one notification throughout.
+
+**Why it was deferred (maintainer: only if very simple and low risk):**
+- While a carrier recording is active the keep-alive must not re-post (watchdog flips, VoIP detector callbacks,
+  USB refresh) or it replaces Pause/Mark/Stop — the only in-call controls — with "Ready".
+- When the recording ends the notification is *not* cancelled (shared id), so the keep-alive must re-post
+  "Ready" at the right moment or "Recording call" lingers after hang-up.
+- Needs a shared "carrier recording active" signal (none exists; `isCurrentlyRecording` is private) and a
+  refresh trigger on start and end.
+- Every change must be checked on a real call, including a failed start and a call that ends mid-startup.
+
+Cheaper half-measure if wanted: have the keep-alive show a recording title during carrier recordings, as it
+already does for VoIP. Still two notifications, but they would stop contradicting each other.
