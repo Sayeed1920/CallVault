@@ -8,6 +8,7 @@
 
 package com.baba.callvault.services.call
 
+import com.baba.callvault.services.recording.SharedStatusNotice
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -102,7 +103,12 @@ class CallMonitorService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val startedForeground = runCatching {
-            startForeground(NOTIF_ID, buildNotification(RecorderConnection.isConnected), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            // Same shared notification as the keep-alive: if a call is being recorded, keep showing it.
+            startForeground(
+                NOTIF_ID,
+                SharedStatusNotice.contentForKeepAlive(buildNotification(RecorderConnection.isConnected)),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
         }.onFailure { AppLogger.e(TAG, "startForeground failed", it) }.isSuccess
         // A foreground service that can't enter the foreground will be ANR'd/killed on modern Android —
         // bail out cleanly rather than run illegally.
@@ -128,6 +134,8 @@ class CallMonitorService : Service() {
     }
 
     private fun updateNotification(ready: Boolean) {
+        // A recorded call owns the shared notification; "Ready" would replace its controls. See [SharedStatusNotice].
+        if (SharedStatusNotice.isHeldByRecording) return
         runCatching {
             getSystemService(NotificationManager::class.java).notify(NOTIF_ID, buildNotification(ready))
         }.onFailure { AppLogger.w(TAG, "Failed to update monitor notification: ${it.message}") }
@@ -245,7 +253,7 @@ class CallMonitorService : Service() {
         // transient post-boot monitor never adds a duplicate "starting up / ready" notification. Detached
         // (not removed) in onDestroy so the permanent keep-alive notification outlives this service.
         private const val CHANNEL_ID = "recorder_keepalive"
-        private const val NOTIF_ID = 4720
+        private const val NOTIF_ID = SharedStatusNotice.ID
 
         /** How long after boot the live listener stays registered before the broadcast path takes over. */
         private const val WINDOW_MS = 10 * 60 * 1000L

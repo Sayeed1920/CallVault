@@ -122,6 +122,15 @@ class RecordingForegroundService : Service() {
     @Volatile
     private var isShuttingDown = false
 
+    /**
+     * Whether this service's notification takes the place of "Ready to record calls" ([SharedStatusNotice]),
+     * so a recorded call shows one notification instead of two.
+     *
+     * Not for a start ignored because the VoIP recorder already has the call: that notification is the
+     * keep-alive's own VoIP recording notice, and replacing it with a carrier prompt would hide it.
+     */
+    private var sharesStatusNotice = true
+
     /** The current state of the service. */
     @Volatile
     private var currentState: RecordingServiceState = RecordingServiceState.Standby(null)
@@ -256,6 +265,7 @@ class RecordingForegroundService : Service() {
         // recording" on every automatically recorded call (issue #31). See [RecordingNoticePolicy].
         val isStartRequest = action == ACTION_START_RECORDING || action == ACTION_MANUAL_START
         val voipCall = isStartRequest && isVoipCallInProgress()
+        if (isStartRequest) sharesStatusNotice = !voipCall
         val opening = RecordingNoticePolicy.opening(
             isStartRequest = isStartRequest,
             hasSession = hasSession || isCurrentlyRecording,
@@ -477,6 +487,8 @@ class RecordingForegroundService : Service() {
         if (activeSession == null) {
             AppLogger.d(TAG, "No active session, exiting standby state, removing foreground notification and stopping service.")
             stopForeground(STOP_FOREGROUND_REMOVE)
+            // Hands the shared notification back, so "Ready to record calls" replaces the finished call.
+            SharedStatusNotice.release()
             stopSelf() // Stop the service since the session is over
             return
         }
@@ -556,6 +568,8 @@ class RecordingForegroundService : Service() {
         currentState = RecordingServiceState.Standby(null)
         AppLogger.i(TAG, "The recording session has been stopped and resources have been released. Stopping foreground service. Goodbye >3")
         stopForeground(STOP_FOREGROUND_REMOVE)
+            // Hands the shared notification back, so "Ready to record calls" replaces the finished call.
+            SharedStatusNotice.release()
         stopSelf() // Stop the service since the session is over
     }
 
@@ -754,11 +768,20 @@ class RecordingForegroundService : Service() {
      * @param notification The notification to display while in the foreground.
      */
     private fun startForegroundWithType(notification: Notification) {
+        // Claimed before posting, so the keep-alive — on the same thread — never sees the id as free and
+        // re-posts "Ready" over it. A notice that does not share gives the id back instead.
+        val notificationId = if (sharesStatusNotice) {
+            SharedStatusNotice.claim(notification)
+            SharedStatusNotice.ID
+        } else {
+            SharedStatusNotice.release()
+            RecordingNotificationHelper.SERVICE_NOTIFICATION_ID
+        }
         if (Build.VERSION.SDK_INT >= 34) {
             // specialUse is the best type to use from Android 14+ for our call recording use-cases.
             // See: https://developer.android.com/about/versions/14/changes/fgs-types-required#special-use
             startForeground(
-                RecordingNotificationHelper.SERVICE_NOTIFICATION_ID,
+                notificationId,
                 notification,
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             )
@@ -766,7 +789,7 @@ class RecordingForegroundService : Service() {
             // Android 11-13 uses the not yet restricted Data Sync type.
             // Starting Android 15, dataSync type is restricted to a total of 6 hours runtime in a specific time period.
             startForeground(
-                RecordingNotificationHelper.SERVICE_NOTIFICATION_ID,
+                notificationId,
                 notification,
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             )

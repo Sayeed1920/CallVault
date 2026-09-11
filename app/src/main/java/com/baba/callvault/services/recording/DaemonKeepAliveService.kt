@@ -245,7 +245,13 @@ class DaemonKeepAliveService : Service() {
         if (standDownIfShizuku()) return START_NOT_STICKY
 
         val startedForeground = runCatching {
-            startForeground(NOTIF_ID, buildNotification(RecorderConnection.isConnected), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            // While a call is recorded the shared notification shows the recording, with its controls;
+            // starting here must not swap that for "Ready". See [SharedStatusNotice].
+            startForeground(
+                NOTIF_ID,
+                SharedStatusNotice.contentForKeepAlive(buildNotification(RecorderConnection.isConnected)),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
         }.onFailure { AppLogger.e(TAG, "keep-alive startForeground failed", it) }.isSuccess
         if (!startedForeground) {
             stopSelf()
@@ -276,6 +282,9 @@ class DaemonKeepAliveService : Service() {
         // Recover the INSTANT the daemon dies (binder linkToDeath) — don't wait for the next poll.
         // On a real incoming call this is what races (and hopefully beats) the call after a long idle.
         RecorderConnection.onDeath = { onDaemonDiedImmediate() }
+        // A recorded call has let go of the shared notification. Android does not cancel an id this service
+        // still holds, so the recording's content would stay up after the call unless "Ready" goes back.
+        SharedStatusNotice.onReleased = { watchdogHandler.post { updateNotification(isDaemonAlive()) } }
         // VoIP detection lives here rather than in its own component: this service is already a
         // permanent foreground presence, so watching for VoIP calls costs no extra process and no
         // second notification, and VoIP gets exactly the same lifetime as carrier recording.
@@ -436,6 +445,9 @@ class DaemonKeepAliveService : Service() {
     /** Tells the user CallVault undid their Wireless-debugging change, and why. Dismissible, silent. */
 
     private fun updateNotification(ready: Boolean) {
+        // A recorded call owns the notification — posting now would replace Pause, Mark and Stop, the only
+        // controls during a call, with "Ready to record calls". The release puts this back afterwards.
+        if (SharedStatusNotice.isHeldByRecording) return
         runCatching {
             getSystemService(NotificationManager::class.java).notify(NOTIF_ID, buildNotification(ready))
         }
@@ -498,6 +510,7 @@ class DaemonKeepAliveService : Service() {
         runCatching { voipDetector.stop() }
         watchdogHandler.removeCallbacks(watchdog)
         RecorderConnection.onDeath = null
+        SharedStatusNotice.onReleased = null
         super.onDestroy()
     }
 
@@ -560,7 +573,7 @@ class DaemonKeepAliveService : Service() {
         val isRecoveryStuck: Boolean get() = stuckRecovery.isStuck
 
         /** Low-importance channel for one-off explanations, kept apart from the permanent status note. */
-        private const val NOTIF_ID = 4720
+        private const val NOTIF_ID = SharedStatusNotice.ID
 
         /** How often the watchdog checks the daemon is alive. Cheap (a binder ping). */
         private const val WATCHDOG_INTERVAL_MS = 60_000L
