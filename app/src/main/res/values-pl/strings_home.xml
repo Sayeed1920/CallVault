@@ -117,7 +117,6 @@
     <string name="whatsnew_230_title">Rozmowy, które były jedną rozmową, mogą być jednym nagraniem</string>
     <string-array name="whatsnew_230_items">
         <item>Nowość — Połącz w jedno nagranie rozmowy z jednej konwersacji</item>
-        <item>Nowość — Powiadomienie o stanie można ukryć w Ustawieniach</item>
         <item>Poprawka — Obrót telefonu zachowuje twoje miejsce</item>
         <item>Poprawka — Koniec z trzaskami w nagraniach</item>
         <item>Poprawka — Nagranie, które się nie zaczyna, teraz to zgłasza</item>

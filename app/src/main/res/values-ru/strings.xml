@@ -621,6 +621,4 @@
     <string name="general_back">Назад</string>
     <string name="export_heading_transcript">Расшифровка</string>
     <string name="settings_bugreport_preparing">Подготовка отчёта об отладке…</string>
-    <string name="settings_status_notification_title">Уведомление о состоянии</string>
-    <string name="settings_status_notification_description">Показывает, что CallVault готов записывать звонки. Отключение только скрывает его — запись продолжает работать.</string>
 </resources>

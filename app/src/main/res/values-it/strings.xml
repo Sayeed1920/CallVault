@@ -619,6 +619,4 @@
     <string name="general_back">Indietro</string>
     <string name="export_heading_transcript">Trascrizione</string>
     <string name="settings_bugreport_preparing">Preparazione del report di debug…</string>
-    <string name="settings_status_notification_title">Notifica di stato</string>
-    <string name="settings_status_notification_description">Indica che CallVault è pronto a registrare le chiamate. Disattivarla la nasconde soltanto: la registrazione continua.</string>
 </resources>

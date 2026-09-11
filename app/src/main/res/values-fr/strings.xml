@@ -619,6 +619,4 @@
     <string name="general_back">Retour</string>
     <string name="export_heading_transcript">Transcription</string>
     <string name="settings_bugreport_preparing">Préparation du rapport de débogage…</string>
-    <string name="settings_status_notification_title">Notification d\'état</string>
-    <string name="settings_status_notification_description">Indique que CallVault est prêt à enregistrer les appels. La désactiver ne fait que la masquer : l\'enregistrement continue.</string>
 </resources>

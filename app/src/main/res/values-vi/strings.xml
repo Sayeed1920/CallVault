@@ -618,6 +618,4 @@
     <string name="general_back">Quay lại</string>
     <string name="export_heading_transcript">Bản ghi lời</string>
     <string name="settings_bugreport_preparing">Đang chuẩn bị báo cáo gỡ lỗi…</string>
-    <string name="settings_status_notification_title">Thông báo trạng thái</string>
-    <string name="settings_status_notification_description">Cho biết CallVault đã sẵn sàng ghi âm cuộc gọi. Tắt chỉ ẩn thông báo — việc ghi âm vẫn hoạt động.</string>
 </resources>

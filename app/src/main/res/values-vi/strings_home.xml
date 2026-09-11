@@ -117,7 +117,6 @@
     <string name="whatsnew_230_title">Những cuộc gọi vốn là một cuộc trò chuyện có thể thành một bản ghi</string>
     <string-array name="whatsnew_230_items">
         <item>Mới — Ghép các cuộc gọi của cùng một cuộc trò chuyện thành một bản ghi</item>
-        <item>Mới — Có thể ẩn thông báo trạng thái trong Cài đặt</item>
         <item>Đã sửa — Xoay điện thoại giữ nguyên vị trí đang xem</item>
         <item>Đã sửa — Không còn tiếng rè trong bản ghi</item>
         <item>Đã sửa — Bản ghi không khởi động được nay sẽ báo</item>

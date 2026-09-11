@@ -117,7 +117,6 @@
     <string name="whatsnew_230_title">Las llamadas que fueron una conversación pueden ser una grabación</string>
     <string-array name="whatsnew_230_items">
         <item>Nuevo — Combina en una grabación las llamadas de una misma conversación</item>
-        <item>Nuevo — La notificación de estado se puede ocultar en Ajustes</item>
         <item>Corregido — Girar el teléfono mantiene tu posición</item>
         <item>Corregido — Se acabó el chisporroteo en las grabaciones</item>
         <item>Corregido — Una grabación que no arranca ahora lo dice</item>

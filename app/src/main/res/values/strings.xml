@@ -824,6 +824,4 @@
     <string name="voip_recording_held">Held for a phone call. This recording will continue when you return.</string>
     <string name="general_back">Back</string>
     <string name="export_heading_transcript">Transcript</string>
-    <string name="settings_status_notification_title">Status notification</string>
-    <string name="settings_status_notification_description">Shows that CallVault is ready to record calls. Turning it off only hides it — recording keeps working.</string>
 </resources>

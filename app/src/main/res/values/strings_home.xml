@@ -139,7 +139,6 @@
     <string name="whatsnew_230_title">Calls that were one conversation can be one recording</string>
     <string-array name="whatsnew_230_items">
         <item>New — Merge calls that were one conversation into one recording</item>
-        <item>New — The status notification can be hidden in Settings</item>
         <item>Fixed — Rotating the phone keeps your place</item>
         <item>Fixed — No more crackle in recordings</item>
         <item>Fixed — A recording that fails to start now says so</item>

@@ -619,6 +619,4 @@
     <string name="general_back">Vissza</string>
     <string name="export_heading_transcript">Átirat</string>
     <string name="settings_bugreport_preparing">Hibakeresési jelentés előkészítése…</string>
-    <string name="settings_status_notification_title">Állapotértesítés</string>
-    <string name="settings_status_notification_description">Jelzi, hogy a CallVault kész a hívások rögzítésére. Kikapcsolva csak elrejti – a rögzítés tovább működik.</string>
 </resources>
