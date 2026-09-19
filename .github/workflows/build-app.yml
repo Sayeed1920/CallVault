@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          submodules: recursive
       
       # Set up Java 17 (required for Android Gradle Plugin 8.x)
       - name: Setup Java 17
